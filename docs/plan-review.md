@@ -402,3 +402,257 @@ jedes Feature nur noch ein `docker compose pull`.
    und Preise gegen die aktuellen Anbieterseiten verifizieren.
 7. **Scope-Entscheidung** treffen: MCP in v1 oder v1.1?
 8. Erst dann Phase 1 — und zwar als vertikaler Schnitt inklusive Docker/CI/NAS.
+
+---
+
+# Nachprüfung der eingearbeiteten Korrekturen
+
+> Geprüft gegen Commit `8550677` („docs: incorporate plan review — PRD v1.2,
+> TechDesign v1.1"), Stand 2026-08-23. Basis: PRD v1.2, TechDesign v1.1,
+> `AGENTS.md`, `agent_docs/*`, `MEMORY.md`, `REVIEW-CHECKLIST.md`, Skills.
+
+## N.0 Ergebnis
+
+**28 von 30 Punkten sind sauber erledigt** — mehrere davon besser als
+vorgeschlagen (die Verlegung von Auto-Reschedule in eine reine Lese-Projektion
+löst B1, B5 und die ICS-Aktualität in einem Zug).
+
+**Ein Punkt ist offen und hat sich durch den Fix vergrößert: B7 (ICS-UIDs).**
+Die Kombination aus „UID enthält das geplante Datum" (B7-Fix) und „`plannedFor`
+driftet täglich" (B5-Fix) erzeugt ein Problem, das vorher nicht existierte.
+
+**Zwei Punkte sind neu entstanden**, beide im Datenmodell der Scheduling-Fixes
+(`rescheduleCount` nicht berechenbar; `originalDueAt` ignoriert `preferredDays`).
+
+Nichts davon zwingt zu Umbau — es sind Präzisierungen in zwei Absätzen des
+TechDesign, bevor `scheduler.ts` und `ics.ts` geschrieben werden.
+
+---
+
+## N.1 Offen: B7 — die ICS-UID-Strategie trägt nicht
+
+Der ICS-Teil ist der einzige Fix, der die eigentliche Frage nicht beantwortet.
+Vier zusammenhängende Probleme:
+
+### N.1.1 UIDs churnen täglich, nicht nur bei Snooze
+
+TechDesign §4.4 setzt `UID = {scheduleId}-{plannedDateISO}@aquaman` und
+begründet die Instabilität so:
+
+> *„stabil über Snooze hinweg? **Nein:** Snooze ändert `plannedFor` → alte UID
+> entfällt, neue entsteht. Google behandelt verschwundene UID als gelöschtes
+> Event → sauberer Effekt: Event wandert."*
+
+Das übersieht den B5-Fix. Auto-Reschedule ist jetzt eine **Projektion auf
+`today`** — `plannedFor` ändert sich also nicht nur bei Snooze, sondern **an
+jedem Tag, an dem eine Aufgabe offen bleibt**. Konkret, Wasserwechsel mit
+`preferredDays = {Sa, So}`, überfällig seit Montag:
+
+| Tag | `plannedFor` | UID |
+|---|---|---|
+| Mo | Sa 29.08. | `sched1-2026-08-29@aquaman` |
+| Sa 29.08. (nicht erledigt) | So 30.08. | `sched1-2026-08-30@aquaman` ← neu |
+| So 30.08. (nicht erledigt) | Sa 05.09. | `sched1-2026-09-05@aquaman` ← neu |
+
+Bei `preferredDays = alle Tage` passiert das **täglich**. Aus Googles Sicht ist
+das jedes Mal *Löschen + Neuanlegen*, kein Verschieben:
+
+- Eine vom Nutzer am Event gesetzte Erinnerung ist weg
+- Googles ICS-Sync ist nicht transaktional — im Refresh-Fenster sind kurzzeitig
+  beide Events sichtbar; genau das Duplikat, das die DoD ausschließt
+- Der Effekt trifft die Stress-Woche, also exakt den Fall, für den das Feature
+  gebaut wurde
+
+### N.1.2 `SEQUENCE` kann nie feuern
+
+§4.4 setzt `SEQUENCE = scheduleVersion`. `SEQUENCE` ist der iCalendar-Mechanismus
+für *„dieses Event (gleiche UID) hat sich geändert"*. Unter dem aktuellen Schema
+gibt es diesen Fall nicht: ändert sich das Datum, ändert sich die UID; ändert
+sich das Datum nicht, ändert sich nichts. Zusätzlich wird `scheduleVersion` nur
+bei Zeilenänderungen hochgezählt — die Reschedule-Drift ist aber gerade *kein*
+Write. `SEQUENCE` ist damit tote Konfiguration.
+
+### N.1.3 „byte-identisch" widerspricht `DTSTAMP = now`
+
+Im selben Abschnitt stehen:
+
+> `DTSTAMP = now` (UTC) … → **byte-identisch bei gleichen Daten** (Unit-Test!)
+
+`DTSTAMP` ändert sich per Definition bei jedem Request. Der Test in
+`agent_docs/testing.md` („same data → byte-identical feed") kann so nie grün
+werden.
+
+### N.1.4 PRD und TechDesign widersprechen sich hier direkt
+
+- PRD §11 (DoD): *„ICS: **stabile UIDs** — Snooze verschiebt Event ohne Duplikat"*
+- TechDesign §4.4: *„stabil über Snooze hinweg? **Nein**"*
+
+Die DoD fordert etwas, das das TechDesign explizit ausschließt.
+
+### N.1.5 Empfohlener Fix (ein Absatz)
+
+UID an die **Identität der Occurrence** binden, nicht an ihr aktuelles Datum:
+
+```
+UID      = {scheduleId}-{originalDueAtISO}@aquaman   // fix, solange die Occurrence lebt
+DTSTART  = plannedFor                                 // bewegt sich
+SEQUENCE = Anzahl bisheriger DTSTART-Wechsel dieser UID
+DTSTAMP  = stabiler Wert (z. B. schedule.updatedAt), NICHT now
+```
+
+Damit ist es ein echtes Verschieben: Google behält das Event, Erinnerungen
+bleiben, `SEQUENCE` erfüllt seinen Zweck, es gibt kein Duplikatfenster, und der
+Byte-Identitäts-Test wird erfüllbar. `originalDueAt` ist ohnehin bereits als
+„bewegt sich nie" definiert (B1) — es ist der natürliche Schlüssel.
+
+### N.1.6 Weiterhin ungeklärt: wie entstehen Occurrence 2…N?
+
+Der ursprüngliche Punkt B7 („`nextDue()` liefert einen Termin, der Feed braucht
+90 Tage") ist unbeantwortet geblieben. §4.4 sagt „alle Occurrences je Schedule
+expandiert", aber `nextDue()` gibt weiterhin genau ein
+`{originalDueAt, plannedFor}` zurück. Es fehlt eine benannte Funktion, etwa
+`occurrencesInRange(schedule, from, to)`.
+
+Die dabei zu treffende Entscheidung ist nicht kosmetisch:
+
+| Variante | Basis für Occurrence *n* | Folge |
+|---|---|---|
+| **A — Kette** | `plannedFor + n × intervalDays` | Driftet die erste Occurrence, driftet die ganze Kette → **alle ~13 UIDs ändern sich täglich** |
+| **B — festes Raster** | `originalDueAt + n × intervalDays` | Nur die erste Occurrence bewegt sich; die restlichen 12 bleiben stabil |
+
+**Empfehlung: B.** Das Raster bleibt an der Realität („alle 7 Tage"), nur der
+aktuelle Termin wird nachgeplant. Zusammen mit N.1.5 verschwindet der Churn fast
+vollständig.
+
+---
+
+## N.2 Neu entstanden: `rescheduleCount` ist so nicht berechenbar
+
+Drei Stellen, drei verschiedene Aussagen:
+
+| Quelle | Aussage |
+|---|---|
+| PRD §5.3 | „`rescheduleCount` — zählt automatische Verschiebungen; ab ≥ 3 fragt die App" |
+| PRD §6, Metrik 1b | „Zähler **pro Schedule**" (impliziert persistiert) |
+| TechDesign §4.2 | „**abgeleiteter** Zähler: wie oft `plannedFor > originalDueAt` um > 1 Tag **gewachsen ist**, seit `lastDoneAt`" |
+
+Und: im Schema (TechDesign §4.2 und §6) gibt es **keine Spalte** dafür.
+
+Das Problem: „wie oft ist `plannedFor` gewachsen" ist eine Aussage über eine
+Historie. `plannedFor` wird laut B5-Fix aber **nie persistiert** und ist eine
+Funktion von `today`. Aus `(lastDoneAt, intervalDays, preferredDays,
+snoozedUntil, today)` lässt sich der heutige Wert berechnen — die Anzahl
+vergangener Änderungen nicht. Ein Zähler zu persistieren würde wiederum dem
+„Auto-Reschedule schreibt nie" widersprechen.
+
+**Fix:** als reine Formel neu definieren, dann ist es ohne Persistenz berechenbar
+und passt zum Rest:
+
+```
+missedSlots(schedule, today) =
+  Anzahl bevorzugter Wochentage im Intervall (originalDueAt, today]
+```
+
+Das misst dasselbe („wie oft hätte es drangekommen sein können"), ist eine pure
+Funktion, testbar, und trägt sowohl den „Intervall zu eng?"-Hinweis (≥ 3) als
+auch Metrik 1b. Betrifft PRD §5.3, PRD §6 und TechDesign §4.2.
+
+---
+
+## N.3 Neu entstanden: `originalDueAt` ignoriert `preferredDays`
+
+TechDesign §4.2 definiert:
+
+```
+originalDue = (lastDoneAt ?? createdAt) + intervalDays
+```
+
+— ohne Anpassung an `preferredDays`. Danach wird `plannedFor` über
+`nextPreferredDay()` auf einen erlaubten Tag geschoben, `originalDueAt` bleibt
+aber der rohe Wert.
+
+Damit kann `originalDueAt` auf einem Tag liegen, an dem die Aufgabe gar nicht
+erledigt werden kann. Beispiel: Wasserwechsel, `intervalDays = 10`,
+`preferredDays = {Sa, So}`, zuletzt erledigt an einem Samstag → `originalDueAt`
+fällt auf einen **Dienstag**; frühester machbarer Termin ist der folgende
+Samstag. Der Nutzer ist damit **per Konstruktion 4 Tage „im Rückstand"**, ohne
+irgendetwas versäumt zu haben.
+
+Konsequenzen:
+- Der „ehrliche Rückstand" (der ganze Sinn von B1) ist systematisch zu hoch
+- **Metrik 1a** („Median-Verzug `originalDueAt` → `doneAt` < 2 Tage bei
+  Wasserwechsel") ist für jedes Intervall unerreichbar, das kein Vielfaches des
+  Wochentags-Rasters ist — die frisch eingeführte Erfolgsmetrik misst dann einen
+  Modellierungsartefakt
+- Die Catch-up-Priorisierung („je älter der Rückstand, desto wichtiger")
+  gewichtet Aufgaben mit ungünstigem Intervall dauerhaft zu hoch
+
+**Fix:** `originalDueAt = nextPreferredDay(lastDoneAt + intervalDays)` — einmal
+berechnet, danach unverändert. Der „nie verschoben"-Vertrag bleibt intakt; die
+Anpassung passiert bei der Entstehung, nicht nachträglich.
+
+---
+
+## N.4 Kleinere Punkte (je ein bis zwei Zeilen)
+
+| # | Fundstelle | Punkt |
+|---|---|---|
+| N.4.1 | TechDesign §4.2 | **`nextPreferredDay(today)` — inklusiv oder exklusiv?** Nicht definiert. Ist es exklusiv, wird eine überfällige Aufgabe **an ihrem eigenen bevorzugten Tag** um einen vollen Zyklus (bei „nur Wochenende": eine Woche) weitergeschoben. Semantik explizit festlegen und beide Fälle testen |
+| N.4.2 | TechDesign §4.2 / §6 | **`preferredDays == 0`** (kein Tag gewählt) lässt `nextPreferredDay()` endlos suchen. Guard + Validierung „mindestens ein Bit gesetzt" |
+| N.4.3 | `AGENTS.md`, Gotchas | Maske ist „Bit 0 = Mo … Bit 6 = So", JS `Date.getDay()` liefert aber **0 = Sonntag**. Die Konvertierung ist eine garantierte Off-by-one-Falle und steht nirgends — gehört als eigene Zeile in die Gotchas, mit Helper in `dates.ts` |
+| N.4.4 | TechDesign §4.2 | `snoozeSource: 'user' \| 'system'` — der Wert `'system'` ist tot, seit Auto-Reschedule nichts mehr schreibt. Entweder auf `'user'` reduzieren oder kommentieren, warum der Wert reserviert bleibt |
+| N.4.5 | PRD §1, TechDesign §11 | **`APP_TIMEZONE` trägt kein `AQUAMAN_`-Präfix** — genau die Uneinheitlichkeit, die I2 beseitigen sollte. `AQUAMAN_TIMEZONE` |
+| N.4.6 | TechDesign §6 | `aiCalls` hat `provider`, `model` und `purpose` verloren (vorher vorhanden). Ohne `model` ist die Kostenschätzung falsch, sobald `AQUAMAN_AI_MODEL` gewechselt wird — und Provider-Wechsel ist ein Kernversprechen des Stacks. Mindestens `model` behalten |
+| N.4.7 | TechDesign §8b | `crypto.timingSafeEqual` wirft einen `RangeError`, wenn die Buffer **unterschiedlich lang** sind — ein Angreifer mit falscher Token-Länge löst damit einen 500er aus. Vorher Länge prüfen oder beide Seiten hashen und die Hashes vergleichen |
+| N.4.8 | TechDesign §8b | Tippfehler: „`127.0.0.1:3000:3000` **OER** kein Publish" → „ODER" |
+| N.4.9 | `docs/research-Aquaman.md` | Der ⚠️-Hinweisblock steht **über** der `# `-Überschrift; in gerenderten Ansichten wirkt das Dokument dadurch titellos. Unter die H1 verschieben |
+
+---
+
+## N.5 Bestätigt erledigt
+
+| Punkt | Status | Beleg |
+|---|---|---|
+| **B1** Catch-up unerreichbar | ✅ | `originalDueAt`/`plannedFor` getrennt; „Überfällig = `today − originalDueAt > 0`"; Catch-up jetzt auslösbar (PRD §5.3) |
+| **B2** Metrik unfalsifizierbar | ✅ | Metrik 1a/1b jetzt aus lokalen Daten ableitbar, ohne Telemetrie (PRD §6) — Einschränkung siehe N.3 |
+| **B3** MCP-Datenabfluss | ✅ | Endpoint komplett bearer-gated, „keine freien Read-Tools" explizit begründet; zusätzlich auf v1.1 verschoben; in PRD, TechDesign, `agent_docs` und `AGENTS.md` konsistent |
+| **B4** Postgres-Typen | ✅ | `text({mode:'json'})` + 7-Bit-Maske, in Schema, `AGENTS.md` und `tech_stack.md` gespiegelt |
+| **B5** ICS liefert alten Plan | ✅ | Bester Fix im Commit: reine Lese-Projektion, kein Write, kein Cron, kein Seiteneffekt-GET; Dashboard/ICS/MCP teilen `nextDue()` |
+| **B6** Keine Zeitzone | ✅ | `APP_TIMEZONE`, `dates.ts` (Intl-basiert), Verbot von `setHours(0,0,0,0)`, Tests für Mitternachtsgrenze + Sommerzeit (Namensnit: N.4.5) |
+| **B7** ICS-Strategie | ⚠️ | siehe N.1 — teilweise beantwortet, Kern offen |
+| **R1** NH3/NO2-Grenzwerte | ✅ | `nh3FromNh4(nh4, ph, tempC)` nach Emerson et al. 1975 (korrekte Quelle), kritisch ab 0,02 mg/l; NO2-Ziel 0; `tankState: cycling\|established` inkl. Eval-Prompt „NH4 0,5 bei pH 8,2" |
+| **R2** Füttern 2×/Tag & ICS-Flut | ✅ | Daily Habit als Dashboard-Checkbox, `maintenanceLogs`-Eintrag, kein ICS-Event |
+| **R3** `snoozedUntil` überladen | ✅ | `snoozeSource` ergänzt (Nit: N.4.4) |
+| **R4** Kein Rate-Limiting | ✅ | `randomBytes(24)`, konstanter Vergleich, 404 statt 401, 30/h → 429 (Nit: N.4.7) |
+| **R5** Port umgeht Proxy-Auth | ✅ | `127.0.0.1:3000:3000` in Compose, PRD, `AGENTS.md` und Review-Checkliste |
+| **R6** Deployment-Fallen | ✅ | Alle vier als eigener Gotchas-Block: `serverExternalPackages`, gleiche Build-/Runner-Arch, `node -e fetch` statt `wget`, `bodySizeLimit: '6mb'` + Path-Traversal-Schutz |
+| **R7** Deckel nur auf Calls | ✅ | Zweistufig (Calls **und** Tokens), `usage` aus finalem Streaming-Event — der Streaming-Punkt war leicht zu übersehen |
+| **I1–I15** | ✅ | Alle 15 zugeordnet und geschlossen; `.agents/skills/` und `.claude/skills/` verifiziert **byte-identisch** (alle sechs), Kanonizität in `AGENTS.md` festgehalten; `MEMORY.md`-Konflikt sauber gelöst (Zweck „für andere Agents und Menschen" statt Löschen) |
+| **Q1** Korruptes Research-Doc | ✅ | Als historisch/nicht maßgeblich markiert, `AGENTS.md` verweist entsprechend. Pragmatisch statt Vollbereinigung — tragfähig, weil kein Dokument mehr normativ darauf verweist (Nit: N.4.9) |
+| **Q2** 6 Monate alte Daten | ✅ | Re-Verify-Auftrag an drei Stellen verankert (TechDesign §8, `tech_stack.md`, `MEMORY.md` „Known Issues") |
+| **Scope/Zeitplan** | ✅ | 6–8 Wochen, MCP → v1.1, Docker als Phase-1-Vertical-Slice, sechs Phasen mit Ergebnis je Phase |
+
+Über das Verlangte hinaus ergänzt und sinnvoll: der Abschnitt
+**„Critical Unit-Test Cases (write these FIRST)"** in `agent_docs/testing.md`
+und die Umstellung der Review-Checkliste von einer nicht existierenden
+Auth-Prüfung auf konkrete Token-/Upload-/Port-Checks.
+
+---
+
+## N.6 Was jetzt zu tun ist
+
+Vor `scheduler.ts` und `ics.ts` — es sind Textänderungen, keine Umbauten:
+
+1. **N.1.5 + N.1.6** — UID auf `originalDueAt` umstellen, `DTSTAMP` stabilisieren,
+   `occurrencesInRange()` benennen und Variante B (festes Raster) festschreiben.
+   Danach PRD §5.5 und die DoD-Zeile mit dem TechDesign in Übereinstimmung bringen.
+2. **N.3** — `originalDueAt = nextPreferredDay(lastDoneAt + intervalDays)`,
+   einmalig bei Entstehung. Ohne das misst Metrik 1a das falsche.
+3. **N.2** — `rescheduleCount` als `missedSlots()`-Formel neu definieren
+   (PRD §5.3, §6 und TechDesign §4.2 gleichlautend).
+4. **N.4.1–N.4.3** — Inklusivitäts-Semantik, Leer-Maske-Guard und die
+   Mo-vs-So-Bit-Konvertierung festlegen; alle drei gehören in dieselben Tests,
+   die `agent_docs/testing.md` bereits vorsieht.
+5. Restliche Nits (N.4.4–N.4.9) beim nächsten Durchgang mitnehmen.
+
+Danach ist der Plan aus meiner Sicht baureif.
