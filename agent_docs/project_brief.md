@@ -13,7 +13,7 @@
   - Maintenance schedules with weekday selection
   - Flexible scheduling: snooze + auto-reschedule as read-projection, originalDueAt/plannedFor separation, catch-up mode
   - Water parameter tracking with charts incl. NH3 calculation from NH4+pH+temp
-  - ICS calendar feed for Google Calendar (expanded VEVENTs, deterministic UIDs)
+  - ICS calendar feed for Google Calendar (expanded VEVENTs, UID keyed on originalDueAt)
   - AI coach & calendar auto-fill with approval gates (calls+tokens cost ceiling)
   - Daily habit tracking for feeding (dashboard checkbox, no ICS spam)
   - Docker deployment via docker compose (local-only port binding)

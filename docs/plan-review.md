@@ -656,3 +656,30 @@ Vor `scheduler.ts` und `ics.ts` — es sind Textänderungen, keine Umbauten:
 5. Restliche Nits (N.4.4–N.4.9) beim nächsten Durchgang mitnehmen.
 
 Danach ist der Plan aus meiner Sicht baureif.
+
+---
+
+## N.7 Status der Nachprüfungs-Punkte
+
+Eingearbeitet in **PRD v1.3** und **TechDesign v1.2** (plus `AGENTS.md`,
+`agent_docs/*`, `MEMORY.md`):
+
+| Punkt | Umsetzung |
+|---|---|
+| N.1.1–N.1.5 | `UID = {scheduleId}-{originalDueAtISO}@aquaman`; `DTSTART = plannedFor`; `SEQUENCE = scheduleVersion + missedSlots`; `DTSTAMP = schedule.updatedAt`. TechDesign §4.4 neu geschrieben, PRD §5.5 und DoD-Zeile angeglichen — der Widerspruch „stabile UIDs" vs. „Nein" ist aufgelöst |
+| N.1.6 | `occurrencesInRange(schedule, from, to, today)` in TechDesign §4.2; Variante B (festes Raster) festgeschrieben, mit Begründung und Überhol-Guard |
+| N.2 | `rescheduleCount` durchgängig ersetzt durch `missedSlots(schedule, today)` — pure Formel, drei Konsumenten (UI-Hinweis, Metrik 1b, `SEQUENCE`) |
+| N.3 | `originalDueAt = nextPreferredDay((lastDoneAt ?? createdAt) + intervalDays)`, einmalig bei Entstehung; Metrik 1a mit Hinweis auf die Rasterung |
+| N.4.1 | `nextPreferredDay()` als **inklusiv** definiert, mit Test |
+| N.4.2 | Maske `0` per zod ungültig + defensiver Fallback „jeder Tag" gegen Endlossuche |
+| N.4.3 | `localWeekdayIndex(date, tz)` (0 = Mo) eingeführt; Mo-vs-So-Falle als eigene Gotcha-Zeile |
+| N.4.4 | `snoozeSource` auf `'user' \| null` reduziert, Spalte für v1.1-MCP reserviert |
+| N.4.5 | `APP_TIMEZONE` → `AQUAMAN_TIMEZONE` in allen Dateien |
+| N.4.6 | `aiCalls` behält `provider` + `model`, mit Begründung im Schema |
+| N.4.7 | Token-Vergleich: erst SHA-256 beider Seiten, dann `timingSafeEqual` |
+| N.4.8 | Tippfehler „OER" korrigiert |
+| N.4.9 | Warnblock im Research-Doc unter die H1 verschoben |
+
+Die Changelog-Zeilen der Vorversionen bleiben als Historie stehen, sind aber dort
+als ersetzt markiert, wo sie sonst falsch gelesen werden könnten (UID-Schema,
+`APP_TIMEZONE`).

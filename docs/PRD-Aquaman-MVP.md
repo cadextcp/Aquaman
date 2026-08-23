@@ -1,15 +1,23 @@
 # PRD — Aquaman (MVP)
 
 > **Produktanforderungen für die Open-Source-Aquarium-Pflege- & Tracking-App**
-> Version: 1.2 · Status: Verabschiedet · Workflow: Vibe-Coding Step 2 (PRD)
+> Version: 1.3 · Status: Verabschiedet · Workflow: Vibe-Coding Step 2 (PRD)
 > Basierend auf: `docs/research-Aquaman.md` (historisch) · `docs/plan-review.md` (eingearbeitet)
+>
+> **Changelog v1.3** (nach Nachprüfung, `docs/plan-review.md` §N):
+> - N.1: ICS-Event-Identität korrigiert — UID hängt an `originalDueAt`, nicht am geplanten Datum;
+>   der Widerspruch zwischen DoD ("stabile UIDs") und TechDesign ("nicht stabil") ist aufgelöst
+> - N.2: `rescheduleCount` → **`missedSlots`** (pure Formel statt nicht berechenbarem Zähler)
+> - N.3: `originalDueAt` wird bei Entstehung auf einen bevorzugten Wochentag gelegt — sonst wäre
+>   Erfolgsmetrik 1a für die meisten Intervalle unerreichbar
+> - N.4.5: `APP_TIMEZONE` → `AQUAMAN_TIMEZONE` (einheitliches Präfix)
 >
 > **Changelog v1.2** (nach externem Plan-Review):
 > - B1/B2: `originalDueAt`/`plannedFor`-Trennung; messbare Erfolgsmetriken
 > - B3: MCP-Endpoint vollständig Token-geschützt; **MCP verschoben auf v1.1** (Owner-Entscheidung)
 > - B5: Auto-Reschedule als reine Lese-Projektion (kein DB-Write) → ICS immer aktuell
-> - B6: `APP_TIMEZONE` eingeführt (Default `Europe/Berlin`)
-> - B7: ICS-Strategie festgeschrieben (expandierte VEVENTs, deterministische UIDs)
+> - B6: `APP_TIMEZONE` eingeführt (Default `Europe/Berlin`) *(in v1.3 umbenannt zu `AQUAMAN_TIMEZONE`)*
+> - B7: ICS-Strategie festgeschrieben (expandierte VEVENTs, deterministische UIDs) *(UID-Schlüssel in v1.3 korrigiert)*
 > - I4: JSON-Export ist MUST; I5: Catch-up-Modus ist MUST; I7: i18n-Sequenz geklärt
 > - R1: NH3-Berechnung aus NH4+pH+Temp, NO2-Ziel verschärft, `tankState` (cycling/established)
 > - R2: Füttern als "Daily Habit" (Dashboard-Checkbox), kein ICS-Müll
@@ -28,7 +36,7 @@
 | **Timeline** | 6–8 Wochen Freizeit-Tempo (realistisch; früher geschätzte 2–4 Wochen waren für 9 MUST-Features zu optimistisch — siehe Plan-Review §5) |
 | **Budget** | 0 €/Monat — AI-API-Keys (z.ai GLM / Anthropic Claude) vorhanden |
 | **Hosting** | Docker auf TrueNAS SCALE, erreichbar unter `aquaman.cadex64.de` (Reverse Proxy) |
-| **Zeitzone** | `APP_TIMEZONE` (Default `Europe/Berlin`) — alle "heute"/"Mitternacht"-Entscheidungen laufen ausschließlich darüber |
+| **Zeitzone** | `AQUAMAN_TIMEZONE` (Default `Europe/Berlin`) — alle "heute"/"Mitternacht"-Entscheidungen laufen ausschließlich darüber |
 
 ---
 
@@ -70,8 +78,8 @@ Stress-Woche: Keine Zeit für Aquarien?
      (originalDueAt bleibt stehen), plant aber freundlich nach
      (plannedFor = nächster passender Tag)
    → Kein Aufgaben-Stau, kein schlechtes Gewissen
-   → Nach 3 automatischen Verschiebungen fragt die App sanft:
-     "Interval too tight? Water change has been moved 3 times."
+   → Nach 3 verpassten Gelegenheiten (missedSlots ≥ 3) fragt die App sanft:
+     "Interval too tight? Water change has come due 3 times unfinished."
 
 Alle 1–2 Wochen: Wasserwerte messen
    → Messwerte-Formular (vorbereitet für Aquarien-Typ)
@@ -116,9 +124,9 @@ Community-Selfhoster:
 **User Story:** *Als gestresster Aquarianer will ich Termine easy verschieben können — und wenn ich nichts abhake, soll die App selbst produktiv nachplanen, damit sich nichts aufstaut — ohne dass mein Rückstand unsichtbar wird.*
 
 **Datenmodell (fixiert, siehe auch TechDesign §4.2):**
-- `originalDueAt` — **bleibt stehen, wird nie verschoben** → Basis für Rückstand, Catch-up-Priorisierung und AI-Kontext
-- `plannedFor` — verschiebbar (Snooze/Auto-Reschedule) → Basis für Dashboard-Anzeige und ICS
-- `rescheduleCount` — zählt automatische Verschiebungen; ab **≥ 3** fragt die App freundlich "Intervall zu eng?"
+- `originalDueAt` — der Soll-Termin. **Wird bei Entstehung einmal auf einen bevorzugten Wochentag gelegt und danach nie verschoben** → Basis für Rückstand, Catch-up-Priorisierung, ICS-Event-Identität und AI-Kontext. Die Rasteranpassung gehört an die Entstehung: läge `originalDueAt` auf einem Tag, an dem die Aufgabe gar nicht erledigt werden darf (Intervall 10 + "nur Wochenende" → Dienstag), wäre der Nutzer per Konstruktion im Rückstand und Metrik 1a würde einen Modellierungsartefakt messen
+- `plannedFor` — verschiebbar (Snooze/Auto-Reschedule) → Basis für Dashboard-Anzeige und ICS-`DTSTART`
+- `missedSlots` — Anzahl bevorzugter Wochentage zwischen `originalDueAt` und heute, also wie oft die Aufgabe drangekommen wäre. **Pure Formel, kein persistierter Zähler** (ein Zähler wäre nicht berechenbar, weil `plannedFor` nie gespeichert wird). Ab **≥ 3** fragt die App freundlich "Intervall zu eng?"
 - "Überfällig" = `today − originalDueAt > 0` (Fakt) · "rot markieren" = reine UI-Entscheidung (freundlich statt Alarm)
 
 **Verhalten:**
@@ -146,7 +154,9 @@ Community-Selfhoster:
 
 - Kalender-Ansicht (Monats-/Wochenansicht) in der App
 - ICS-Feed: `GET /api/calendar.ics?t=<token>` — Token in Settings generierbar/rotierbar
-- **ICS-Strategie (fixiert, siehe TechDesign §4.4):** expandierte Einzel-VEVENTs (kein RRULE), deterministische UID `{scheduleId}-{plannedDateISO}@aquaman`, `SEQUENCE` bei Änderungen, Horizont 90 Tage
+- **ICS-Strategie (fixiert, siehe TechDesign §4.2/§4.4):** expandierte Einzel-VEVENTs (kein RRULE), Horizont 90 Tage über `occurrencesInRange()`
+- **Event-Identität:** `UID = {scheduleId}-{originalDueAtISO}@aquaman` — an den unveränderlichen Soll-Termin gebunden, **nicht** an das geplante Datum. `DTSTART` = `plannedFor` bewegt sich, die UID bleibt → Google verschiebt das Event, statt es zu löschen und neu anzulegen (Erinnerungen bleiben erhalten, kein Duplikat im Refresh-Fenster). `SEQUENCE` wächst monoton, `DTSTAMP` ist stabil
+- **Nur der aktuelle Termin wird nachgeplant;** künftige Occurrences liegen auf dem festen Raster aus `originalDueAt` — sonst würde bei Rückstand der komplette 90-Tage-Kalender täglich mitwandern
 - Events: All-Day-Events, Titel z. B. "Aquaman: Water change — 240L Community Tank"
 - `plannedFor` (inkl. Snooze/Auto-Reschedule-Projektion) ist die Basis — Feed ist ohne Dashboard-Besuch aktuell
 - Google-Refresh ~24 h (dokumentiert); App-Kalender ist "live"
@@ -159,7 +169,7 @@ Community-Selfhoster:
 - **AI-Chat-Panel:** Fragen mit Tank-Kontext ("Nitrite is 0.5, what should I do?") → kontextbezogene Antwort
 - **Kalender-Befüllung:** AI analysiert Tank-Setup (Besatz, Pflanzen, CO2, Messwerte, `tankState`) → schlägt Pflegeplan vor → **Nutzer bestätigt** (Approval-Gate) → gespeichert
 - **Werte-Adjustierung:** Kritischer Wert (inkl. berechnetem NH3) → AI schlägt Intervall-Anpassung vor → Bestätigung
-- **Stress-Awareness:** AI-Kontext enthält Rückstand (`originalDueAt`-basiert) und `rescheduleCount` — sanfte Priorisierung statt Vorwurf ("Focus on water change first")
+- **Stress-Awareness:** AI-Kontext enthält Rückstand (`originalDueAt`-basiert) und `missedSlots` — sanfte Priorisierung statt Vorwurf ("Focus on water change first")
 - **Provider:** Anthropic-kompatible API — z.ai GLM und Claude via `AQUAMAN_AI_BASE_URL` + Key austauschbar (Env-Präfix `AQUAMAN_` durchgängig)
 - **Kostenschutz (zweistufig):** `AQUAMAN_AI_MAX_CALLS_PER_DAY` (Default 20) **und** `AQUAMAN_AI_MAX_TOKENS_PER_DAY` (Deckel auch auf Tokens, da Chat-Kontext wächst) — Zähler transparent in Settings
 - **Fallback:** AI offline/ohne Key → alle Kernfunktionen ohne AI nutzbar
@@ -218,8 +228,8 @@ Community-Selfhoster:
 
 | # | Metrik | Ziel (Monat 1–3) | Messung |
 |---|--------|------------------|---------|
-| 1a | **Pflege-Zuverlässigkeit:** Median-Verzug zwischen `originalDueAt` und `doneAt` pro Aktionstyp | < 2 Tage (Water change), < 1 Tag (Fertilize) | aus `maintenanceLogs` + Schedules abgeleitet |
-| 1b | **Chronische Überlastung:** Aufgaben mit `rescheduleCount ≥ 3` | → Intervall-Anpassung durchlaufen (AI-Vorschlag oder manuell) | Zähler pro Schedule |
+| 1a | **Pflege-Zuverlässigkeit:** Median-Verzug zwischen `originalDueAt` und `doneAt` pro Aktionstyp | < 2 Tage (Water change), < 1 Tag (Fertilize) | aus `maintenanceLogs` + Schedules abgeleitet; `originalDueAt` ist wochentags-gerastert, misst also echten Verzug statt Rasterversatz |
+| 1b | **Chronische Überlastung:** Aufgaben mit `missedSlots ≥ 3` | → Intervall-Anpassung durchlaufen (AI-Vorschlag oder manuell) | pure Funktion über `originalDueAt` + `preferredDays`, kein gespeicherter Zähler |
 | 2 | **AI-Nutzen:** Umgesetzte AI-Tipps | ≥ 2–3 echte, umgesetzte Empfehlungen | Owner-Selbsteinschätzung + sichtbare Intervall-Änderungen |
 | 3 | **Stress-Resilienz:** Nach bewusster 1-Wochen-Pause | `plannedFor` sauber, Rückstand ehrlich sichtbar, Catch-up-Karte korrekt | manueller Test (Definition of Done) |
 
@@ -238,7 +248,7 @@ Community-Selfhoster:
 
 - **Stack:** Next.js 15 (App Router) + React 19 + TypeScript + Tailwind + shadcn/ui + Drizzle + SQLite
 - **SQLite-Typen fixiert:** JSON-Felder als `text({mode:'json'})`, Wochentage als 7-Bit-Integer-Maske — keine Postgres-Typen
-- **Zeitzone:** `APP_TIMEZONE` (Default `Europe/Berlin`), zentraler Helper `startOfLocalDay()`
+- **Zeitzone:** `AQUAMAN_TIMEZONE` (Default `Europe/Berlin`), zentrale Helper `startOfLocalDay()` / `nextPreferredDay()` / `localWeekdayIndex()` in `dates.ts`
 - **Deployment:** Docker (multi-stage, standalone) ab Phase 1 auf TrueNAS, Reverse Proxy HTTPS, Port nur lokal gebunden
 - **AI:** Anthropic-kompatible API (z.ai GLM / Claude), Env durchgängig `AQUAMAN_AI_*`-Präfix
 - **Kein Multi-User-Auth in v1:** Reverse-Proxy-Auth dokumentiert; ICS token-geschützt (+ Rate-Limit, 404 statt 401)
@@ -252,12 +262,12 @@ Community-Selfhoster:
 |--------|--------------|
 | Provider | z.ai GLM & Anthropic Claude (Anthropic-kompatible API, austauschbar) |
 | Retention/Training | Provider-Defaults dokumentiert (README); private Nutzung → akzeptabel |
-| Modell-sichtbare Daten | Tank-Profile (inkl. `tankState`), Messwerte inkl. berechnetem NH3, Pflege-Logs, Rückstände (`originalDueAt`-basiert), `rescheduleCount` |
+| Modell-sichtbare Daten | Tank-Profile (inkl. `tankState`), Messwerte inkl. berechnetem NH3, Pflege-Logs, Rückstände (`originalDueAt`-basiert), `missedSlots` |
 | Erlaubte Tool-Klassen | Read + Draft; **keine direkten Writes** — jede AI-Änderung nur über Approval-Gate |
 | Structured Output | Tool-Use mit zod-Schema (Kalender-Vorschläge); malformed → reject, never repair |
 | Approval-Gate | AI-Vorschläge werden nie automatisch gespeichert — immer Nutzer-Bestätigung |
 | Telemetry | `aiCalls`: Calls, Tokens (aus finalen Streaming-Events), Kosten-Schätzung |
-| Cost Ceiling | `AQUAMAN_AI_MAX_CALLS_PER_DAY` (20) **und** `AQUAMAN_AI_MAX_TOKENS_PER_DAY` — Pause bis Mitternacht (`APP_TIMEZONE`) |
+| Cost Ceiling | `AQUAMAN_AI_MAX_CALLS_PER_DAY` (20) **und** `AQUAMAN_AI_MAX_TOKENS_PER_DAY` — Pause bis Mitternacht (`AQUAMAN_TIMEZONE`) |
 | Fallback | AI nicht erreichbar → Kernfunktionen voll nutzbar, UI zeigt "AI offline" |
 | Evals | Katalog in `agent_docs/testing.md` (Nitrat hoch, NH3 kritisch bei pH 8, CO2-Gasping, 2-Wochen-Pause, Injection-Refusal) |
 
@@ -274,9 +284,10 @@ Community-Selfhoster:
 ## 11. Definition of Done
 
 - [ ] Alle Must-have-Features (5.1–5.6, 5.8, 5.9) implementiert & getestet
-- [ ] `originalDueAt`/`plannedFor`-Trennung umgesetzt; Rückstand ehrlich, Plan sauber
+- [ ] `originalDueAt`/`plannedFor`-Trennung umgesetzt; `originalDueAt` wochentags-gerastert; Rückstand ehrlich, Plan sauber
+- [ ] `missedSlots()` als pure Funktion implementiert und getestet; "Intervall zu eng?"-Hinweis ab ≥ 3
 - [ ] Snooze & Auto-Reschedule (Lese-Projektion) funktionieren und fließen identisch in Dashboard & ICS ein
-- [ ] ICS: stabile UIDs — Snooze verschiebt Event ohne Duplikat; byte-identischer Feed bei gleichen Daten
+- [ ] ICS: UID an `originalDueAt` gebunden — Snooze und Auto-Reschedule ändern `DTSTART`, nicht die UID (Event wandert, kein Duplikat); `SEQUENCE` wächst; byte-identischer Feed bei identischen Eingaben (Schedule-Zeilen + fixiertem `today`)
 - [ ] NH3-Berechnung aus NH4+pH+Temp implementiert & getestet; NO2-Ziele verschärft; `tankState` berücksichtigt
 - [ ] Mobile-First-UI: alle Kernaktionen am Handy in ≤ 2 Taps
 - [ ] Docker-Image auf ghcr.io, `docker compose up` startet die App; Port nur lokal gebunden
@@ -304,9 +315,9 @@ Community-Selfhoster:
   "mustHave": [
     "Tank management with photos, specs & tankState (cycling/established)",
     "Maintenance schedules with weekday selection",
-    "Flexible scheduling: snooze + auto-reschedule as read-projection, originalDueAt/plannedFor separation, catch-up mode",
+    "Flexible scheduling: snooze + auto-reschedule as read-projection, weekday-gridded originalDueAt vs. projected plannedFor, missedSlots, catch-up mode",
     "Water parameter tracking with charts incl. NH3 calculation from NH4+pH+temp",
-    "ICS calendar feed for Google Calendar (expanded VEVENTs, deterministic UIDs)",
+    "ICS calendar feed for Google Calendar (expanded VEVENTs, UID keyed on originalDueAt, fixed occurrence grid)",
     "AI coach & calendar auto-fill with approval gates (calls+tokens cost ceiling)",
     "Daily habit tracking for feeding (dashboard checkbox, no ICS spam)",
     "Docker deployment via docker compose (local-only port binding)",
@@ -329,7 +340,7 @@ Community-Selfhoster:
   ],
   "successMetrics": [
     "Median delay between originalDueAt and doneAt < 2 days (water change) / < 1 day (fertilize)",
-    "Tasks with rescheduleCount >= 3 lead to interval adjustment",
+    "Tasks with missedSlots >= 3 lead to interval adjustment",
     "At least 2-3 real AI recommendations implemented by owner",
     "After 1-week stress pause: plan clean, backlog honest, catch-up card correct"
   ]

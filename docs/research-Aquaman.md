@@ -1,8 +1,8 @@
-> ⚠️ **Historisches Dokument** — erstellt Feb 2026, nicht maßgeblich für Entscheidungen.
-> Maßgeblich: `docs/PRD-Aquaman-MVP.md` (v1.2) und `docs/TechDesign-Aquaman-MVP.md` (v1.1).
-> Enthält redaktionelle Fehler (Tool-Namen, Überschriften, URLs) — siehe `docs/plan-review.md` §4/Q1. Inhaltliche Eckdaten (Markt, Intervalle, Parameter-Referenzen) bleiben als Ausgangslage nützlich.
-
 # Aquaman — Deep Research & Marktvalidierung
+
+> ⚠️ **Historisches Dokument** — erstellt Feb 2026, nicht maßgeblich für Entscheidungen.
+> Maßgeblich: `docs/PRD-Aquaman-MVP.md` (v1.3) und `docs/TechDesign-Aquaman-MVP.md` (v1.2).
+> Enthält redaktionelle Fehler (Tool-Namen, Überschriften, URLs) — siehe `docs/plan-review.md` §4/Q1. Inhaltliche Eckdaten (Markt, Intervalle, Parameter-Referenzen) bleiben als Ausgangslage nützlich.
 
 > **Projekt:** Aquaman — Open-Source-Aquarium-Pflege- & Tracking-App
 > **Recherche-Stand:** Februar 2026

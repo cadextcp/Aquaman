@@ -1,14 +1,30 @@
 # Tech Design — Aquaman (MVP)
 
 > **Technisches Design für die Open-Source-Aquarium-Pflege- & Tracking-App**
-> Version: 1.1 · Status: Verabschiedet · Workflow: Vibe-Coding Step 3 (Tech Design)
-> Basierend auf: `docs/PRD-Aquaman-MVP.md` (v1.2) · Fixes aus `docs/plan-review.md` eingearbeitet
+> Version: 1.2 · Status: Verabschiedet · Workflow: Vibe-Coding Step 3 (Tech Design)
+> Basierend auf: `docs/PRD-Aquaman-MVP.md` (v1.3) · Fixes aus `docs/plan-review.md` eingearbeitet
+>
+> **Changelog v1.2** (nach Nachprüfung, `docs/plan-review.md` §N):
+> - N.1: **ICS-Event-Identität überarbeitet** — `UID` hängt an `originalDueAt` statt am
+>   geplanten Datum, `DTSTART` = `plannedFor`, `SEQUENCE` rein berechenbar, `DTSTAMP` stabil.
+>   Grund: seit Auto-Reschedule eine Projektion auf `today` ist, driftet `plannedFor` täglich —
+>   eine datumsbasierte UID hätte täglich Löschen+Neuanlegen statt Verschieben erzeugt
+> - N.1.6: `occurrencesInRange()` eingeführt — künftige Termine liegen auf einem **festen
+>   Raster** aus `originalDueAt`; nur die aktuelle Occurrence wird projiziert
+> - N.2: `rescheduleCount` → **`missedSlots()`** (pure Formel; der alte Zähler war nicht
+>   berechenbar, weil `plannedFor` nie persistiert wird)
+> - N.3: `originalDueAt` wird **bei Entstehung** auf einen bevorzugten Wochentag gelegt
+> - N.4: `nextPreferredDay()` inklusiv · Guard für leere Wochentagsmaske · Mo/So-Bit-Konvertierung
+>   · `snoozeSource` auf `'user'` reduziert · `AQUAMAN_TIMEZONE` · `aiCalls` behält `provider`/`model`
+>   · Token-Vergleich über SHA-256 (kein `RangeError` bei abweichender Länge)
 >
 > **Changelog v1.1** (nach externem Plan-Review):
 > - B4: SQLite-Typen fixiert (`text({mode:'json'})`, 7-Bit-Wochentagsmaske) — keine Postgres-Typen
 > - B5: Auto-Reschedule als **reine Lese-Projektion** in `nextDue()` — kein Write, kein Cron; ICS/MCP/Dashboard identisch
 > - B6: `APP_TIMEZONE` + `startOfLocalDay()`-Helper; AI-Mitternachts-Reset & ICS-Tage daran gebunden
+>   *(in v1.2 umbenannt zu `AQUAMAN_TIMEZONE`)*
 > - B7: ICS: expandierte VEVENTs, deterministische UID `{scheduleId}-{plannedDateISO}@aquaman`, `SEQUENCE`, Byte-Identitäts-Test
+>   *(⚠️ **durch v1.2 ersetzt** — die UID hängt jetzt an `originalDueAt`, siehe §4.4)*
 > - B3: `/api/mcp` (v1.1 des Produkts): vollständig Bearer-gated + Rate-Limit + 404-on-invalid
 > - I2: Env durchgängig `AQUAMAN_`-Präfix; I3: nur Bearer-Header (keine URL-Userinfo)
 > - R4: Token-Endpunkte mit konstantem Vergleich + Rate-Limiting; 404 statt 401
@@ -36,7 +52,7 @@
 | State | RSC + Server Actions; Client-State nur für Charts/Forms/Chat | Wenig JS, schnell |
 | Tests | Vitest + Testing Library | Scheduler/Snooze/ICS/Ranges sind pure Funktionen → 100 % testbar |
 | Lint/Format | ESLint + Prettier | Konsistenz über AI-Sessionen |
-| Zeitzone | `APP_TIMEZONE` (Default `Europe/Berlin`), `Intl`-basiert | Alle Tagesgrenzen zentral |
+| Zeitzone | `AQUAMAN_TIMEZONE` (Default `Europe/Berlin`), `Intl`-basiert | Alle Tagesgrenzen zentral |
 
 **Warum kein separates Backend?** Für 1–5 Nutzer ist ein Next.js-Monolith ideal. Die Architektur ist **API-first vorbereitet**: Alle Domänenfunktionen liegen als pure Funktionen in `src/lib/domain/*` und werden von API-Routen, Server Actions UND (v1.1) MCP-Tools gemeinsam benutzt.
 
@@ -71,9 +87,9 @@ aquaman/
 │   ├── lib/
 │   │   ├── db/                   # Drizzle Schema, Migrationen, Seed
 │   │   ├── domain/               # ★ Kernlogik (pure Funktionen)
-│   │   │   ├── scheduler.ts      # nextDue() inkl. Reschedule-Projektion
+│   │   │   ├── scheduler.ts      # nextDue() + occurrencesInRange() + missedSlots()
 │   │   │   ├── ranges.ts         # Zielbereiche + NH3-Berechnung
-│   │   │   ├── dates.ts          # startOfLocalDay(), tz-Helper
+│   │   │   ├── dates.ts          # startOfLocalDay(), nextPreferredDay(), localWeekdayIndex()
 │   │   │   └── ics.ts            # ICS-Generierung (deterministisch)
 │   │   ├── ai/                   # Client, Prompts, Cost-Guard
 │   │   └── mcp/                  # (v1.1) Tool-Definitionen
@@ -111,42 +127,105 @@ aquaman/
 **Datenmodell-Auszug (SQLite-konform):**
 ```ts
 schedules: id, tankId, actionType, intervalDays,
-  preferredDays: integer (7-Bit-Maske, Bit 0 = Mo … Bit 6 = So),
+  preferredDays: integer (7-Bit-Maske, Bit 0 = Mo … Bit 6 = So; 0 ist ungültig),
   autoReschedule: bool (default true),
   lastDoneAt: datetime|null,
-  snoozedUntil: datetime|null, snoozeSource: 'user'|'system'|null,
-  scheduleVersion: integer (inkrementiert bei jeder Änderung → ICS SEQUENCE),
+  snoozedUntil: datetime|null, snoozeSource: 'user'|null,
+  scheduleVersion: integer (inkrementiert bei jeder Zeilenänderung),
+  updatedAt: datetime (→ ICS DTSTAMP),
   createdAt, active
 maintenanceLogs: id, tankId, actionType, doneAt, note, source ('user'|'ai_proposed'|'mcp')
 waterTests: id, tankId, measuredAt, values text-json, note
 ```
 
-**Konzepte:**
-- `originalDueAt` = `lastDoneAt + intervalDays` (bzw. `createdAt + intervalDays` initial) — **wird nie automatisch verschoben**
-- `plannedFor` = Projektion: `max(originalDueAt, snoozedUntil)` + Auto-Reschedule-Regel — **wird berechnet, nie persistiert** (außer Nutzer-Snooze schreibt `snoozedUntil`)
-- `rescheduleCount` = abgeleiteter Zähler: wie oft `plannedFor > originalDueAt` um > 1 Tag gewachsen ist, seit `lastDoneAt` — ab ≥ 3 UI-Hinweis "Intervall zu eng?"
-- Rückstand (`overdueDays`) = `today − originalDueAt` — ehrlich, für Catch-up & AI-Kontext
+`snoozeSource` kennt in v1 nur `'user'` — Auto-Reschedule schreibt nichts (s. u.). Die Spalte
+bleibt, damit MCP-Snoozes ab v1.1 unterscheidbar sind.
+
+**Begriffe (fixiert):**
+
+- **`originalDueAt`** = `nextPreferredDay((lastDoneAt ?? createdAt) + intervalDays)` — **bei
+  Entstehung einmal auf einen erlaubten Wochentag gelegt, danach nie verschoben.** Die
+  Rasteranpassung passiert bei der Entstehung, nicht nachträglich: sonst läge der Soll-Termin auf
+  einem Tag, an dem die Aufgabe gar nicht erledigt werden kann (Intervall 10 + „nur Wochenende" →
+  Dienstag), und der Rückstand wäre per Konstruktion 4 Tage zu hoch — Erfolgsmetrik 1a würde einen
+  Modellierungsartefakt messen statt Verhalten (Plan-Review N.3).
+- **`plannedFor`** = Projektion aus `originalDueAt` + Snooze + Auto-Reschedule-Regel — **wird
+  berechnet, nie persistiert.**
+- **`overdueDays`** = `today − originalDueAt`, minimal 0 — der ehrliche Rückstand für Catch-up,
+  Priorisierung und AI-Kontext.
+- **`missedSlots(schedule, today)`** = Anzahl bevorzugter Wochentage im Intervall
+  `(originalDueAt, today]`. **Ersetzt den früheren `rescheduleCount`** (Plan-Review N.2: „wie oft
+  wurde verschoben" war nicht berechenbar, weil `plannedFor` nie persistiert wird und ein
+  persistierter Zähler dem „Auto-Reschedule schreibt nie" widerspräche). Misst dasselbe — wie oft
+  die Aufgabe drangekommen wäre —, ist eine pure Funktion ohne Historie und trägt drei Konsumenten:
+  UI-Hinweis ab `≥ 3` („Interval too tight?"), Erfolgsmetrik 1b und den `SEQUENCE`-Anteil im ICS-Feed.
+
+**Wochentags-Helper (pure, `dates.ts`):**
+
+- `nextPreferredDay(date, mask)` ist **inklusiv**: liegt `date` selbst auf einem bevorzugten Tag,
+  wird `date` zurückgegeben. Exklusiv wäre eine überfällige Aufgabe an ihrem eigenen Wochenendtag um
+  einen vollen Zyklus weitergeschoben worden (Plan-Review N.4.1).
+- Maske `0` ist per zod ungültig (mindestens ein Bit). Die Funktion behandelt `0` zusätzlich
+  defensiv als „jeder Tag", damit sie unter keinen Umständen endlos sucht (N.4.2).
+- **Bit-Konvertierung:** Die Maske zählt `Bit 0 = Mo`, `Date.getDay()` liefert `0 = So`. Nie direkt
+  vergleichen — immer `localWeekdayIndex(date, tz)` aus `dates.ts` benutzen (zonenrichtig via `Intl`,
+  Ergebnis `0 = Mo`). Garantierte Off-by-one-Falle (N.4.3).
 
 **Due-Berechnung (pure Funktion, 100 % getestet):**
 ```
 nextDue(schedule, today):
-  originalDue = (lastDoneAt ?? createdAt) + intervalDays        // nie verschoben
+  base        = (lastDoneAt ?? createdAt) + intervalDays
+  originalDue = nextPreferredDay(base)                   // Raster bei Entstehung, dann fix
   due = originalDue
-  if (snoozedUntil && snoozedUntil > due) due = snoozedUntil   // Snooze überschreibt
-  if (due < today && autoReschedule):
-      due = nextPreferredDay(today)                             // Projektion, kein Write
-  else:
-      due = nextPreferredDay(due)                               // nie rückwärts
-  return { originalDueAt: originalDue, plannedFor: due }
+  if (snoozedUntil && snoozedUntil > due)
+      due = nextPreferredDay(snoozedUntil)               // Snooze überschreibt
+  if (due < today && autoReschedule)
+      due = nextPreferredDay(today)                      // Projektion, KEIN Write
+  return {
+    originalDueAt: originalDue,
+    plannedFor:    due,
+    overdueDays:   max(0, today − originalDue),
+    missedSlots:   missedSlots(schedule, today),
+  }
 ```
 
-**Auto-Reschedule = reine Lese-Projektion** (Plan-Review B5): Kein DB-Write, kein Cron. Dashboard, ICS-Feed und künftige MCP-Tools rufen dieselbe `nextDue()` auf → überall identischer, immer aktueller Plan. Persistiert wird nur menschliches Handeln (Done → `lastDoneAt`, Snooze → `snoozedUntil`).
+**Auto-Reschedule = reine Lese-Projektion** (Plan-Review B5): Kein DB-Write, kein Cron. Dashboard,
+ICS-Feed und künftige MCP-Tools rufen dieselbe `nextDue()` auf → überall identischer, immer aktueller
+Plan. Persistiert wird nur menschliches Handeln (Done → `lastDoneAt`, Snooze → `snoozedUntil`).
 
-**Füttern als Daily Habit (Plan-Review R2):** Füttern ist KEIN Schedule, sondern Dashboard-Checkbox pro Tank/Tag. `maintenanceLogs`-Eintrag mit `actionType: 'feed'` beim Abhaken. Kein ICS-Event (90 × täglich = Kalender-Müll), einfache Streak-Anzeige.
+**Occurrence-Expansion (`occurrencesInRange`, neu — Plan-Review N.1.6):**
 
-**Catch-up-Modus:** > 5 Aufgaben mit Rückstand → Top-1-Karte (Priorität: water change > fertilize > filter > rest; älterer Rückstand wiegt mehr). Freundlicher Ton.
+`nextDue()` liefert genau den aktuellen Termin. Kalenderansicht und ICS-Feed brauchen einen
+90-Tage-Horizont:
 
-**Snooze:** Server Action `snooze(scheduleId, until)` → schreibt `snoozedUntil` + `snoozeSource: 'user'`; 1 Tap am Handy.
+```
+occurrencesInRange(schedule, from, to, today):
+  base       = lastDoneAt ?? createdAt
+  current    = nextDue(schedule, today)
+  emit current if current.plannedFor within [from, to]
+  for n = 1, 2, 3, …:
+    originalDue_n = nextPreferredDay(base + (n+1) × intervalDays)   // FESTES RASTER
+    plannedFor_n  = originalDue_n                                    // künftige: nicht projiziert
+    if plannedFor_n > to: break
+    if plannedFor_n <= current.plannedFor: continue                  // vom Rückstand überholt
+    if plannedFor_n >= from: emit { originalDue_n, plannedFor_n }
+```
+
+**Nur die aktuelle Occurrence wird projiziert; alle künftigen liegen auf dem festen Raster aus
+`originalDueAt`.** Würde man stattdessen ab `plannedFor` weiterketten, verschöbe sich bei jedem Tag
+Rückstand die komplette 90-Tage-Kette — und mit ihr jede UID im Feed (~13 Events bei einem
+Wochenintervall, täglich neu). Das Raster bleibt an der Realität („alle 7 Tage"), nur der akute
+Termin wird nachgeplant.
+
+**Füttern als Daily Habit (Plan-Review R2):** Füttern ist KEIN Schedule, sondern Dashboard-Checkbox
+pro Tank/Tag. `maintenanceLogs`-Eintrag mit `actionType: 'feed'` beim Abhaken. Kein ICS-Event
+(90 × täglich = Kalender-Müll), einfache Streak-Anzeige.
+
+**Catch-up-Modus:** > 5 Aufgaben mit `overdueDays > 0` → Top-1-Karte (Priorität: water change >
+fertilize > filter > rest; höherer `overdueDays` wiegt mehr). Freundlicher Ton.
+
+**Snooze:** Server Action `snooze(scheduleId, until)` → schreibt `snoozedUntil` +
+`snoozeSource: 'user'`, inkrementiert `scheduleVersion` und `updatedAt`; 1 Tap am Handy.
 
 ### 4.3 Wasserwerte
 
@@ -158,22 +237,42 @@ nextDue(schedule, today):
 
 ### 4.4 ICS-Feed
 
-- Route: `GET /api/calendar.ics?t=<token>` — Token: `crypto.randomBytes(24).toString('base64url')`, konstanter Zeitvergleich, rotierbar
+- Route: `GET /api/calendar.ics?t=<token>` — Token: `crypto.randomBytes(24).toString('base64url')`,
+  Vergleich über SHA-256 beider Seiten + `crypto.timingSafeEqual` (gleiche Länge garantiert),
+  rotierbar über Settings
 - Ungültiges Token → **404** (Existenz nicht bestätigen); Rate-Limit: In-Memory 30 Fehlversuche/IP/h → 429
-- **Generierung (deterministisch):**
-  - Horizont: `plannedFor`-Tage von heute (`startOfLocalDay(now, APP_TIMEZONE)`) bis +90 Tage — alle Occurrences je Schedule expandiert
-  - Expandierte Einzel-VEVENTs, **kein RRULE**
-  - `UID = {scheduleId}-{plannedDateISO}@aquaman` — stabil über Snooze hinweg? **Nein:** Snooze ändert `plannedFor` → alte UID entfällt, neue entsteht. Google behandelt verschwundene UID als gelöschtes Event → sauberer Effekt: Event wandert. `DTSTAMP = now` (UTC), `SEQUENCE = scheduleVersion`
-  - Feed-Reihenfolge sortiert (UID-lexikografisch) → **byte-identisch bei gleichen Daten** (Unit-Test!)
-- Events: All-Day (`DTSTART;VALUE=DATE:YYYYMMDD`), Titel "Aquaman: Water change — 240L Community Tank"
+- **Inhalt:** je aktivem Schedule `occurrencesInRange(schedule, today, today + 90 Tage, today)`
+  (§4.2) — expandierte Einzel-VEVENTs, **kein RRULE**. Daily Habits (Füttern) erzeugen keine Events
+
+**Event-Identität (überarbeitet gegenüber v1.1 — Plan-Review N.1):**
+
+| Feld | Wert | Warum |
+|------|------|-------|
+| `UID` | `{scheduleId}-{originalDueAtISO}@aquaman` | **Nicht** das geplante Datum. `originalDueAt` ist per Definition unveränderlich (§4.2) und damit der einzige stabile Schlüssel einer Occurrence |
+| `DTSTART` | `plannedFor`, All-Day (`;VALUE=DATE:YYYYMMDD`) | bewegt sich bei Snooze und Reschedule — das Event *wandert*, statt gelöscht und neu angelegt zu werden |
+| `SEQUENCE` | `scheduleVersion + missedSlots(schedule, today)` | monoton wachsend und rein berechenbar; steigt sowohl bei Zeilenänderungen (Snooze, Intervall-Edit) als auch bei Reschedule-Drift |
+| `DTSTAMP` | `schedule.updatedAt` (UTC) | **nicht** `now` — sonst ist der Feed nie byte-identisch und der Test in `agent_docs/testing.md` kann nie grün werden |
+
+**Warum nicht das geplante Datum in der UID:** Seit Auto-Reschedule eine Projektion auf `today` ist
+(§4.2), ändert sich `plannedFor` an *jedem* Tag, an dem eine Aufgabe offen bleibt — nicht nur bei
+Snooze. Eine datumsbasierte UID wäre damit laufend neu. Google sähe Löschen + Neuanlegen statt
+Verschieben: am Event gesetzte Erinnerungen gingen verloren, und weil der ICS-Sync nicht
+transaktional ist, wären im Refresh-Fenster kurzzeitig beide Events sichtbar — genau das Duplikat,
+das die DoD ausschließt. Mit `originalDueAt` als Schlüssel bleibt es ein echtes Verschieben, und
+`SEQUENCE` erfüllt überhaupt erst seinen Zweck (bei wechselnder UID kann es nie feuern).
+
+- Events: Titel "Aquaman: Water change — 240L Community Tank"; `X-WR-CALNAME:Aquaman`
+- Ausgabe nach UID sortiert → **byte-identisch bei identischen Eingaben** (Schedule-Zeilen + `today`).
+  Der Unit-Test injiziert `today` über einen Clock-Parameter, weil `plannedFor` davon abhängt
 - `Cache-Control: public, max-age=3600`; Content-Type `text/calendar; charset=utf-8`; GET-only
-- Auto-Reschedule-Projektion läuft in `nextDue()` — der Feed ist ohne Dashboard-Besuch aktuell
+- Der Feed ist ohne Dashboard-Besuch aktuell (Projektion sitzt in `nextDue()`)
+- In-App-Kalender nutzt dieselbe `occurrencesInRange()` — eine Quelle, keine zweite Terminlogik
 
 ### 4.5 AI-Coach
 
-- Chat-UI (Streaming); System-Prompt injiziert: Tank-Profile (inkl. `tankState`), letzte 10 Messwerte inkl. berechnetem NH3, Rückstände + `rescheduleCount`, offene Aufgaben
+- Chat-UI (Streaming); System-Prompt injiziert: Tank-Profile (inkl. `tankState`), letzte 10 Messwerte inkl. berechnetem NH3, Rückstände (`overdueDays`) + `missedSlots`, offene Aufgaben
 - **Structured Output:** Tool-Use `propose_schedule` (zod-Schema) → Approval-Karte → Server Action schreibt erst nach Bestätigung
-- **Cost-Guard (zweistufig):** `aiCalls`-Tabelle (Tag, Calls, Prompt/Completion-Tokens aus **finalem Streaming-Event** `usage`, Kosten-Schätzung); Limits: `AQUAMAN_AI_MAX_CALLS_PER_DAY` (20) + `AQUAMAN_AI_MAX_TOKENS_PER_DAY` (z. B. 200k) — Überschreitung → AI pausiert bis Mitternacht `APP_TIMEZONE`
+- **Cost-Guard (zweistufig):** `aiCalls`-Tabelle (Tag, Calls, Prompt/Completion-Tokens aus **finalem Streaming-Event** `usage`, Kosten-Schätzung); Limits: `AQUAMAN_AI_MAX_CALLS_PER_DAY` (20) + `AQUAMAN_AI_MAX_TOKENS_PER_DAY` (z. B. 200k) — Überschreitung → AI pausiert bis Mitternacht `AQUAMAN_TIMEZONE`
 - **Fallback:** kein Key / Fehler / Limit → "AI offline — core features fully working"
 - Disclaimer: Empfehlungen, keine Medikamenten-Dosierung; Fachhandel-Hinweis
 
@@ -204,14 +303,18 @@ tanks            id, name, volumeL, waterType, photoPath, plants text-json,
                  tankState ('cycling'|'established'), paramOverrides text-json,
                  createdAt, deletedAt
 schedules        id, tankId→tanks, actionType, intervalDays,
-                 preferredDays integer (7-Bit), autoReschedule bool,
-                 lastDoneAt, snoozedUntil, snoozeSource, scheduleVersion,
-                 createdAt, active
+                 preferredDays integer (7-Bit, Bit 0 = Mo; 0 ungültig),
+                 autoReschedule bool, lastDoneAt, snoozedUntil,
+                 snoozeSource ('user'|null), scheduleVersion,
+                 updatedAt (→ ICS DTSTAMP), createdAt, active
 maintenanceLogs  id, tankId, actionType, doneAt, note, source
 waterTests       id, tankId, measuredAt, values text-json, note
 appSettings      key (PK), value text-json    // icsToken, mcpToken, uiPrefs, aiSettings
-aiCalls          id, day (local date), calls, promptTokens, completionTokens,
-                 costEstimateMicros
+aiCalls          id, day (local date), provider, model, calls,
+                 promptTokens, completionTokens, costEstimateMicros
+                 // provider+model bleiben drin: ohne sie ist die Kostenschätzung
+                 // falsch, sobald AQUAMAN_AI_MODEL gewechselt wird — und der
+                 // Provider-Wechsel ist ein Kernversprechen des Stacks
 ```
 
 **Alle JSON-Felder: `text({ mode: 'json' })` — SQLite hat kein jsonb/array. Wochentage: 7-Bit-Integer-Maske.** Backups: Volume-Snapshot / Datei-Kopie (Doku im README).
@@ -233,24 +336,33 @@ aiCalls          id, day (local date), calls, promptTokens, completionTokens,
 - **Daten-Grenzen:** AI sieht Tank-/Mess-/Log-Daten; NIE Tokens/Keys
 - **Retention:** Provider-Defaults; README-Hinweis
 - **Fallback:** try/catch + 30 s Timeout + Cost-Guard → App voll nutzbar
-- **Telemetry:** `aiCalls` (Calls/Tokens/€-Schätzung, heute & Monat) in Settings sichtbar
+- **Telemetry:** `aiCalls` (Provider/Modell/Calls/Tokens/€-Schätzung, heute & Monat) in Settings sichtbar
 - **Cost Ceiling:** zweistufig (Calls + Tokens), Pause bis lokale Mitternacht
 - **Evals (DoD):** Nitrat 60 → Wasserwechsel-Empfehlung; NH4 0,5 bei pH 8 → NH3-Kritisch-Erkennung; CO2 40 + Gasping → Sofortmaßnahmen; 2-Wochen-Pause → priorisiert & freundlich; Injection-Versuch → Refusal
 - **Sicherheit:** AI-Antworten = untrusted input; Writes nur über validierte Server Actions + Approval-Gate
 
 ## 8a. Zeit-/Kalender-Grundlagen (neu, Plan-Review B6)
 
-- `APP_TIMEZONE` (Default `Europe/Berlin`) in `.env`
-- `src/lib/domain/dates.ts`: `startOfLocalDay(date, tz)`, `addDays`, `fmtLocalDate`, `localMidnightOf(date, tz)` — ausschließlich über `Intl.DateTimeFormat` mit `timeZone`-Option; **kein** `date.getDate()` / `new Date().setHours(0,0,0,0)` (Server-Zonen-Falle)
+- `AQUAMAN_TIMEZONE` (Default `Europe/Berlin`) in `.env` — durchgängiges Präfix wie alle übrigen
+  Variablen (Plan-Review N.4.5)
+- `src/lib/domain/dates.ts`: `startOfLocalDay(date, tz)`, `addDays`, `fmtLocalDate`,
+  `localMidnightOf(date, tz)`, `localWeekdayIndex(date, tz)` (0 = Mo), `nextPreferredDay(date, mask)`
+  — ausschließlich über `Intl.DateTimeFormat` mit `timeZone`-Option; **kein** `date.getDate()` /
+  `new Date().setHours(0,0,0,0)` (Server-Zonen-Falle)
 - Alle Konsumenten: Dashboard-Due, ICS-Tagesbildung, `aiCalls.day`, AI-Limit-Reset — nur über diese Helper
-- Unit-Tests: 23:30-Berlin vs. 00:30-Berlin um die Mitternachtsgrenze; Sommerzeitwechsel
+- Unit-Tests: 23:30-Berlin vs. 00:30-Berlin um die Mitternachtsgrenze; Sommerzeitwechsel;
+  `nextPreferredDay` inklusiv (Eingabetag ist bevorzugt → unverändert zurück); Maske `0` terminiert;
+  `localWeekdayIndex` für alle sieben Tage gegen die Bitmaske
 
 ## 8b. Token-Endpoints & Absicherung (neu, Plan-Review R4/R5)
 
-- ICS- und (v1.1) MCP-Token: `crypto.randomBytes(24).toString('base64url')` (32 Zeichen), Vergleich `crypto.timingSafeEqual`
+- ICS- und (v1.1) MCP-Token: `crypto.randomBytes(24).toString('base64url')` (32 Zeichen)
+- Vergleich: **beide Seiten erst SHA-256-hashen, dann `crypto.timingSafeEqual`** — die Funktion wirft
+  einen `RangeError`, wenn die Buffer unterschiedlich lang sind; ein Token falscher Länge würde sonst
+  einen 500er auslösen (und die Länge verraten). Hashen macht beide Seiten fix 32 Byte (Plan-Review N.4.7)
 - Rate-Limit: In-Memory-Map (IP → Fehlversuche), 30/h → 429; Reset bei Erfolg
 - Ungültiges Token → **404**, nie 401 (keine Existenz-Bestätigung)
-- Docker-Netzwerk: Port-Bindung `127.0.0.1:3000:3000` OER kein Publish + Proxy im gleichen Docker-Netz — LAN-Zugriff auf :3000 umgeht sonst die Proxy-Auth
+- Docker-Netzwerk: Port-Bindung `127.0.0.1:3000:3000` ODER kein Publish + Proxy im gleichen Docker-Netz — LAN-Zugriff auf :3000 umgeht sonst die Proxy-Auth
 - README: fetter Sicherheitshinweis + empfohlene Proxy-Konfiguration
 
 ## 9. Agent-Orchestrierung
@@ -283,7 +395,7 @@ aiCalls          id, day (local date), calls, promptTokens, completionTokens,
      aquaman:
        image: ghcr.io/cadextcp/aquaman:latest
        environment:
-         - APP_TIMEZONE=Europe/Berlin
+         - AQUAMAN_TIMEZONE=Europe/Berlin
          - AQUAMAN_AI_BASE_URL=https://api.z.ai/api/anthropic
          - AQUAMAN_AI_API_KEY=${AQUAMAN_AI_API_KEY}
          - AQUAMAN_AI_MODEL=glm-4.6
@@ -308,7 +420,7 @@ aiCalls          id, day (local date), calls, promptTokens, completionTokens,
 |-------|--------|----------|
 | **1. Vertical Slice** | Next.js-Scaffold, Drizzle-Schema (alle Tabellen), Theme, i18n-Struktur, Health-Route, Vitest, **Dockerfile + CI + Deployment auf TrueNAS** | Live-URL zeigt leere App; jede weitere Phase = `docker compose pull` |
 | **2. Core Features** | Tank-CRUD + Fotos, Schedules, Daily Habits (Füttern), Snooze, Dashboard, Wasserwerte + Charts (inkl. NH3), `de.json` | Produktionsreif ohne AI |
-| **3. Calendar & ICS** | In-App-Kalender, ICS-Feed (deterministisch, token-gated, byte-identisch-Test), Google-Test | Kalender in Google abonnierbar |
+| **3. Calendar & ICS** | `occurrencesInRange()`, In-App-Kalender, ICS-Feed (UID auf `originalDueAt`, stabiler `DTSTAMP`, byte-identisch-Test), Google-Test | Kalender in Google abonnierbar |
 | **4. AI-Coach** | AI-Client, Coach-Chat, `propose_schedule` + Approval-UI, Cost-Guard (Calls+Tokens), Fallback | Special Sauce live |
 | **5. Launch** | JSON-Export/Import, Statistiken, README/TrueNAS-Guide, SECURITY/CONTRIBUTING, LICENSE, Release v0.1.0 | Öffentliche v0.1.0 |
 | **6. v1.1 (nach Launch)** | MCP-Server (Bearer-gated), OpenClaw-Verdrahtung, ggf. read-only/read-write-Tokens | Remote-Zugriff via OpenClaw |
