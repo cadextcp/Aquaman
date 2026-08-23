@@ -1,8 +1,20 @@
 # Tech Design — Aquaman (MVP)
 
 > **Technisches Design für die Open-Source-Aquarium-Pflege- & Tracking-App**
-> Version: 1.0 · Status: Verabschiedet · Workflow: Vibe-Coding Step 3 (Tech Design)
-> Basierend auf: `docs/research-Aquaman.md`, `docs/PRD-Aquaman-MVP.md` (v1.1)
+> Version: 1.1 · Status: Verabschiedet · Workflow: Vibe-Coding Step 3 (Tech Design)
+> Basierend auf: `docs/PRD-Aquaman-MVP.md` (v1.2) · Fixes aus `docs/plan-review.md` eingearbeitet
+>
+> **Changelog v1.1** (nach externem Plan-Review):
+> - B4: SQLite-Typen fixiert (`text({mode:'json'})`, 7-Bit-Wochentagsmaske) — keine Postgres-Typen
+> - B5: Auto-Reschedule als **reine Lese-Projektion** in `nextDue()` — kein Write, kein Cron; ICS/MCP/Dashboard identisch
+> - B6: `APP_TIMEZONE` + `startOfLocalDay()`-Helper; AI-Mitternachts-Reset & ICS-Tage daran gebunden
+> - B7: ICS: expandierte VEVENTs, deterministische UID `{scheduleId}-{plannedDateISO}@aquaman`, `SEQUENCE`, Byte-Identitäts-Test
+> - B3: `/api/mcp` (v1.1 des Produkts): vollständig Bearer-gated + Rate-Limit + 404-on-invalid
+> - I2: Env durchgängig `AQUAMAN_`-Präfix; I3: nur Bearer-Header (keine URL-Userinfo)
+> - R4: Token-Endpunkte mit konstantem Vergleich + Rate-Limiting; 404 statt 401
+> - R5: Port-Bindung nur `127.0.0.1` / Docker-Netz; R6: vier Deployment-Fallen als Gotchas
+> - R7: zweistufiges Cost-Ceiling (Calls + Tokens); Streaming-`usage` aus finalem Event
+> - Phase 1 = vertikaler Schnitt inkl. Docker/CI/NAS-Deployment
 
 ---
 
@@ -12,272 +24,322 @@
 
 | Aspekt | Entscheidung | Begründung |
 |--------|--------------|------------|
-| Framework | Next.js 15 (App Router) + React 19 | Frontend + API + MCP in einem Projekt; Server Components = wenig Client-JS = leichtgewichtig; AI-Tools produktivsten damit |
+| Framework | Next.js 15 (App Router) + React 19 | Frontend + API in einem Projekt; Server Components = wenig Client-JS = leichtgewichtig; AI-Tools produktivsten damit |
 | Sprache | TypeScript (strict) | Fehler zur Compile-Zeit fangen — wichtig bei AI-generiertem Code (Level A) |
-| UI | Tailwind CSS 4 + shadcn/ui + lucide-react | Schöne Mobile-First-UI ohne Design-Arbeit; Komponenten gehören dem Repo (kein npm-Lock-in) |
-| Charts | Recharts | Linien-Verläufe mit Zielbändern, reagiert auf Touch, klein genug |
-| Datenbank | SQLite (better-sqlite3) + Drizzle ORM | Eine Datei unter `/app/data/aquaman.db` — Backup = kopieren; typsichere Queries + Migrationen |
-| Forms/Validierung | react-hook-form + zod | Schnelle Mobile-Eingabe, Validierung im Client UND Server |
-| AI | @anthropic-ai/sdk mit konfigurierbarer `baseURL` | Ein Code-Pfad für z.ai GLM UND Claude (beide Anthropic-Messages-kompatibel) |
-| MCP | @modelcontextprotocol/sdk, Streamable HTTP unter `/mcp` | Moderner Standard, läuft im selben Next.js-Container, OpenClaw-kompatibel |
-| ICS | Eigene Generierung (`ical-generator`) | Klein, kontrollierbar, All-Day-Events + Snooze-Updates |
-| State | React Server Components + Server Actions; Client-State nur für Charts/Forms | Wenig JS, schnell, einfach |
-| Tests | Vitest + Testing Library (Kernlogik) | Intervall-/Snooze-/ICS-Logik MUSS getestet sein — AI-Code + Datumsmathe = Fehlerrisiko #1 |
-| Lint/Format | ESLint + Prettier | Konsistenter Stil über AI-Sessionen hinweg |
+| UI | Tailwind CSS 4 + shadcn/ui + lucide-react | Schöne Mobile-First-UI ohne Design-Arbeit; Komponenten gehören dem Repo |
+| Charts | Recharts | Linien-Verläufe mit Zielbändern, touch-geeignet, klein |
+| Datenbank | SQLite (better-sqlite3) + Drizzle ORM | Eine Datei unter `/app/data/aquaman.db`; WAL-Mode; typsichere Queries + Migrationen |
+| Forms/Validierung | react-hook-form + zod | Schnelle Mobile-Eingabe; gleiches Schema client- und serverseitig |
+| AI | `@anthropic-ai/sdk` mit `baseURL` aus `AQUAMAN_AI_BASE_URL` | Ein Code-Pfad für z.ai GLM UND Claude |
+| MCP (Produkt-v1.1) | `@modelcontextprotocol/sdk`, Streamable HTTP, `/api/mcp` | Vollständig Bearer-gated; Domänenschicht wird wiederverwendet |
+| ICS | `ical-generator` | Kontrollierbar: deterministische UIDs, expandierte Events |
+| State | RSC + Server Actions; Client-State nur für Charts/Forms/Chat | Wenig JS, schnell |
+| Tests | Vitest + Testing Library | Scheduler/Snooze/ICS/Ranges sind pure Funktionen → 100 % testbar |
+| Lint/Format | ESLint + Prettier | Konsistenz über AI-Sessionen |
+| Zeitzone | `APP_TIMEZONE` (Default `Europe/Berlin`), `Intl`-basiert | Alle Tagesgrenzen zentral |
 
-**Warum kein separates Backend?** Für 1–5 Nutzer ist ein Next.js-Monolith ideal: weniger Deployment-Komplexität, keine API-Duplizierung, trotzdem saubere Trennung über `src/lib` (Domänenlogik) vs. `src/app` (Routen). Die Architektur ist **API-first vorbereitet**: Alle Domänenfunktionen liegen als reine Funktionen/Services in `src/lib/*` und werden von API-Routen, Server Actions UND MCP-Tools gemeinsam benutzt — Sensoren & Dritt-Clients (v2) docken ohne Umbau an.
+**Warum kein separates Backend?** Für 1–5 Nutzer ist ein Next.js-Monolith ideal. Die Architektur ist **API-first vorbereitet**: Alle Domänenfunktionen liegen als pure Funktionen in `src/lib/domain/*` und werden von API-Routen, Server Actions UND (v1.1) MCP-Tools gemeinsam benutzt.
 
 ## 2. Alternative Optionen (verworfen)
 
 | Option | Pros | Cons | Entscheidung |
 |--------|------|------|--------------|
-| FastAPI + React (2 Projekte) | Klare Trennung | 2× Deployment, 2× AI-Kontext nötig | ❌ |
-| SvelteKit | Noch leichter | Kleineres Ökosystem, AI-Tools weniger sicher darin | ❌ |
-| Postgres + Docker-Compose-Stack | Skaliert besser | Overkill für 2 Aquarien; mehr RAM auf TrueNAS | ❌ (SQLite reicht bis viele 100 Tanks) |
-| Go + statisches Frontend | Winziger Container | Vibe-coder kann nichts selbst anpassen | ❌ |
-| No-Code (Baserow/NocoDB) | Sofort startbar | Kein ICS, kein MCP, kein AI-Coach, kein echter Open-Source-Code | ❌ |
+| FastAPI + React (2 Projekte) | Klare Trennung | 2× Deployment, 2× AI-Kontext | ❌ |
+| SvelteKit | Noch leichter | Kleineres Ökosystem | ❌ |
+| Postgres + Compose-Stack | Skaliert besser | Overkill; RAM auf TrueNAS | ❌ |
+| Go + statisches Frontend | Winziger Container | Vibe-coder kann nichts anpassen | ❌ |
+| No-Code | Sofort startbar | Kein ICS/MCP/AI-Coach | ❌ |
 
 ## 3. Projektstruktur & Setup
 
 ```
 aquaman/
 ├── src/
-│   ├── app/                      # Next.js App Router
+│   ├── app/
 │   │   ├── (dashboard)/          # Mobile-First-Dashboard
-│   │   ├── tanks/[id]/           # Aquarium-Detail & -Formulare
-│   │   ├── tests/                # Wasserwerte erfassen/charts
-│   │   ├── calendar/             # In-App-Kalenderansicht
+│   │   ├── tanks/[id]/           # Detail & Formulare
+│   │   ├── tests/                # Wasserwerte
+│   │   ├── calendar/             # In-App-Kalender
 │   │   ├── coach/                # AI-Chat
-│   │   ├── settings/             # Token, AI-Limits, Sprache
+│   │   ├── settings/             # Token, Limits, Sprache, Export
 │   │   └── api/
 │   │       ├── health/route.ts       # Docker-Healthcheck
-│   │       ├── calendar.ics/route.ts # ICS-Feed (Token)
-│   │       ├── uploads/[...]/route.ts# Foto-Auslieferung
-│   │       └── mcp/route.ts          # MCP Streamable HTTP Endpoint
-│   ├── components/               # UI (shadcn/ui + eigene)
+│   │       ├── calendar.ics/route.ts # ICS-Feed (Token, GET-only)
+│   │       ├── uploads/[...]/route.ts# Foto-Auslieferung (Path-Traversal-Schutz!)
+│   │       └── mcp/route.ts          # MCP (v1.1) — Bearer-gated
+│   ├── components/
 │   ├── lib/
 │   │   ├── db/                   # Drizzle Schema, Migrationen, Seed
 │   │   ├── domain/               # ★ Kernlogik (pure Funktionen)
-│   │   │   ├── scheduler.ts      # Intervall-, Due-, Snooze-Berechnung
-│   │   │   ├── autoReschedule.ts # Auto-Reschedule-Algorithmus
-│   │   │   ├── ranges.ts         # Wasserwert-Zielbereiche
-│   │   │   └── ics.ts            # ICS-Generierung
-│   │   ├── ai/                   # AI-Client, Prompts, Cost-Guard
-│   │   └── mcp/                  # MCP-Tool-Definitionen
-│   └── i18n/                     # en + de Message-Kataloge
-├── data/                         # Volume-Mount (DB + uploads/) — .gitignore
-├── public/
-├── tests/                        # Vitest (Domain-Logik!)
-├── Dockerfile                    # Multi-Stage (build → runner)
+│   │   │   ├── scheduler.ts      # nextDue() inkl. Reschedule-Projektion
+│   │   │   ├── ranges.ts         # Zielbereiche + NH3-Berechnung
+│   │   │   ├── dates.ts          # startOfLocalDay(), tz-Helper
+│   │   │   └── ics.ts            # ICS-Generierung (deterministisch)
+│   │   ├── ai/                   # Client, Prompts, Cost-Guard
+│   │   └── mcp/                  # (v1.1) Tool-Definitionen
+│   └── i18n/                     # en.json (+ de.json ab Ende Phase 2)
+├── data/                         # Volume — .gitignore
+├── tests/
+├── Dockerfile                    # Multi-Stage (build → runner), standalone
 ├── docker-compose.yml
-├── .env.example
-└── .github/workflows/docker.yml  # CI: test → build → ghcr.io
+├── .env.example                  # AQUAMAN_-Präfix durchgängig
+└── .github/workflows/docker.yml
 ```
 
-**Setup-Checkliste:**
+**Setup-Checkliste (vollständig, 7 Schritte):**
 1. `npx create-next-app@latest` (TS, Tailwind, App Router, ESLint)
 2. `npx shadcn@latest init` + benötigte Komponenten
-3. Drizzle + better-sqlite3 installieren, Schema schreiben, `drizzle-kit` konfigurieren
-4. Vitest aufsetzen, erste Tests für `scheduler.ts`
-6. Dockerfile + compose + Healthcheck
-7. GitHub Actions Workflow
+3. Drizzle + better-sqlite3 installieren; `next.config.ts`: `output: 'standalone'`, `serverExternalPackages: ['better-sqlite3', 'sharp']`
+4. Vitest aufsetzen; erste Tests für `scheduler.ts` + `dates.ts`
+5. next-intl aufsetzen (Struktur + `en.json`); `de.json` ab Ende Phase 2 füllen
+6. Dockerfile (multi-stage) + docker-compose.yml (Port nur lokal) + Healthcheck
+7. GitHub Actions: lint → typecheck → test → build → push ghcr.io
 
-## 4. Feature-Implementierung (PRD → Technik)
+## 4. Feature-Implementierung
 
 ### 4.1 Tank Management
+
 - Server Actions `createTank/updateTank/deleteTank` mit zod-Validierung
-- Pflanzen/Fische als JSON-Felder (`plants: {name, qty}[]`, `fish: {species, qty}[]`) — flexibel, keineExtra-Tabellen für MVP
-- Foto: multipart Upload via Server Action → gespeichert unter `data/uploads/<tankId>/logo.<ext>`, Größe limitiert (max 5 MB, sharp-Resize auf 1200px)
-- Löschen = Soft-Delete-Flag (Datenintegrität für Logs)
+- Pflanzen/Fische als `text({mode:'json'})`: `plants: {name, qty}[]`, `fish: {species, qty}[]`
+- `tankState: 'cycling' | 'established'` (Default: `established`) — steuert NO2/NH3-Bewertung
+- Foto: multipart Upload via Server Action → `data/uploads/<tankId>/photo.<ext>`; max 5 MB; `experimental.serverActions.bodySizeLimit: '6mb'` in next.config; sharp-Resize auf 1200px
+- `/api/uploads/[...path]`: harte Pfad-Normalisierung (`path.normalize`, `..`-Reject), Content-Type Whitelist
+- Löschen = Soft-Delete (`deletedAt`)
 
 ### 4.2 Scheduler & Flexible Scheduling (★ Kernkomplexität)
 
-**Datenmodell-Auszug:**
+**Datenmodell-Auszug (SQLite-konform):**
 ```ts
 schedules: id, tankId, actionType, intervalDays,
-  preferredDays: int[] (0=So..6=Sa), autoReschedule: bool,
-  lastDoneAt: datetime|null, snoozedUntil: datetime|null, active
-maintenanceLogs: id, tankId, actionType, doneAt, note, source (user|ai)
+  preferredDays: integer (7-Bit-Maske, Bit 0 = Mo … Bit 6 = So),
+  autoReschedule: bool (default true),
+  lastDoneAt: datetime|null,
+  snoozedUntil: datetime|null, snoozeSource: 'user'|'system'|null,
+  scheduleVersion: integer (inkrementiert bei jeder Änderung → ICS SEQUENCE),
+  createdAt, active
+maintenanceLogs: id, tankId, actionType, doneAt, note, source ('user'|'ai_proposed'|'mcp')
+waterTests: id, tankId, measuredAt, values text-json, note
 ```
 
-**Due-Berechnung (pure Funktion, 100% getestet):**
+**Konzepte:**
+- `originalDueAt` = `lastDoneAt + intervalDays` (bzw. `createdAt + intervalDays` initial) — **wird nie automatisch verschoben**
+- `plannedFor` = Projektion: `max(originalDueAt, snoozedUntil)` + Auto-Reschedule-Regel — **wird berechnet, nie persistiert** (außer Nutzer-Snooze schreibt `snoozedUntil`)
+- `rescheduleCount` = abgeleiteter Zähler: wie oft `plannedFor > originalDueAt` um > 1 Tag gewachsen ist, seit `lastDoneAt` — ab ≥ 3 UI-Hinweis "Intervall zu eng?"
+- Rückstand (`overdueDays`) = `today − originalDueAt` — ehrlich, für Catch-up & AI-Kontext
+
+**Due-Berechnung (pure Funktion, 100 % getestet):**
 ```
-nextDue(tank, schedule, today):
-  base  = lastDoneAt ?? schedule.createdAt
-  due   = base + intervalDays
-  // 1) Snooze überschreibt alles:
-  due   = max(due, snoozedUntil)
-  // 2) Auf bevorzugten Wochentag schieben (nie zurück!):
-  due   = nextPreferredDay(due)
-  return due
+nextDue(schedule, today):
+  originalDue = (lastDoneAt ?? createdAt) + intervalDays        // nie verschoben
+  due = originalDue
+  if (snoozedUntil && snoozedUntil > due) due = snoozedUntil   // Snooze überschreibt
+  if (due < today && autoReschedule):
+      due = nextPreferredDay(today)                             // Projektion, kein Write
+  else:
+      due = nextPreferredDay(due)                               // nie rückwärts
+  return { originalDueAt: originalDue, plannedFor: due }
 ```
 
-**Auto-Reschedule (Default: an):** Beim Dashboard-Load (on-demand, kein Cron): Überfällige Aufgaben, deren `lastDoneAt + interval + 2 Tage` überschritten ist → `snoozedUntil = nächster bevorzugter Tag ab heute` → Plan bleibt sauber, ohne dass Logs gelogen werden (nichts wird als "erledigt" markiert!). Config-Flag pro Schedule + global in Settings.
+**Auto-Reschedule = reine Lese-Projektion** (Plan-Review B5): Kein DB-Write, kein Cron. Dashboard, ICS-Feed und künftige MCP-Tools rufen dieselbe `nextDue()` auf → überall identischer, immer aktueller Plan. Persistiert wird nur menschliches Handeln (Done → `lastDoneAt`, Snooze → `snoozedUntil`).
 
-**Catch-up-Modus:** Wenn > 5 Aufgaben überfällig: Dashboard zeigt Top-1-Priorität (Gewichtung: water change > feed > fertilize > rest; je älter, desto wichtiger) als "If you only do one thing today"-Karte.
+**Füttern als Daily Habit (Plan-Review R2):** Füttern ist KEIN Schedule, sondern Dashboard-Checkbox pro Tank/Tag. `maintenanceLogs`-Eintrag mit `actionType: 'feed'` beim Abhaken. Kein ICS-Event (90 × täglich = Kalender-Müll), einfache Streak-Anzeige.
 
-**Snooze-Buttons:** "Tomorrow" / "Next weekend" / "+3 days" / DatePicker — Server Action `snooze(taskId, until)`, 1 Tap am Handy.
+**Catch-up-Modus:** > 5 Aufgaben mit Rückstand → Top-1-Karte (Priorität: water change > fertilize > filter > rest; älterer Rückstand wiegt mehr). Freundlicher Ton.
+
+**Snooze:** Server Action `snooze(scheduleId, until)` → schreibt `snoozedUntil` + `snoozeSource: 'user'`; 1 Tap am Handy.
 
 ### 4.3 Wasserwerte
-- `waterTests: id, tankId, measuredAt, values: jsonb, note`
-- Werte-Schema pro Wasser-Typ aus `ranges.ts` (Ziel-/Warnbereiche aus Recherche, pro Tank überschreibbar via `tank.paramOverrides: jsonb`)
-- Chart: Recharts LineChart + ReferenceArea (Zielband), Zeitraum-Filter (30/90/365 Tage)
-- Formular: Mobile-first, nur Parameter des Wasser-Typs, zuletzt genutzte Werte als Defaults, Dezimaltastatur
+
+- Formular zeigt nur Parameter des Wasser-Typs; Defaults = zuletzt genutzte Werte; Dezimaltastatur
+- `ranges.ts`: Ziel-/Warnbereiche pro Typ (fresh/salt), pro Tank überschreibbar (`tanks.paramOverrides` text-json)
+- **NH3-Berechnung:** `nh3FromNh4(nh4Total, ph, tempC)` — reine Funktion (Formel nach Emerson et al. 1975, pKa-abhängig von Temperatur); bewertet wird NH3 mit kritisch ab ~0,02 mg/l
+- NO2: Ziel 0 (established), Warnung ab 0,1 mg/l; bei `tankState: cycling` kein Alarm bei Peaks (Hinweiston statt Warnung)
+- Charts: Recharts LineChart + ReferenceArea (Zielband), Filter 30/90/365 Tage
 
 ### 4.4 ICS-Feed
-- Route `GET /api/calendar.ics?t=<token>` — Token = 32-Zeichen-Secret in `appSettings` (Settings-UI: generieren/rotieren)
-- Generiert VEVENTs für alle aktiven Schedules der nächsten 90 Tage (All-Day, DTSTART/DTEND, `X-WR-CALNAME:Aquaman`), inkl. Snooze/Auto-Reschedule-Ergebnis
-- `Cache-Control: max-age=3600`; Content-Type `text/calendar; charset=utf-8`
-- In-App-Kalender: eigene Monatsansicht (kein Heavy-Addon), Termine klickbar → Snooze/Done
+
+- Route: `GET /api/calendar.ics?t=<token>` — Token: `crypto.randomBytes(24).toString('base64url')`, konstanter Zeitvergleich, rotierbar
+- Ungültiges Token → **404** (Existenz nicht bestätigen); Rate-Limit: In-Memory 30 Fehlversuche/IP/h → 429
+- **Generierung (deterministisch):**
+  - Horizont: `plannedFor`-Tage von heute (`startOfLocalDay(now, APP_TIMEZONE)`) bis +90 Tage — alle Occurrences je Schedule expandiert
+  - Expandierte Einzel-VEVENTs, **kein RRULE**
+  - `UID = {scheduleId}-{plannedDateISO}@aquaman` — stabil über Snooze hinweg? **Nein:** Snooze ändert `plannedFor` → alte UID entfällt, neue entsteht. Google behandelt verschwundene UID als gelöschtes Event → sauberer Effekt: Event wandert. `DTSTAMP = now` (UTC), `SEQUENCE = scheduleVersion`
+  - Feed-Reihenfolge sortiert (UID-lexikografisch) → **byte-identisch bei gleichen Daten** (Unit-Test!)
+- Events: All-Day (`DTSTART;VALUE=DATE:YYYYMMDD`), Titel "Aquaman: Water change — 240L Community Tank"
+- `Cache-Control: public, max-age=3600`; Content-Type `text/calendar; charset=utf-8`; GET-only
+- Auto-Reschedule-Projektion läuft in `nextDue()` — der Feed ist ohne Dashboard-Besuch aktuell
 
 ### 4.5 AI-Coach
-- Chat-UI (Streaming via AI-SDK-artiges Pattern auf dem Anthropic-Client)
-- System-Prompt: Aquaristik-Coach, kontextbewusst — injiziert Tank-Profile, letzte 10 Messwerte, offene/überfällige Aufgaben; freundlich, kein Vorwurf; Schluss-Disclaimer "recommendations, not medical dosing — consult your local fish store for critical issues"
-- **Kalender-Vorschlag:** Structured Output via Tool-Use (`propose_schedule`-Tool, zod-Schema) → UI-Karte mit Diff-Ansicht → Approval → Server Action schreibt Schedule
-- **Cost-Guard:** `aiCalls`-Tabelle (Tag, Anzahl, Tokens, Kosten-Schätzung); `AQUAMAN_AI_MAX_CALLS_PER_DAY` (Default 20) — überschritten → 429-artige UI-Meldung "AI paused until midnight"
-- **Fallback:** Kein Key / API-Fehler → Coach-Tab zeigt "AI offline — core features fully working", Rest unauffällig normal
 
-### 4.6 MCP-Server
-- `@modelcontextprotocol/sdk`, Transport Streamable HTTP, gemountet als Route `/api/mcp` (gleicher Port, kein Extra-Prozess)
-- Token-Schutz: `Authorization: Bearer <MCP_TOKEN>` (Settings-UI zeigt Konfigurations-URL für OpenClaw)
-- Tools (alle nutzen `src/lib/domain/*` wieder):
-  - Read: `get_tanks`, `get_water_values(tankId?, days?)`, `get_pending_maintenance(days?)`, `get_ai_usage`
-  - Write (Token erforderlich): `add_water_test(tankId, values)`, `log_maintenance(tankId, actionType)`, `snooze_task(scheduleId, until)`
-  - `ask_coach(question, tankId?)` → AI (unterliegt Cost-Guard)
-- Keine DELETE/UPDATE-Tools — destruktive Operationen nur via UI
+- Chat-UI (Streaming); System-Prompt injiziert: Tank-Profile (inkl. `tankState`), letzte 10 Messwerte inkl. berechnetem NH3, Rückstände + `rescheduleCount`, offene Aufgaben
+- **Structured Output:** Tool-Use `propose_schedule` (zod-Schema) → Approval-Karte → Server Action schreibt erst nach Bestätigung
+- **Cost-Guard (zweistufig):** `aiCalls`-Tabelle (Tag, Calls, Prompt/Completion-Tokens aus **finalem Streaming-Event** `usage`, Kosten-Schätzung); Limits: `AQUAMAN_AI_MAX_CALLS_PER_DAY` (20) + `AQUAMAN_AI_MAX_TOKENS_PER_DAY` (z. B. 200k) — Überschreitung → AI pausiert bis Mitternacht `APP_TIMEZONE`
+- **Fallback:** kein Key / Fehler / Limit → "AI offline — core features fully working"
+- Disclaimer: Empfehlungen, keine Medikamenten-Dosierung; Fachhandel-Hinweis
+
+### 4.6 MCP-Server → **Produkt-v1.1** (nicht MVP)
+
+- `@modelcontextprotocol/sdk`, Streamable HTTP, Route `/api/mcp`
+- **Gesamter Endpoint Bearer-gated** (`Authorization: Bearer <AQUAMAN_MCP_TOKEN>`), konstanter Vergleich, Rate-Limit, 404 bei ungültigem Token
+- Optional zwei Token-Klassen: read-only / read-write
+- Tools: `get_tanks`, `get_water_values`, `get_pending_maintenance` (nutzt `nextDue()`), `add_water_test`, `log_maintenance`, `snooze_task`, `ask_coach` — alle rufen `src/lib/domain/*` auf
+- Keine DELETE/UPDATE-Tools
 
 ## 5. Design-Implementierung
 
-- **shadcn/ui-Basis** + eigenes `Aqua-Theme`: dunkles Default (CSS vars: `--background` tiefes Blaugrün, `--primary` teal, Akzent cyan), Light-Mode-Toggle (persistiert in localStorage)
-- **Mobile-First-Layout:** Bottom-Nav mit 5 Einträgen (Dashboard, Tanks, [+]-FAB, Calendar, More) — Desktop ab `lg:`: Sidebar statt Bottom-Nav; große Touch-Targets (min 44px), safe-area-insets für iOS
-- **Dashboard:** KPI-Cards (Due today / Overdue / Tests this month), Catch-up-Karte, Tasks als Swipe-/Tap-Karten mit Done- & Snooze-Buttons
-- **Mikro-Feedback:** sanfte Check-Animation (framer-motion, dezent), keine/notification-Erschöpfung — "friendly, not nagging"
-- **i18n:** next-intl, Kataloge `src/i18n/en.json` + `de.json` — alle Strings von Anfang an über Keys (PRD: en zuerst, de als zweiter Sprachsatz)
+- shadcn/ui + eigenes Aqua-Theme (dunkles Blaugrün, teal Primary, cyan Akzent), Light-Mode-Toggle
+- Mobile: Bottom-Nav (Dashboard, Tanks, +, Calendar, More) — Desktop ≥ lg: Sidebar; Touch-Targets ≥ 44px; safe-area-insets
+- Dashboard: KPI-Cards (Due today / Behind / Tests this month), Catch-up-Karte, Daily-Habit-Checkboxen (Füttern), Task-Karten mit Done/Snooze
+- Framer-motion: dezente Check-Animation
+- i18n: next-intl; `en.json` ab Start, `de.json` ab Ende Phase 2 (Struktur steht von Anfang an)
 
 ## 6. Datenbank & Storage
 
-**SQLite via better-sqlite3, Drizzle ORM.** Datei: `data/aquaman.db` (WAL-Mode). Migrationen via drizzle-kit (`npm run db:migrate`), Seed-Script für Default-Aktionen & Zielbereiche.
+**SQLite (better-sqlite3, WAL), Drizzle.** Datei: `/app/data/aquaman.db`. Migrationen via drizzle-kit; Seed: Default-Aktionen + Zielbereiche.
 
-**Tabellen (Überblick):**
+**Tabellen:**
 ```
-tanks            id, name, volumeL, waterType, photoPath, plants(jsonb),
-                 fish(jsonb), hasCo2, hasHeater, hasFilter, filterType,
-                 paramOverrides(jsonb), createdAt, deletedAt
+tanks            id, name, volumeL, waterType, photoPath, plants text-json,
+                 fish text-json, hasCo2, hasHeater, hasFilter, filterType,
+                 tankState ('cycling'|'established'), paramOverrides text-json,
+                 createdAt, deletedAt
 schedules        id, tankId→tanks, actionType, intervalDays,
-                 preferredDays(int[]), autoReschedule(bool), lastDoneAt,
-                 snoozedUntil, active, createdAt
+                 preferredDays integer (7-Bit), autoReschedule bool,
+                 lastDoneAt, snoozedUntil, snoozeSource, scheduleVersion,
+                 createdAt, active
 maintenanceLogs  id, tankId, actionType, doneAt, note, source
-waterTests       id, tankId, measuredAt, values(jsonb), note
-appSettings      key (PK), value (jsonb)   // icsToken, mcpToken, uiPrefs, aiSettings
-aiCalls          id, day, provider, model, promptTokens, completionTokens,
-                 costEstimateMicros, purpose
+waterTests       id, tankId, measuredAt, values text-json, note
+appSettings      key (PK), value text-json    // icsToken, mcpToken, uiPrefs, aiSettings
+aiCalls          id, day (local date), calls, promptTokens, completionTokens,
+                 costEstimateMicros
 ```
 
-**Backups:** `data/` ist ein Docker-Volume; README-Doku: `sqlite3 data/aquaman.db ".backup ..."` oder Volume-Snapshot (TrueNAS macht das eh). Restore = Datei zurückkopieren.
+**Alle JSON-Felder: `text({ mode: 'json' })` — SQLite hat kein jsonb/array. Wochentage: 7-Bit-Integer-Maske.** Backups: Volume-Snapshot / Datei-Kopie (Doku im README).
 
 ## 7. AI-Assistance-Strategie (Entwicklung)
 
 | Aufgabe | Tool | Warum |
 |---------|------|-------|
 | Haupt-Build | Claude Code (CLI) | Orchestriert Files, Tests, Git; AGENTS.md-steuerbar |
-| Code-Review | Gleicher Agent, zweiter Review-Pass (vibe-review-Skill) | AI-Code von AI prüfen lassen (Level A) |
-| Bugs/Hotfixes | Claude Code + Fehlerkonsole/Paste | Iterativ testen mit Owner |
-| Deployment | Claude Code führt aus; Owner testet auf TrueNAS | Owner = Tester (PRD) |
-
-**Wichtig:** Der Owner testet jede Feature-Phase auf dem Handy (echte Nutzung); AI fixt die gefundenen Bugs.
+| Code-Review | vibe-review-Skill / zweiter Pass | AI-Code von AI prüfen (Level A) |
+| Bugs/Hotfixes | Claude Code + Konsole | Owner testet auf echtem Handy |
+| Deployment | Claude Code führt aus; Owner verifiziert auf TrueNAS | Owner = Tester |
 
 ## 8. AI-Produkt-Strategie
 
-- **Runtime:** Server-seitig ONLY — Keys leben nur im Container-Env, nie im Client-Bundle
-- **Client:** `@anthropic-ai/sdk`, `baseURL = env.AI_BASE_URL`, `apiKey = env.AI_API_KEY`, `model = env.AI_MODEL` (Defaults: `https://api.anthropic.com`, `claude-sonnet-4-5`; alternativ `https://api.z.ai/api/anthropic`, `glm-4.6`)
-- **Structured Outputs:** Tool-Use mit JSON-Schema (Kalender-Vorschläge) — kein freies Parsen
-- **Daten-Grenzen:** AI sieht Tank-Daten, Messwerte, offene Tasks; sieht NIE Tokens/Keys
-- **Retention:** Provider-Defaults; Doku-Hinweis für beide Provider (z.ai & Anthropic haben Zero-Retention-Optionen für Enterprise — für private Nutzung Default OK)
-- **Fallback:** try/catch + Timeout 30 s + Cost-Guard → App bleibt voll nutzbar
-- **Telemetry:** `aiCalls`-Tabelle, Settings-UI zeigt Calls/Tokens/€-Schätzung heute & diesen Monat
-- **Cost Ceiling:** Env `AQUAMAN_AI_MAX_CALLS_PER_DAY=20`; Exzess → Coach antwortet "limit reached", Rest der App unberührt
-- **Evals (manueller Katalog, Teil von DoD):**
-  1. "Nitrate 60 mg/l" → muss Wasserwechsel empfehlen
-  2. "CO2 40 mg/l, fish gasping" → muss CO2-reduzieren/Belüftung empfehlen
-  3. "Nothing done for 2 weeks" → muss priorisiert water change nennen, freundlich
-  4. Kalender-Vorschlag für 240L-Community-Tank → plausibles JSON-Schema
-- **Sicherheit:** Prompt-Injection-Defense — AI-Antworten fließen NIE ungeprüft in DB; Kalender-Vorschläge nur über validiertes Tool-Schema + Approval-Gate
+- **Runtime:** server-seitig only — Keys nur im Container-Env
+- **Client:** `@anthropic-ai/sdk`; `baseURL = AQUAMAN_AI_BASE_URL` (Default `https://api.anthropic.com`), `apiKey = AQUAMAN_AI_API_KEY`, `model = AQUAMAN_AI_MODEL` — **vor Build-Start gegen aktuelle z.ai-Doku verifizieren** (Stand Feb 2026 verifiziert, im August erneut prüfen — siehe Plan-Review Q2)
+- **Structured Outputs:** Tool-Use + zod; malformed → reject, never repair
+- **Daten-Grenzen:** AI sieht Tank-/Mess-/Log-Daten; NIE Tokens/Keys
+- **Retention:** Provider-Defaults; README-Hinweis
+- **Fallback:** try/catch + 30 s Timeout + Cost-Guard → App voll nutzbar
+- **Telemetry:** `aiCalls` (Calls/Tokens/€-Schätzung, heute & Monat) in Settings sichtbar
+- **Cost Ceiling:** zweistufig (Calls + Tokens), Pause bis lokale Mitternacht
+- **Evals (DoD):** Nitrat 60 → Wasserwechsel-Empfehlung; NH4 0,5 bei pH 8 → NH3-Kritisch-Erkennung; CO2 40 + Gasping → Sofortmaßnahmen; 2-Wochen-Pause → priorisiert & freundlich; Injection-Versuch → Refusal
+- **Sicherheit:** AI-Antworten = untrusted input; Writes nur über validierte Server Actions + Approval-Gate
+
+## 8a. Zeit-/Kalender-Grundlagen (neu, Plan-Review B6)
+
+- `APP_TIMEZONE` (Default `Europe/Berlin`) in `.env`
+- `src/lib/domain/dates.ts`: `startOfLocalDay(date, tz)`, `addDays`, `fmtLocalDate`, `localMidnightOf(date, tz)` — ausschließlich über `Intl.DateTimeFormat` mit `timeZone`-Option; **kein** `date.getDate()` / `new Date().setHours(0,0,0,0)` (Server-Zonen-Falle)
+- Alle Konsumenten: Dashboard-Due, ICS-Tagesbildung, `aiCalls.day`, AI-Limit-Reset — nur über diese Helper
+- Unit-Tests: 23:30-Berlin vs. 00:30-Berlin um die Mitternachtsgrenze; Sommerzeitwechsel
+
+## 8b. Token-Endpoints & Absicherung (neu, Plan-Review R4/R5)
+
+- ICS- und (v1.1) MCP-Token: `crypto.randomBytes(24).toString('base64url')` (32 Zeichen), Vergleich `crypto.timingSafeEqual`
+- Rate-Limit: In-Memory-Map (IP → Fehlversuche), 30/h → 429; Reset bei Erfolg
+- Ungültiges Token → **404**, nie 401 (keine Existenz-Bestätigung)
+- Docker-Netzwerk: Port-Bindung `127.0.0.1:3000:3000` OER kein Publish + Proxy im gleichen Docker-Netz — LAN-Zugriff auf :3000 umgeht sonst die Proxy-Auth
+- README: fetter Sicherheitshinweis + empfohlene Proxy-Konfiguration
 
 ## 9. Agent-Orchestrierung
 
-- **In-App:** Single-Call-Pattern (kein Agent-Loop) — Coach = 1 API-Call mit kontextiertem System-Prompt; deterministisch, günstig, testbar
-- **Extern (OpenClaw):** Aquaman ist der Tool-Server (MCP), OpenClaw orchestriert — wir stellen nur die Tools + `ask_coach`
-- **Approval-Gates:** AI → Vorschlag → Mensch bestätigt → Write (PRD-Anforderung); MCP-Write-Tools erfordern Token
-- **Keine Background-Jobs in v1** — Auto-Reschedule läuft on-demand beim Dashboard-Load (idempotent), Cron-Worker ist v2
+- In-App: Single-Call-Pattern — Coach = 1 API-Call mit kontextiertem System-Prompt
+- Extern (OpenClaw, v1.1): Aquaman ist MCP-Tool-Server; OpenClaw orchestriert
+- Approval-Gates: AI → Vorschlag → Mensch bestätigt → Write
+- Keine Background-Jobs — Auto-Reschedule ist Lese-Projektion; AI-Limit-Reset on-demand beim ersten Aufruf des neuen Tages
 
 ## 10. Builder-Exit-Review
 
 | Punkt | Status |
 |-------|--------|
-| Source-Ownership | 100% eigenes Repo (MIT), keine No-Code-Plattform |
-| Export | JSON-Export aller Tabellen (Settings → Export); SQLite-Datei gehört dir |
-| GitHub Sync | Repo IST die Quelle, CI baut Image bei jedem Tag |
-| Lokaler Build | `docker build .` funktioniert ohne Drittanbieter |
-| Secrets | Nur Env-Vars, `.env.example` dokumentiert, `.env` in `.gitignore` |
-| Rollback | Docker-Image-Tags (v0.1.0…), compose pinnt Version; DB-Migrationen rückwärtskompatibel schreiben |
-| Exit-Plan | Falls Projekt eingestellt: SQLite + JSON-Export = alle Daten; App läuft offline ewig weiter |
+| Source-Ownership | 100 % eigenes Repo (MIT) |
+| Export | JSON-Export (MUST); SQLite-Datei gehört dir |
+| GitHub Sync | Repo ist Quelle; CI baut bei jedem Tag |
+| Lokaler Build | `docker build .` ohne Drittanbieter |
+| Secrets | Nur Env-Vars; `.env.example` komplett; `.env` ignoriert |
+| Rollback | Image-Tags (v0.1.0…); Migrationen rückwärtskompatibel |
+| Exit-Plan | SQLite + JSON-Export = alle Daten; App läuft offline ewig |
 
 ## 11. Deployment-Plan
 
-**Ziel:** `aquaman.cadex64.de` auf TrueNAS SCALE.
+**Phase 1 = vertikaler Schnitt** (Plan-Review §5): leere Next.js-App + SQLite-Volume + Healthcheck + CI + **Deployment auf TrueNAS** — danach Features als `docker compose pull`.
 
-1. **CI (GitHub Actions, public repo = kostenlos):** push Tag → `npm ci && npm run lint && npm run typecheck && npm test && npm run build` → Docker multi-stage Build → Push `ghcr.io/<owner>/aquaman:<tag>` + `latest`
-2. **TrueNAS SCALE:** Custom App / Launch Docker Compose:
+1. **CI:** push → lint → typecheck → test → build → Docker multi-stage → `ghcr.io/cadextcp/aquaman:<tag>` + `latest`
+2. **TrueNAS SCALE Custom App:**
    ```yaml
    services:
      aquaman:
-       image: ghcr.io/<owner>/aquaman:latest
+       image: ghcr.io/cadextcp/aquaman:latest
        environment:
-         - AI_BASE_URL=https://api.z.ai/api/anthropic
-         - AI_API_KEY=${AI_API_KEY}
-         - AI_MODEL=glm-4.6
+         - APP_TIMEZONE=Europe/Berlin
+         - AQUAMAN_AI_BASE_URL=https://api.z.ai/api/anthropic
+         - AQUAMAN_AI_API_KEY=${AQUAMAN_AI_API_KEY}
+         - AQUAMAN_AI_MODEL=glm-4.6
          - AQUAMAN_AI_MAX_CALLS_PER_DAY=20
+         - AQUAMAN_AI_MAX_TOKENS_PER_DAY=200000
        volumes:
          - /mnt/tank/apps/aquaman/data:/app/data
-       ports: ["3000:3000"]
+       ports:
+         - "127.0.0.1:3000:3000"   # R5: nur lokal — Reverse Proxy übernimmt
        restart: unless-stopped
        healthcheck:
-         test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+         test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
          interval: 60s
    ```
-3. **Reverse Proxy (bestehender):** HTTPS-Host `aquaman.cadex64.de` → Container:3000; Empfehlung: Basic-Auth oder mTLS/Authelia davor (Doku im README — App selbst ist Single-User ohne Login in v1)
-4. **MCP für OpenClaw:** `https://<mcp-token>@aquaman.cadex64.de/api/mcp` bzw. Bearer-Header
-5. **Backup:** TrueNAS-Dataset-Snapshot für `/mnt/tank/apps/aquaman/data`
+3. **Reverse Proxy:** HTTPS-Host `aquaman.cadex64.de` → Container:3000; Basic-Auth/Authelia davor empfohlen
+4. **Backup:** TrueNAS-Dataset-Snapshot für `/mnt/tank/apps/aquaman/data`
+5. **MCP für OpenClaw (Produkt-v1.1):** Bearer-Header, `Authorization: Bearer <token>`
 
-**Erster Launch lokal:** `docker compose up` → Setup-Screen (Sprache wählen, ICS/MCP-Token generieren, AI optional) → Tanks anlegen.
+## 12. Build-Phasen (überarbeitet)
 
-## 12. Kosten-Aufstellung
+| Phase | Inhalt | Ergebnis |
+|-------|--------|----------|
+| **1. Vertical Slice** | Next.js-Scaffold, Drizzle-Schema (alle Tabellen), Theme, i18n-Struktur, Health-Route, Vitest, **Dockerfile + CI + Deployment auf TrueNAS** | Live-URL zeigt leere App; jede weitere Phase = `docker compose pull` |
+| **2. Core Features** | Tank-CRUD + Fotos, Schedules, Daily Habits (Füttern), Snooze, Dashboard, Wasserwerte + Charts (inkl. NH3), `de.json` | Produktionsreif ohne AI |
+| **3. Calendar & ICS** | In-App-Kalender, ICS-Feed (deterministisch, token-gated, byte-identisch-Test), Google-Test | Kalender in Google abonnierbar |
+| **4. AI-Coach** | AI-Client, Coach-Chat, `propose_schedule` + Approval-UI, Cost-Guard (Calls+Tokens), Fallback | Special Sauce live |
+| **5. Launch** | JSON-Export/Import, Statistiken, README/TrueNAS-Guide, SECURITY/CONTRIBUTING, LICENSE, Release v0.1.0 | Öffentliche v0.1.0 |
+| **6. v1.1 (nach Launch)** | MCP-Server (Bearer-gated), OpenClaw-Verdrahtung, ggf. read-only/read-write-Tokens | Remote-Zugriff via OpenClaw |
+
+## 13. Kosten-Aufstellung
 
 | Posten | Entwicklung | Betrieb/Monat |
 |--------|-------------|---------------|
 | GitHub + Actions + ghcr | 0 € | 0 € |
 | TrueNAS-Hosting | 0 € | 0 € |
-| Domain | 0 € | 0 € |
-| AI (GLM-4.6, ~20 Calls/Tag) | 0 € (Keys vorhanden) | ~0,5–2 € (gedeckelt, abschaltbar) |
+| AI (gedeckelt) | 0 € (Keys vorhanden) | ~0,5–2 € |
 | **Gesamt** | **0 €** | **≈ 0–2 €** |
 
-## 13. Scaling-Pfad
+## 14. Scaling-Pfad
 
 | Nutzerzahl | Maßnahme |
 |------------|----------|
-| 1–5 (Status quo) | SQLite + ein Container — fertig |
-| ~10–50 (Familie/Freunde, v2) | Multi-User via OIDC (Authelia/Authentik-Header), weiterhin SQLite |
-| ~100+ | Optionaler Postgres-Switch (Drizzle macht das fast gratis), Redis für ICS-Cache |
-| Sensoren (v2) | MQTT/HTTP-Ingest-Route → gleiche `waterTests`-Tabelle (`source: sensor`); Charts ohnehin bereit — API-first zahlt sich aus |
+| 1–5 | SQLite + ein Container |
+| ~10–50 (v2) | OIDC via Authelia/Authentik; weiterhin SQLite |
+| ~100+ | Optionaler Postgres-Switch (Drizzle); Redis für ICS-Cache |
+| Sensoren (v2) | MQTT/HTTP-Ingest → `waterTests` (`source: 'sensor'`) |
 
-## 14. Limitationen (ehrlich)
+## 15. Limitationen (ehrlich)
 
-- **Google-ICS-Refresh ~24 h** — Snooze erscheint in Google erst am nächsten Tag; App/Kurzbefehl ist "live" (Doku + Web-Push in v2)
-- **Single-User ohne Login in v1** — Schutz über Reverse Proxy nötig, sonst offen im Netz (großer README-Warnhinweis)
-- **Kein Cron/Background** — Auto-Reschedule & Kostenzähler laufen on-demand; "Mitternachts-Reset" erfolgt beim ersten Aufruf des neuen Tages
-- **SQLite** — kein gleichzeitiges Multi-Write-Skalieren (für 1–5 Nutzer irrelevant)
-- **AI-Tipps = Empfehlungen** — kein Ersatz für Fachhandel, Disclaimer überall sichtbar
-- **Foto-Upload ohne Vision-AI** — Fotos sind nur Deko/Referenz in v1
+- Google-ICS-Refresh ~24 h — Snooze erscheint in Google erst am nächsten Tag; App ist "live" (Web-Push v2)
+- Single-User ohne Login — Schutz via Reverse Proxy; ICS token-gated + Rate-Limit; README-Warnhinweis
+- Kein Cron — AI-Limit-Reset & Reschedule on-demand/projektiv
+- SQLite — kein paralleles Multi-Write (irrelevant bei 1–5 Nutzern)
+- AI-Tipps = Empfehlungen; Disclaimer sichtbar
+- Foto-Upload ohne Vision-AI in v1
+- MCP erst in v1.1 — Remote-Fragen via OpenClaw erst dann
 
 ---
 
@@ -289,10 +351,10 @@ aiCalls          id, day, provider, model, promptTokens, completionTokens,
   "stack": {
     "frontend": "Next.js 15 (App Router) + React 19 + TypeScript",
     "backend": "Next.js API Routes + Server Actions (Node.js runtime)",
-    "database": "SQLite + Drizzle ORM (better-sqlite3)",
-    "auth": "None in v1 (reverse-proxy auth documented; OIDC planned v2)",
+    "database": "SQLite + Drizzle ORM (better-sqlite3) — text-json columns, 7-bit weekday mask",
+    "auth": "None in v1 (reverse-proxy auth documented; ICS token-gated; MCP in v1.1 fully bearer-gated)",
     "styling": "Tailwind CSS + shadcn/ui (dark aqua theme, mobile-first)",
-    "deployment": "Docker (multi-stage) on TrueNAS SCALE via ghcr.io image"
+    "deployment": "Docker (multi-stage, standalone) on TrueNAS SCALE via ghcr.io image; local-only port binding"
   },
   "commands": {
     "setup": "npm ci && npm run db:migrate && npm run db:seed",
@@ -302,6 +364,6 @@ aiCalls          id, day, provider, model, promptTokens, completionTokens,
     "lint": "npm run lint",
     "build": "npm run build"
   },
-  "aiScope": "in-app AI + MCP tool server (Anthropic-compatible: z.ai GLM / Claude)"
+  "aiScope": "in-app AI (Anthropic-compatible: z.ai GLM / Claude); MCP tool server follows in product v1.1"
 }
 ```

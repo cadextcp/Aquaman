@@ -15,8 +15,10 @@ Do not mark work complete until the relevant checks pass.
 
 - [ ] Dependencies audited (`npm audit` or equivalent) — no unaddressed high-severity findings.
 - [ ] All user input is validated and sanitized at the boundary (forms, API payloads, URL params).
-- [ ] Auth-protected routes and actions were tested while logged out.
-- [ ] Rate limiting (or equivalent abuse protection) considered for public endpoints.
+- [ ] Token-protected endpoints (`/api/calendar.ics`, later `/api/mcp`) tested with missing/wrong/valid token → 404/404/200 (no auth exists in v1; reverse proxy fronts the app).
+- [ ] Rate limiting (or equivalent abuse protection) verified for public token endpoints.
+- [ ] Upload route rejects path traversal (`..`) and enforces content-type whitelist.
+- [ ] Docker port binding stays local-only (127.0.0.1 or shared Docker network).
 
 ## AI Checks
 

@@ -6,10 +6,11 @@ duplicating commands or architecture across both is how they start disagreeing.
 
 ## Source of truth, in order
 
-1. `AGENTS.md`
+1. `AGENTS.md` (points to PRD & TechDesign — read those for what/why)
 2. `agent_docs/project_brief.md`
 3. `agent_docs/tech_stack.md`
-4. `agent_docs/testing.md`
+4. `agent_docs/code_patterns.md`
+5. `agent_docs/testing.md`
 
 ## Operating notes
 

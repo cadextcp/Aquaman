@@ -1,43 +1,41 @@
 # Product Requirements
 
-Use this as the short build-facing version of the PRD. Do not paste the entire PRD unless the project is complex.
+Short build-facing version of the PRD (v1.2). Full document: `docs/PRD-Aquaman-MVP.md`.
 
 ## Users
 
-- Primary user: Owner — self-hosting aquarium hobbyist, 2 freshwater tanks, TrueNAS SCALE, analytical/dashboard taste, has stress phases where care slips (app must absorb that gracefully)
-- Main problem: No overview of what care is due when; water values are measured but not connected to care decisions; rigid plans break during busy weeks
+- Primary user: Owner — self-hosting aquarium hobbyist, 2 freshwater tanks, TrueNAS SCALE, analytical/dashboard taste; has stress phases where care slips (app must absorb that gracefully without hiding the backlog)
+- Main problem: No overview of what care is due when; water values measured but not connected to care decisions; rigid plans break during busy weeks
 
 ## Must-Have Features
 
-- Tank management with photos & specs - Two tanks creatable in < 5 min incl. photo upload (name, volume, fresh/salt, plants, fish, CO2/heater/filter)
-- Maintenance schedules with weekday selection - Plan for 2 tanks set up in < 10 min; per action: interval + preferred weekdays (e.g. weekends only)
-- Flexible scheduling: snooze & auto-reschedule of overdue tasks - Snooze in < 5 s (tomorrow/weekend/+3d/custom); after 7 ignored days the plan is clean again without manual cleanup; auto-reschedule NEVER writes fake logs
-- Water parameter tracking with charts - Measurement logged in < 30 s; line chart per parameter with target band; fresh/salt parameter sets; per-tank overrides
-- ICS calendar feed for Google Calendar - `/api/calendar.ics?t=<token>` shows plan incl. snooze/reschedule results as all-day events; token rotatable
-- AI coach & calendar auto-fill with approval gates - Contextual answers < 15 s; schedule proposals as structured JSON via tool-use, only persisted after user confirmation; friendly tone, no nagging, disclaimer on advice
-- MCP server for OpenClaw/ChatGPT integration - Streamable HTTP at `/api/mcp`; OpenClaw answers "What needs to be done today?" correctly; write tools token-gated
-- Docker deployment via docker compose - Stranger installs in < 10 min using README only; image on ghcr.io; `/app/data` volume
-- Mobile-first dashboard with due/overdue/upcoming tasks - All core actions ≤ 2 taps on phone; bottom-nav; catch-up card when > 5 overdue
+- Tank management with photos & specs — Two tanks creatable in < 5 min incl. photo; fields incl. tankState (cycling/established)
+- Maintenance schedules with weekday selection — Plan for 2 tanks in < 10 min; interval + preferred weekdays (7-bit mask); feeding is NOT a schedule (daily habit instead)
+- Flexible scheduling: snooze + auto-reschedule + catch-up mode — Snooze < 5 s (tomorrow/weekend/+3d/custom); auto-reschedule is a read-projection (never writes DB/logs); originalDueAt never moves, plannedFor projects; rescheduleCount ≥ 3 → gentle "interval too tight?" prompt; > 5 behind → catch-up card with top priority
+- Water parameter tracking with charts — Measurement < 30 s; line chart per parameter with target band; NH3 calculated from NH4+pH+temp and THAT value is evaluated (critical ~0.02 mg/l); NO2 target 0 in established tanks (0.1–0.2 warning), tolerant during cycling; per-tank overrides
+- ICS calendar feed — `/api/calendar.ics?t=<token>`; expanded VEVENTs, deterministic UID `{scheduleId}-{plannedDateISO}@aquaman`; snooze moves event without duplicate; same data → byte-identical feed; invalid token → 404; rate-limited
+- AI coach & calendar auto-fill — Contextual answers < 15 s incl. backlog & tankState; proposals as zod-validated tool-use, persisted only after user confirmation; two-tier cost ceiling (calls AND tokens) visible in Settings; friendly tone, disclaimer
+- Daily habit tracking for feeding — Dashboard checkbox per tank/day, logged to maintenanceLogs, no ICS events
+- Docker deployment — Stranger installs < 10 min via README; image on ghcr.io; `/app/data` volume; ports bound to 127.0.0.1 only (reverse proxy fronting)
+- JSON export/import — Export all tables (sans secrets) → fresh instance → import → identical state
 
 ## Nice-To-Have Features
 
 - AI interval adjustment on critical values
-- Catch-up mode highlighting top priority task
-- Usage statistics (feedings, water changes, AI cost)
-- JSON export/import of all data
+- Usage statistics (feedings, water changes, AI cost overview)
+- Subtle check animations
 
-## Out Of Scope
+## Out Of Scope (v1)
 
+- MCP server + OpenClaw (→ product v1.1, fully bearer-token gated, 404 on invalid token, rate-limited)
 - Sensor integration & real-time data
 - Multi-user / OIDC auth
 - Web push notifications
-- Food/inventory management
-- Breeding logbook
-- Photo vision AI
-- Community plan templates
+- Food/inventory management, breeding logbook, photo vision AI, community templates
 
 ## Success Signals
 
-- Owner uses dashboard ≥ 1×/day; zero permanently missed maintenance (snooze/auto-reschedule counts as handled)
-- ≥ 2–3 real AI recommendations actually implemented
-- Plan stays clean without manual cleanup after a 1-week stress pause
+- Median delay originalDueAt→doneAt: < 2 days (water change), < 1 day (fertilize)
+- Tasks with rescheduleCount ≥ 3 lead to interval adjustment
+- ≥ 2–3 real AI recommendations implemented
+- After 1-week stress pause: plan clean, backlog honest, catch-up card correct
