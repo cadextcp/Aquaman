@@ -1,5 +1,9 @@
 name: ci
 
+# Least-privilege default (issue #20); the docker job widens packages: write
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -20,6 +24,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Audit visibility (issue #13): log-only, does not block the build —
+      # triage findings in a follow-up instead of freezing development
+      - run: npm audit --audit-level=high
+        continue-on-error: true
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -51,6 +59,8 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=sha
+            # :latest tracks main until the first semver release (issue #12)
+            type=raw,value=latest,enable={{is_default_branch}}
       - uses: docker/build-push-action@v6
         with:
           context: .
