@@ -44,7 +44,13 @@ function tzOffsetMs(date: Date, tz: string): number {
   return asUtc - date.getTime();
 }
 
-/** Start of the local day (midnight in app tz) as a UTC instant. Two-pass for DST. */
+/**
+ * Start of the local day (midnight in app tz) as a UTC instant. Two-pass for DST.
+ * NOTE (issue #19): this is the INSTANT-based counterpart to today()/localDateStr()
+ * (string-based). Reserved for features that need a Date boundary (e.g. aiCalls
+ * bucketing, uptime-style ranges) — scheduler/ICS intentionally stay string-based.
+ * Do not delete as "unused"; do not duplicate its logic elsewhere.
+ */
 export function startOfLocalDay(date: Date, tz: string = APP_TZ): Date {
   const ymd = localDateStr(date, tz);
   const naive = Date.parse(`${ymd}T00:00:00Z`); // pretend UTC first

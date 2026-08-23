@@ -44,7 +44,11 @@ COPY --from=build /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY --from=build /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
 COPY --from=build /app/package.json ./package.json
 
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data \
+    # non-root runtime (issue #14): app only needs /app/data + a port
+    && chown -R node:node /app/data /app/.next
+
+USER node
 
 EXPOSE 3000
 HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \

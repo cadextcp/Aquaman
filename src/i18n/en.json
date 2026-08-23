@@ -34,5 +34,63 @@
     "save": "Save",
     "loading": "Loading…",
     "aiOffline": "AI offline — core features fully working"
+  },
+  "tanks": {
+    "title": "Tanks",
+    "new": "+ New tank",
+    "noTanks": "No tanks yet — create your first tank.",
+    "create": "Create tank",
+    "createTitle": "New tank",
+    "edit": "Edit tank",
+    "save": "Save changes",
+    "delete": "Delete",
+    "fresh": "Freshwater",
+    "salt": "Saltwater",
+    "cycling": "cycling",
+    "fishCount": "{n} fish",
+    "plantsCount": "{n} plant species",
+    "backToList": "← Tanks"
+  },
+  "schedule": {
+    "title": "Care schedule",
+    "add": "+ Add schedule",
+    "every": "every {n}d",
+    "planned": "planned",
+    "behind": "behind {n}d",
+    "tooTight": "{n} missed — interval too tight?",
+    "done": "✓ Done",
+    "later": "⏱ Later",
+    "action": "Action",
+    "interval": "Every … days",
+    "preferred": "Preferred days",
+    "everyDay": "every day",
+    "weekends": "weekends",
+    "weekdays": "weekdays",
+    "autoResched": "Auto-reschedule overdue tasks to the next preferred day",
+    "afterCatchup": "After catching up",
+    "policyDefault": "Default (calm)",
+    "policySuppress": "Calm — skip too-soon repeats",
+    "policyFixed": "Strict — keep exact grid",
+    "skipWithin": "Skip if next date is within",
+    "pctOfInterval": "% of the interval"
+  },
+  "water": {
+    "tests": "Water tests",
+    "log": "+ Log water test",
+    "save": "Save test",
+    "note": "Note (optional)",
+    "history": "History",
+    "lastTest": "Last water test",
+    "allOk": "✓ All measured values in range",
+    "enterOne": "Enter at least one value",
+    "saved": "✓ Saved"
+  },
+  "more": {
+    "title": "More",
+    "comingSoon": "Settings, AI coach and calendar follow in the next phases."
+  },
+  "calendarPage": {
+    "title": "Calendar",
+    "phase3": "In-app calendar view and the ICS feed for Google Calendar arrive in Phase 3."
   }
 }

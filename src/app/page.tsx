@@ -1,59 +1,153 @@
-import { BottomNav, SideNav } from "@/components/nav";
+import Link from "next/link";
+import { listTanks, listSchedules, feedAllToday } from "@/lib/repo";
+import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
+import { today as todayStr, addDays } from "@/lib/domain/dates";
+import { TaskActions } from "@/components/schedule-form";
+import { FeedCheckbox } from "@/components/feed-checkbox";
 
-export default function Home() {
-  return (
-    <div className="flex min-h-dvh">
-      <SideNav />
-      <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
-        <div className="aqua-gradient rounded-2xl p-6 mb-6" style={{ border: "1px solid var(--border)" }}>
-          <h1 className="text-2xl font-bold mb-1">🌊 Aquaman</h1>
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-            Self-hosted aquarium care — Phase 1 vertical slice is live.
-          </p>
-          <div className="flex flex-wrap gap-2 mt-4 text-xs">
-            <span
-              className="rounded-full px-3 py-1"
-              style={{ background: "var(--secondary)", color: "var(--secondary-foreground)" }}
-            >
-              Next.js 15 · React 19
-            </span>
-            <span
-              className="rounded-full px-3 py-1"
-              style={{ background: "var(--secondary)", color: "var(--secondary-foreground)" }}
-            >
-              SQLite · Drizzle
-            </span>
-          </div>
-        </div>
+export const dynamic = "force-dynamic";
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-              Foundation checks
-            </div>
-            <ul className="text-sm space-y-1.5">
-              <li>
-                <a href="/api/health" className="underline" style={{ color: "var(--accent)" }}>
-                  /api/health
-                </a>{" "}
-                — health + DB ping
-              </li>
-              <li style={{ color: "var(--muted-foreground)" }}>schema check: dev-only</li>
-            </ul>
-          </div>
-          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-              Coming in Phase 2
-            </div>
-            <ul className="text-sm space-y-1.5" style={{ color: "var(--muted-foreground)" }}>
-              <li>Tank management + photos</li>
-              <li>Schedules, snooze, auto-reschedule UI</li>
-              <li>Water tests + charts</li>
-            </ul>
-          </div>
-        </div>
-      </main>
-      <BottomNav />
+export default function Dashboard() {
+  const tanks = listTanks();
+  const schedules = listSchedules();
+  const t = todayStr();
+  const weekEnd = addDays(t, 7);
+  const feeds = feedAllToday(t);
+  const fedTankIds = new Set(feeds.map((f) => f.tankId));
+
+  // projection for every schedule
+  const tasks = schedules
+    .map((s) => {
+      const due = nextDue(s);
+      const missed = missedSlots(s);
+      return { s, due, missed, weight: catchUpWeight(s.actionType, due.overdueDays) };
+    })
+    .filter(({ due }) => due.plannedFor <= weekEnd); // today + this week
+
+  const dueToday = tasks.filter(({ due }) => due.plannedFor <= t);
+  const behind = tasks.filter(({ due }) => due.plannedFor > t && due.overdueDays > 0);
+  const upcoming = tasks.filter(({ due }) => due.plannedFor > t && due.overdueDays === 0);
+  const catchUpCandidate = behind.length > 5 ? behind.sort((a, b) => b.weight - a.weight)[0] : null;
+
+  const kpi = (label: string, value: number | string, color?: string) => (
+    <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+      <div className="text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</div>
+      <div className="text-2xl font-bold" style={{ color }}>{value}</div>
     </div>
+  );
+
+  const card = (item: (typeof tasks)[number]) => {
+    const { s, due, missed } = item;
+    return (
+      <div key={s.id} className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <div className="flex items-center justify-between gap-3 mb-1.5">
+          <div className="font-medium">
+            {s.actionType.replace(/_/g, " ")}
+            <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}> — {s.tankName}</span>
+          </div>
+          <TaskActions scheduleId={s.id} compact />
+        </div>
+        <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          {due.overdueDays > 0 ? (
+            <span style={{ color: "var(--warning)" }}>behind {due.overdueDays}d</span>
+          ) : due.plannedFor === t ? (
+            <span style={{ color: "var(--accent)" }}>today</span>
+          ) : (
+            due.plannedFor
+          )}
+          {missed >= MISSED_SLOTS_HINT && (
+            <span style={{ color: "var(--warning)" }}> · {missed} missed — interval too tight?</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
+      {/* Feeding (daily habit) */}
+      {tanks.length > 0 && (
+        <section className="mb-6">
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="text-xs uppercase tracking-wide mb-3" style={{ color: "var(--muted-foreground)" }}>
+              Feeding today
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {tanks.map((tank) => (
+                <FeedCheckbox key={tank.id} tankId={tank.id} tankName={tank.name}
+                  timesFed={feeds.find((f) => f.tankId === tank.id)?.timesFed ?? 0}
+                  checked={fedTankIds.has(tank.id)} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* KPIs */}
+      <section className="grid grid-cols-3 gap-3 mb-6">
+        {kpi("Due today", dueToday.length, dueToday.length > 0 ? "var(--accent)" : "var(--success)")}
+        {kpi("Behind", behind.length, behind.length > 0 ? "var(--warning)" : undefined)}
+        {kpi("This week", upcoming.length)}
+      </section>
+
+      {/* Catch-up */}
+      {catchUpCandidate && (
+        <div className="rounded-xl p-5 mb-6" style={{ background: "var(--secondary)", border: "1px solid var(--warning)" }}>
+          <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
+            If you only do one thing today
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="font-semibold">
+              {catchUpCandidate.s.actionType.replace(/_/g, " ")} — {catchUpCandidate.s.tankName}
+            </div>
+            <TaskActions scheduleId={catchUpCandidate.s.id} compact />
+          </div>
+          <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+            {behind.length - 1} more tasks behind — they keep rescheduling to your preferred days, no rush.
+          </div>
+        </div>
+      )}
+
+      {/* Due today */}
+      <section className="mb-6">
+        <h2 className="text-lg font-semibold mb-3">Due today</h2>
+        {dueToday.length === 0 ? (
+          <div className="rounded-xl p-5 text-sm" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
+            Nothing due today — enjoy your tanks! 🐠
+          </div>
+        ) : (
+          <div className="space-y-3">{dueToday.map(card)}</div>
+        )}
+      </section>
+
+      {/* Behind */}
+      {behind.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Behind ({behind.length})</h2>
+          <div className="space-y-3">{behind.map(card)}</div>
+        </section>
+      )}
+
+      {/* Upcoming */}
+      {upcoming.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Coming up this week</h2>
+          <div className="space-y-3">{upcoming.map(card)}</div>
+        </section>
+      )}
+
+      {/* Empty state */}
+      {tanks.length === 0 && (
+        <div className="rounded-xl p-8 text-center" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <p className="mb-4" style={{ color: "var(--muted-foreground)" }}>
+            No tanks yet — create your first tank to get started.
+          </p>
+          <Link href="/tanks/new" className="rounded-lg px-5 py-2.5 text-sm font-medium inline-block"
+            style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44 }}>
+            Create tank
+          </Link>
+        </div>
+      )}
+    </main>
   );
 }

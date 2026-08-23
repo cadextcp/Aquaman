@@ -34,5 +34,63 @@
     "save": "Speichern",
     "loading": "Lädt…",
     "aiOffline": "AI offline — Kernfunktionen voll nutzbar"
+  },
+  "tanks": {
+    "title": "Aquarien",
+    "new": "+ Neues Aquarium",
+    "noTanks": "Noch keine Aquarien — lege dein erstes an.",
+    "create": "Aquarium anlegen",
+    "createTitle": "Neues Aquarium",
+    "edit": "Aquarium bearbeiten",
+    "save": "Änderungen speichern",
+    "delete": "Löschen",
+    "fresh": "Süßwasser",
+    "salt": "Meerwasser",
+    "cycling": "Einfahrphase",
+    "fishCount": "{n} Fische",
+    "plantsCount": "{n} Pflanzenarten",
+    "backToList": "← Aquarien"
+  },
+  "schedule": {
+    "title": "Pflegeplan",
+    "add": "+ Pflegeeintrag hinzufügen",
+    "every": "alle {n} T.",
+    "planned": "geplant",
+    "behind": "im Rückstand {n} T.",
+    "tooTight": "{n} verpasst — Intervall zu eng?",
+    "done": "✓ Erledigt",
+    "later": "⏱ Später",
+    "action": "Aktion",
+    "interval": "Alle … Tage",
+    "preferred": "Bevorzugte Tage",
+    "everyDay": "jeden Tag",
+    "weekends": "Wochenende",
+    "weekdays": "Wochentage",
+    "autoResched": "Überfälliges automatisch auf den nächsten passenden Tag verschieben",
+    "afterCatchup": "Nach dem Aufholen",
+    "policyDefault": "Standard (ruhig)",
+    "policySuppress": "Ruhig — zu schnelle Wiederholungen auslassen",
+    "policyFixed": "Streng — exaktes Raster",
+    "skipWithin": "Auslassen, wenn nächster Termin innerhalb von",
+    "pctOfInterval": "% des Intervalls liegt"
+  },
+  "water": {
+    "tests": "Wasserwerte",
+    "log": "+ Messung erfassen",
+    "save": "Messung speichern",
+    "note": "Notiz (optional)",
+    "history": "Verlauf",
+    "lastTest": "Letzte Messung",
+    "allOk": "✓ Alle gemessenen Werte im Zielbereich",
+    "enterOne": "Mindestens einen Wert eingeben",
+    "saved": "✓ Gespeichert"
+  },
+  "more": {
+    "title": "Mehr",
+    "comingSoon": "Einstellungen, AI-Coach und Kalender folgen in den nächsten Phasen."
+  },
+  "calendarPage": {
+    "title": "Kalender",
+    "phase3": "In-App-Kalender und ICS-Feed für Google Calendar kommen in Phase 3."
   }
 }
