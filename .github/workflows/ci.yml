@@ -71,3 +71,4 @@ jobs:
           cache-to: type=gha,mode=max
 
 # marker: workflow-push-test 2026-08-23 (new PAT)
+# verified: credential store active
