@@ -17,3 +17,12 @@ out/
 # Misc
 .DS_Store
 *.log
+
+# Next.js additions
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Test
+coverage/

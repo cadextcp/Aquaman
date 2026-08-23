@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --background: #071a20;
+  --foreground: #d7f0f2;
+  --card: #0b2831;
+  --card-foreground: #d7f0f2;
+  --primary: #14b8a6;
+  --primary-foreground: #04211d;
+  --secondary: #0f3540;
+  --secondary-foreground: #a5d8dc;
+  --accent: #22d3ee;
+  --muted: #0f3540;
+  --muted-foreground: #7ba7ad;
+  --border: #14424f;
+  --input: #14424f;
+  --ring: #14b8a6;
+  --destructive: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --radius: 0.75rem;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #f2fafb;
+    --foreground: #0c2b31;
+    --card: #ffffff;
+    --card-foreground: #0c2b31;
+    --primary: #0d9488;
+    --primary-foreground: #ffffff;
+    --secondary: #e0f2f1;
+    --secondary-foreground: #37564f;
+    --accent: #0891b2;
+    --muted: #e6f1f2;
+    --muted-foreground: #5f7a80;
+    --border: #c8dfe2;
+    --input: #c8dfe2;
+    --ring: #0d9488;
+  }
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  /* safe-area for iOS bottom-nav */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Subtle aqua gradient accent */
+.aqua-gradient {
+  background: linear-gradient(135deg, var(--background) 0%, #0a2e38 60%, #0e3a44 100%);
+}

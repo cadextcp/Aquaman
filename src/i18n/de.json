@@ -1,0 +1,38 @@
+{
+  "app": {
+    "name": "Aquaman",
+    "tagline": "Selbstgehostete Aquariumpflege"
+  },
+  "nav": {
+    "dashboard": "Übersicht",
+    "tanks": "Aquarien",
+    "calendar": "Kalender",
+    "more": "Mehr"
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "dueToday": "Heute fällig",
+    "behind": "Im Rückstand",
+    "thisWeek": "Diese Woche",
+    "feed": "Füttern",
+    "feedDone": "Gefüttert",
+    "nothingDue": "Heute ist nichts fällig — genieß deine Becken!",
+    "catchUpTitle": "Wenn du heute nur eine Sache machst",
+    "behindHint": "im Rückstand seit {date}",
+    "plannedFor": "geplant für {date}",
+    "emptyTanks": "Noch keine Aquarien — leg dein erstes Becken an.",
+    "createTank": "Aquarium anlegen"
+  },
+  "health": {
+    "ok": "ok",
+    "degraded": "eingeschränkt"
+  },
+  "common": {
+    "snooze": "Später",
+    "done": "Erledigt",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "loading": "Lädt…",
+    "aiOffline": "AI offline — Kernfunktionen voll nutzbar"
+  }
+}
