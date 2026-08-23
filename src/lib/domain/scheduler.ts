@@ -131,9 +131,19 @@ export function missedSlots(schedule: ScheduleLike, now: Date = new Date(), tz?:
 /**
  * All occurrences (YYYY-MM-DD) in [fromStr, toStr] — 90-day ICS horizon.
  * Variant B (review N.1.6): future occurrences sit on the FIXED grid starting
- * at originalDueAt (originalDue + k*interval, each weekday-gridded), because
- * chaining from plannedFor would drag the whole calendar along on every day
- * of backlog. ONLY the current occurrence gets the reschedule projection.
+ * at originalDueAt (originalDue, then +interval chained, each weekday-gridded
+ * in turn), because chaining from plannedFor would drag the whole calendar
+ * along on every day of backlog. ONLY the current occurrence gets the
+ * reschedule projection.
+ *
+ * ONE algorithm regardless of whether `original` is in the past or future
+ * relative to `now` (code review finding "Hoch 1": two separate formulas here
+ * used to produce different future grids for the same schedule depending on
+ * which day you asked from — the k*interval-from-original arithmetic branch
+ * and the cur+interval chain branch drift apart whenever intervalDays isn't a
+ * multiple of 7). The chain below is single-sourced and dedupes anything at
+ * or before the projected current occurrence, so it no longer matters which
+ * day the caller views it from.
  */
 export function occurrencesInRange(
   schedule: ScheduleLike,
@@ -144,42 +154,27 @@ export function occurrencesInRange(
 ): string[] {
   const original = originalDueAt(schedule);
   const projection = nextDue(schedule, now, tz);
-  const t = todayStr(tz, now);
 
   const out: string[] = [];
   const seen = new Set<string>();
-
-  // current (open) occurrence → use the projection (covers snooze + auto-reschedule)
-  if (projection.plannedFor >= fromStr && projection.plannedFor <= toStr) {
-    out.push(projection.plannedFor);
-    seen.add(projection.plannedFor);
-  }
-
-  // fixed grid: originalDue + k*interval, weekday-gridded — but only FUTURE slots
-  if (t >= original) {
-    // find first grid point strictly after today (grid anchored at original)
-    let k = Math.ceil(dayCount(original, t) / schedule.intervalDays);
-    if (k < 1) k = 1;
-    for (; ; k++) {
-      const raw = addDays(original, k * schedule.intervalDays);
-      const gridded = nextPreferredDay(raw, schedule.preferredDays);
-      if (gridded > toStr) break;
-      if (gridded >= fromStr && !seen.has(gridded)) {
-        out.push(gridded);
-        seen.add(gridded);
-      }
-      if (gridded > addDays(t, 400)) break; // safety stop (~13 months)
+  const add = (d: string) => {
+    if (d >= fromStr && d <= toStr && !seen.has(d)) {
+      out.push(d);
+      seen.add(d);
     }
-  } else {
-    // original itself is in the future → walk grid from original
-    let cur = original;
-    while (cur <= toStr) {
-      if (cur >= fromStr && !seen.has(cur)) {
-        out.push(cur);
-        seen.add(cur);
-      }
-      cur = nextPreferredDay(addDays(cur, schedule.intervalDays), schedule.preferredDays);
-    }
+  };
+
+  // current (open) occurrence → the projection (covers snooze + auto-reschedule)
+  add(projection.plannedFor);
+
+  // fixed grid, chained from originalDueAt — always the same sequence of
+  // dates regardless of `now`. Grid points at or before the projected current
+  // occurrence ARE that occurrence (already emitted above) and are skipped.
+  let cur = original;
+  let guard = 0;
+  while (cur <= toStr && guard++ < 1000) {
+    if (cur > projection.plannedFor) add(cur);
+    cur = nextPreferredDay(addDays(cur, schedule.intervalDays), schedule.preferredDays);
   }
 
   return out.sort();

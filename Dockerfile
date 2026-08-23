@@ -31,6 +31,9 @@ COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/scripts ./scripts
+# migrate.ts imports ../src/lib/db — the standalone trace does not include
+# non-route source files, so scripts/migrate.ts cannot resolve it without this
+COPY --from=build /app/src ./src
 COPY --from=build /app/node_modules/tsx ./node_modules/tsx
 COPY --from=build /app/node_modules/.bin ./node_modules/.bin
 # tsx deps (esbuild etc.) — copy the few packages tsx needs at runtime
@@ -48,4 +51,6 @@ HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # migrate on boot, then start standalone server
-CMD ["node", "-e", "const{spawn}=require('child_process');const m=spawn('node_modules/.bin/tsx',['scripts/migrate.ts'],{stdio:'inherit'});m.on('exit',c=>{if(c!==0)process.exit(c);require('.next/standalone/server.js')})"]
+# NOTE: standalone output is copied to /app directly (not /app/.next/standalone) —
+# the server entrypoint therefore lives at ./server.js, not .next/standalone/server.js
+CMD ["node", "-e", "const{spawn}=require('child_process');const m=spawn('node_modules/.bin/tsx',['scripts/migrate.ts'],{stdio:'inherit'});m.on('exit',c=>{if(c!==0)process.exit(c);require('./server.js')})"]
