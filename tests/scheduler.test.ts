@@ -173,16 +173,61 @@ describe("occurrencesInRange (variant B: fixed grid from originalDueAt)", () => 
     expect(occ).toEqual(["2026-09-05", "2026-09-19", "2026-10-03", "2026-10-17", "2026-10-31"]);
   });
 
-  it("overdue: current occurrence gets projection, future on fixed grid", () => {
+  it("overdue + default policy (suppress@50): tight first grid point is skipped", () => {
     const s = sched({
       intervalDays: 14,
       preferredDays: 0b0100000, // Saturdays
       lastDoneAt: "2026-08-01T10:00:00.000Z", // originalDue Sat 2026-08-15
     });
     // today = 2026-08-20 (Thu) → projection: nextPreferredDay(today) = Sat 2026-08-22
+    // grid from 08-15: +14 = 08-29 (gap 7d ≤ 50%·14d=7d → suppressed), +28 = 09-12, +42 = 09-26
     const occ = occurrencesInRange(s, "2026-08-20", "2026-09-30", at("2026-08-20T10:00:00Z"), TZ);
-    // grid from 08-15: +14 = 08-29 (Sat), +28 = 09-12 (Sat), +42 = 09-26 (Sat)
+    expect(occ).toEqual(["2026-08-22", "2026-09-12", "2026-09-26"]);
+  });
+
+  it("tightGapPolicy 'fixed' (Option A): every grid point kept", () => {
+    const s = sched({
+      intervalDays: 14,
+      preferredDays: 0b0100000,
+      lastDoneAt: "2026-08-01T10:00:00.000Z",
+      tightGapPolicy: "fixed",
+    });
+    const occ = occurrencesInRange(s, "2026-08-20", "2026-09-30", at("2026-08-20T10:00:00Z"), TZ);
     expect(occ).toEqual(["2026-08-22", "2026-08-29", "2026-09-12", "2026-09-26"]);
+  });
+
+  it("tightGapThresholdPct configurable: 30% keeps 08-29 (gap 7d > 30%·14d=4.2d)", () => {
+    const s = sched({
+      intervalDays: 14,
+      preferredDays: 0b0100000,
+      lastDoneAt: "2026-08-01T10:00:00.000Z",
+      tightGapPolicy: "suppress",
+      tightGapThresholdPct: 30,
+    });
+    const occ = occurrencesInRange(s, "2026-08-20", "2026-09-30", at("2026-08-20T10:00:00Z"), TZ);
+    expect(occ).toEqual(["2026-08-22", "2026-08-29", "2026-09-12", "2026-09-26"]);
+  });
+
+  it("suppression never eats more than one grid point", () => {
+    const s = sched({
+      intervalDays: 7,
+      preferredDays: ALL_DAYS_MASK,
+      lastDoneAt: "2026-08-08T10:00:00.000Z", // originalDue 2026-08-15
+    });
+    // today 08-20 → projection 08-20; grid: 08-22 (gap 2 ≤ 3.5 → skip), 08-29, 09-05 …
+    const occ = occurrencesInRange(s, "2026-08-20", "2026-09-05", at("2026-08-20T10:00:00Z"), TZ);
+    expect(occ).toEqual(["2026-08-20", "2026-08-29", "2026-09-05"]);
+  });
+
+  it("no catch-up (not overdue): policy has no effect", () => {
+    const s = sched({
+      intervalDays: 14,
+      preferredDays: 0b0100000,
+      lastDoneAt: "2026-08-16T10:00:00.000Z", // raw due Sun 08-30 → gridded to Sat 09-05
+      tightGapPolicy: "suppress",
+    });
+    const occ = occurrencesInRange(s, "2026-08-20", "2026-10-31", at("2026-08-20T10:00:00Z"), TZ);
+    expect(occ).toEqual(["2026-09-05", "2026-09-19", "2026-10-03", "2026-10-17", "2026-10-31"]);
   });
 
   it("snoozed current occurrence appears at snooze date", () => {

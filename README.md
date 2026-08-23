@@ -67,7 +67,7 @@ npm run dev         # http://localhost:3000
 
 Use **Apps → Discover → Custom App** (or Launch Docker Compose) with:
 
-- Image: `ghcr.io/cadextcp/aquaman:latest`
+- Image: `ghcr.io/cadextcp/aquaman:main` (or `:latest` — both track main until v0.1.0)
 - Port: host `3000` → container `3000` (bind to localhost/proxy network)
 - Storage: host path `/mnt/tank/apps/aquaman/data` → `/app/data`
 - Environment: see `.env.example`

@@ -5,8 +5,15 @@ import * as schema from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
-/** List all tables in the SQLite file (schema smoke test for the vertical slice). */
+/**
+ * Dev-only schema smoke test (issue #4): 404 in production builds.
+ * /api/health covers the production DB check; this endpoint additionally
+ * lists expected vs. present tables for local bring-up debugging.
+ */
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
+  }
   try {
     const tables = Object.values(schema)
       .filter((v) => typeof v === "object" && v !== null && Symbol.for("drizzle:Name") in v)

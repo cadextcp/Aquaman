@@ -1,6 +1,6 @@
 services:
   aquaman:
-    image: ghcr.io/cadextcp/aquaman:latest
+    image: ghcr.io/cadextcp/aquaman:main
     # build: .  # uncomment for local builds
     container_name: aquaman
     restart: unless-stopped

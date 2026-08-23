@@ -23,12 +23,6 @@ export default function Home() {
             >
               SQLite · Drizzle
             </span>
-            <span
-              className="rounded-full px-3 py-1"
-              style={{ background: "var(--secondary)", color: "var(--secondary-foreground)" }}
-            >
-              41 domain tests green
-            </span>
           </div>
         </div>
 
@@ -44,12 +38,7 @@ export default function Home() {
                 </a>{" "}
                 — health + DB ping
               </li>
-              <li>
-                <a href="/api/dbcheck" className="underline" style={{ color: "var(--accent)" }}>
-                  /api/dbcheck
-                </a>{" "}
-                — schema tables present
-              </li>
+              <li style={{ color: "var(--muted-foreground)" }}>schema check: dev-only</li>
             </ul>
           </div>
           <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>

@@ -20,6 +20,18 @@ import { addDays, dayMatchesMask, today as todayStr } from "./dates";
 export const ALL_DAYS_MASK = 0b1111111; // 127
 export const MISSED_SLOTS_HINT = 3;
 
+/**
+ * Tight-gap policy (issue #1): what to do when the first fixed-grid point
+ * after the projected current occurrence lands closer than
+ * tightGapThreshold% of intervalDays — possible after a catch-up.
+ *  - "fixed"    (Option A): keep the grid untouched (occasional "so soon?")
+ *  - "suppress" (Option C): skip that first grid point, next one follows
+ *              (calm after a stress period — PRD "friendly, not nagging")
+ */
+export type TightGapPolicy = "fixed" | "suppress";
+export const DEFAULT_TIGHT_GAP_POLICY: TightGapPolicy = "suppress";
+export const DEFAULT_TIGHT_GAP_THRESHOLD_PCT = 50; // % of intervalDays
+
 export type ScheduleLike = {
   intervalDays: number;
   preferredDays: number; // 7-bit mask, bit 0 = Mon … bit 6 = Sun
@@ -27,6 +39,10 @@ export type ScheduleLike = {
   lastDoneAt: string | null; // ISO UTC
   snoozedUntil: string | null; // ISO UTC
   createdAt: string; // ISO UTC
+  /** per-schedule tight-gap behavior; default: suppress @ 50% */
+  tightGapPolicy?: TightGapPolicy | null;
+  /** threshold as % of intervalDays (1–99); default: 50 */
+  tightGapThresholdPct?: number | null;
 };
 
 function isoToDateStr(iso: string): string {
@@ -128,6 +144,21 @@ export function missedSlots(schedule: ScheduleLike, now: Date = new Date(), tz?:
   return count;
 }
 
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, n));
+}
+
+/** First fixed-grid point strictly after `afterStr` (chain from `original`). */
+function firstGridPointAfter(original: string, afterStr: string, schedule: ScheduleLike): string | null {
+  let cur = original;
+  let guard = 0;
+  while (guard++ < 1000) {
+    cur = nextPreferredDay(addDays(cur, schedule.intervalDays), schedule.preferredDays);
+    if (cur > afterStr) return cur;
+  }
+  return null;
+}
+
 /**
  * All occurrences (YYYY-MM-DD) in [fromStr, toStr] — 90-day ICS horizon.
  * Variant B (review N.1.6): future occurrences sit on the FIXED grid starting
@@ -167,13 +198,38 @@ export function occurrencesInRange(
   // current (open) occurrence → the projection (covers snooze + auto-reschedule)
   add(projection.plannedFor);
 
+  // Tight-gap suppression (issue #1, Option C): if the FIRST grid point after
+  // the projection is closer than threshold% of intervalDays, skip it. Only
+  // ever affects one grid point (grid spacing == intervalDays). "fixed"
+  // (Option A) keeps every grid point — the user chooses per schedule.
+  const policy: TightGapPolicy = schedule.tightGapPolicy ?? DEFAULT_TIGHT_GAP_POLICY;
+  const thresholdPct = clamp(
+    schedule.tightGapThresholdPct ?? DEFAULT_TIGHT_GAP_THRESHOLD_PCT,
+    1,
+    99,
+  );
+  let suppressNext = false;
+  if (policy === "suppress") {
+    const firstAfter = firstGridPointAfter(original, projection.plannedFor, schedule);
+    if (firstAfter !== null) {
+      const gap = dayCount(projection.plannedFor, firstAfter);
+      if (gap * 100 <= thresholdPct * schedule.intervalDays) suppressNext = true;
+    }
+  }
+
   // fixed grid, chained from originalDueAt — always the same sequence of
   // dates regardless of `now`. Grid points at or before the projected current
   // occurrence ARE that occurrence (already emitted above) and are skipped.
   let cur = original;
   let guard = 0;
   while (cur <= toStr && guard++ < 1000) {
-    if (cur > projection.plannedFor) add(cur);
+    if (cur > projection.plannedFor) {
+      if (suppressNext) {
+        suppressNext = false; // skip exactly one grid point
+      } else {
+        add(cur);
+      }
+    }
     cur = nextPreferredDay(addDays(cur, schedule.intervalDays), schedule.preferredDays);
   }
 

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex, check } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -59,6 +59,11 @@ export const schedules = sqliteTable(
     snoozeSource: text("snooze_source", { enum: ["user"] }),
     // incremented on every mutation → feeds ICS SEQUENCE together with missedSlots()
     scheduleVersion: integer("schedule_version").notNull().default(0),
+    // Tight-gap policy after catch-up (issue #1): 'fixed' = keep grid, 'suppress' = skip
+    // the first grid point when it lands < threshold% of intervalDays after the projection.
+    // Nullable = "use defaults" (suppress @ 50%); UI treats null as default.
+    tightGapPolicy: text("tight_gap_policy", { enum: ["fixed", "suppress"] }),
+    tightGapThresholdPct: integer("tight_gap_threshold_pct"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
@@ -70,6 +75,11 @@ export const schedules = sqliteTable(
   (t) => [
     index("idx_schedules_tank").on(t.tankId),
     index("idx_schedules_active").on(t.active),
+    // Data-integrity (issues #2/#3): reject degenerate values at the DB layer —
+    // zod in Server Actions is the first line, this is the last (e.g. raw SQL, MCP).
+    check("schedules_interval_positive", sql`${t.intervalDays} >= 1`),
+    check("schedules_preferred_days_range", sql`${t.preferredDays} >= 1 AND ${t.preferredDays} <= 127`),
+    check("schedules_tight_gap_pct_range", sql`${t.tightGapThresholdPct} IS NULL OR (${t.tightGapThresholdPct} >= 1 AND ${t.tightGapThresholdPct} <= 99)`),
   ],
 );
 

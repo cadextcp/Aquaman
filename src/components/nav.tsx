@@ -1,13 +1,15 @@
 import Link from "next/link";
 
+/** Shared nav config — single source (issue #16 cleanup). */
+const NAV_ITEMS = [
+  { href: "/", label: "Dashboard", icon: "◧" },
+  { href: "/tanks", label: "Tanks", icon: "◍" },
+  { href: "/calendar", label: "Calendar", icon: "▦" },
+  { href: "/more", label: "More", icon: "☰" },
+] as const;
+
 /** Bottom navigation (mobile-first). Desktop gets a sidebar in Phase 2 polish. */
 export function BottomNav() {
-  const items = [
-    { href: "/", label: "Dashboard", icon: "◧" },
-    { href: "/tanks", label: "Tanks", icon: "◍" },
-    { href: "/calendar", label: "Calendar", icon: "▦" },
-    { href: "/more", label: "More", icon: "☰" },
-  ];
   return (
     <nav
       aria-label="Main navigation"
@@ -19,7 +21,7 @@ export function BottomNav() {
       }}
     >
       <div className="grid grid-cols-4">
-        {items.map((i) => (
+        {NAV_ITEMS.map((i) => (
           <Link
             key={i.href}
             href={i.href}
@@ -39,12 +41,6 @@ export function BottomNav() {
 
 /** Desktop sidebar (lg+). */
 export function SideNav() {
-  const items = [
-    { href: "/", label: "Dashboard", icon: "◧" },
-    { href: "/tanks", label: "Tanks", icon: "◍" },
-    { href: "/calendar", label: "Calendar", icon: "▦" },
-    { href: "/more", label: "More", icon: "☰" },
-  ];
   return (
     <aside
       className="hidden lg:flex lg:flex-col lg:w-60 lg:border-r p-4 gap-1"
@@ -53,7 +49,7 @@ export function SideNav() {
       <div className="text-lg font-bold mb-4 px-2" style={{ color: "var(--accent)" }}>
         🌊 Aquaman
       </div>
-      {items.map((i) => (
+      {NAV_ITEMS.map((i) => (
         <Link
           key={i.href}
           href={i.href}
