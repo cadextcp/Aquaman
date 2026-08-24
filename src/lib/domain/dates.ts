@@ -108,3 +108,33 @@ export function dayMatchesMask(dateStr: string, mask: number): boolean {
 export function isoToLocalDate(iso: string, tz: string = APP_TZ): string {
   return localDateStr(new Date(iso), tz);
 }
+
+/** Last day-of-month (1–31) for a YYYY-MM month string, pure UTC calendar math. */
+export function daysInMonth(monthStr: string): number {
+  const [y, m] = monthStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).getUTCDate(); // day 0 of next month = last day of this month
+}
+
+/**
+ * Monday-start 6-or-fewer-week grid covering a calendar month, padded with
+ * the trailing days of the previous/next month so every row is a full week
+ * (Mon…Sun) — the shape a month-view calendar needs to render.
+ */
+export function monthGridRange(monthStr: string): { from: string; to: string; days: string[] } {
+  const first = `${monthStr}-01`;
+  const last = `${monthStr}-${String(daysInMonth(monthStr)).padStart(2, "0")}`;
+  const from = addDays(first, -weekdayOf(first));
+  const to = addDays(last, 6 - weekdayOf(last));
+  const days: string[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
+  return { from, to, days };
+}
+
+/** Previous/next YYYY-MM month string (pure, no Date-object month-rollover surprises). */
+export function shiftMonth(monthStr: string, delta: number): string {
+  const [y, m] = monthStr.split("-").map(Number);
+  const total = y * 12 + (m - 1) + delta;
+  const ny = Math.floor(total / 12);
+  const nm = ((total % 12) + 12) % 12;
+  return `${ny}-${String(nm + 1).padStart(2, "0")}`;
+}

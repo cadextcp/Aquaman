@@ -4,6 +4,7 @@ import {
   originalDueAt,
   missedSlots,
   occurrencesInRange,
+  occurrenceDetailsInRange,
   nextPreferredDay,
   catchUpWeight,
   ALL_DAYS_MASK,
@@ -239,6 +240,53 @@ describe("occurrencesInRange (variant B: fixed grid from originalDueAt)", () => 
     });
     const occ = occurrencesInRange(s, "2026-08-20", "2026-09-30", at("2026-08-20T10:00:00Z"), TZ);
     expect(occ[0]).toBe("2026-08-26"); // snooze wins for current occurrence
+  });
+});
+
+describe("occurrenceDetailsInRange (per-occurrence ICS identity)", () => {
+  it("current occurrence: originalDueAt is the schedule's own original, plannedFor is the projection", () => {
+    const s = sched({
+      intervalDays: 7,
+      preferredDays: 0b0100000, // Saturdays only
+      lastDoneAt: "2026-08-08T10:00:00.000Z", // originalDue = Sat 2026-08-15
+    });
+    // today = Wednesday 2026-08-19 → overdue, projects to next Saturday 2026-08-22
+    const details = occurrenceDetailsInRange(s, "2026-08-20", "2026-09-10", at("2026-08-19T10:00:00Z"), TZ);
+    expect(details[0]).toEqual({ originalDueAt: "2026-08-15", plannedFor: "2026-08-22" });
+  });
+
+  it("future occurrences: originalDueAt equals plannedFor (never projected)", () => {
+    const s = sched({
+      intervalDays: 14,
+      preferredDays: 0b0100000,
+      createdAt: "2026-08-20T10:00:00.000Z",
+      lastDoneAt: null,
+    });
+    const details = occurrenceDetailsInRange(s, "2026-08-20", "2026-10-31", at("2026-08-20T10:00:00Z"), TZ);
+    for (const d of details) expect(d.originalDueAt).toBe(d.plannedFor);
+    expect(details.map((d) => d.plannedFor)).toEqual(occurrencesInRange(s, "2026-08-20", "2026-10-31", at("2026-08-20T10:00:00Z"), TZ));
+  });
+
+  it("originalDueAt for the current occurrence stays stable across viewpoints (no daily UID churn)", () => {
+    const s = sched({
+      intervalDays: 10,
+      preferredDays: 0b1100000, // weekend only
+      lastDoneAt: "2026-08-01T12:00:00.000Z",
+    });
+    const before = occurrenceDetailsInRange(s, "2026-08-01", "2026-10-15", at("2026-08-10T10:00:00Z"), TZ);
+    const after = occurrenceDetailsInRange(s, "2026-08-01", "2026-10-15", at("2026-08-20T10:00:00Z"), TZ);
+    // the fixed-grid tail (everything but the current, catching-up occurrence)
+    // must be byte-identical regardless of when you look — only the current
+    // occurrence's plannedFor (and its position) may differ.
+    expect(before.slice(1).map((d) => d.originalDueAt)).toEqual(after.slice(1).map((d) => d.originalDueAt));
+  });
+
+  it("occurrencesInRange is exactly occurrenceDetailsInRange's plannedFor projection", () => {
+    const s = sched({ intervalDays: 7, preferredDays: 127, lastDoneAt: "2026-08-01T10:00:00.000Z" });
+    const from = "2026-08-01", to = "2026-10-01", now = at("2026-08-20T10:00:00Z");
+    expect(occurrencesInRange(s, from, to, now, TZ)).toEqual(
+      occurrenceDetailsInRange(s, from, to, now, TZ).map((d) => d.plannedFor),
+    );
   });
 });
 
