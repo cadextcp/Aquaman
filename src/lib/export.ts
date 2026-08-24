@@ -88,6 +88,9 @@ export const scheduleRowSchema = z.object({
   scheduleVersion: z.number().int().min(0).max(1_000_000),
   tightGapPolicy: z.enum(["fixed", "suppress"]).nullable(),
   tightGapThresholdPct: z.number().int().min(1).max(99).nullable(),
+  // v0.2.0 (issues #30/#31) — optional so v0.1.0 exports stay importable
+  details: z.string().max(300).nullable().optional(),
+  endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   createdAt: isoString,
   updatedAt: isoString,
   active: z.boolean(),

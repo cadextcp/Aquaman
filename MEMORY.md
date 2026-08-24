@@ -5,7 +5,7 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Current State
 
-- Current task: Phase 5 (Launch) implemented — tag v0.1.0 pending — AI client (Anthropic-compatible), /coach chat with NDJSON streaming, propose_schedule approval gate, two-tier cost guard
+- Current task: v0.2.0 owner-feedback build implemented on main — awaiting owner NAS test, then tag v0.2.0 — AI client (Anthropic-compatible), /coach chat with NDJSON streaming, propose_schedule approval gate, two-tier cost guard
 - Current phase: MVP complete (Phases 1–5), tag v0.1.0 next
 - Next step: tag v0.1.0 → owner deploys on TrueNAS → real usage; v1.1 MCP after launch
 - Blocked by: none
@@ -66,4 +66,5 @@ manages its own memory automatically — this file serves other agents and human
   - `cost-guard.ts`: `checkBudget` only reads committed rows, so two near-simultaneous requests could both pass it before either's `recordAiCall` commits, exceeding `maxCallsPerDay` by one. Added `reserveCallSlot`/`releaseCallSlot` (in-memory, calls-only — token cost is unknowable ahead of the response, so it's not pre-reserved) wired into `route.ts` around the provider call.
   - `route.ts`: `send()`/`controller.close()` now swallow enqueue-after-disconnect errors instead of risking an unhandled exception when a client goes away mid-stream.
 - [x] Phase 5: Launch v0.1.0 (export/import with roundtrip tests, statistics incl. metric 1a/1b, /api/export, /more overhaul, LICENSE/CONTRIBUTING/SECURITY, README launch guide, version.ts) — 2026-08-24
+- [x] v0.2.0 — owner feedback round 1 (issues #30–#36): schedule details + endsOn, clickable/editable schedules everywhere (dashboard cards, tank page, calendar chips → edit dialog), feeding ± stepper with tank link, state-dependent Done/Later (never "Done" as default for future tasks), undoLastDone, water test preset chips + edit/delete, AI dosage proposals with verify-against-label warning + editable approval card — 2026-08-24
 - [ ] v1.1: MCP + OpenClaw

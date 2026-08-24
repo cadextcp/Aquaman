@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listSchedules } from "@/lib/repo";
 import { occurrencesInRange } from "@/lib/domain/scheduler";
+import { CalendarChip } from "@/components/calendar-chip";
 import { today as todayStr, monthGridRange, shiftMonth } from "@/lib/domain/dates";
 
 export const dynamic = "force-dynamic";
@@ -28,13 +29,13 @@ export default async function CalendarPage({
   const schedules = listSchedules();
   const { from, to, days } = monthGridRange(month);
 
-  // date (YYYY-MM-DD) → list of "actionType — tankName" task labels
-  const byDate = new Map<string, { label: string; overdue: boolean }[]>();
+  // date (YYYY-MM-DD) → list of tasks (with schedule ref → clickable, issue #31)
+  const byDate = new Map<string, { label: string; overdue: boolean; schedule: (typeof schedules)[number] }[]>();
   for (const s of schedules) {
     const occs = occurrencesInRange(s, from, to);
     for (const date of occs) {
       const list = byDate.get(date) ?? [];
-      list.push({ label: `${s.actionType.replace(/_/g, " ")} — ${s.tankName}`, overdue: date < t });
+      list.push({ label: `${s.actionType.replace(/_/g, " ")} — ${s.tankName}`, overdue: date < t, schedule: s });
       byDate.set(date, list);
     }
   }
@@ -101,18 +102,7 @@ export default async function CalendarPage({
               </div>
               <div className="space-y-0.5">
                 {tasks.slice(0, 3).map((task, i) => (
-                  <div
-                    key={i}
-                    className="rounded px-1 py-0.5 truncate"
-                    style={{
-                      background: task.overdue ? "var(--warning)" : "var(--primary)",
-                      color: task.overdue ? "var(--background)" : "var(--primary-foreground)",
-                      fontSize: "10px",
-                    }}
-                    title={task.label}
-                  >
-                    {task.label}
-                  </div>
+                  <CalendarChip key={i} schedule={task.schedule} label={task.label} overdue={task.overdue} />
                 ))}
                 {tasks.length > 3 && (
                   <div style={{ color: "var(--muted-foreground)", fontSize: "10px" }}>+{tasks.length - 3} more</div>

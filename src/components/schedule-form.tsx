@@ -20,6 +20,8 @@ export function ScheduleForm({ tankId, schedule }: { tankId: number; schedule?: 
     schedule?.tightGapPolicy ?? "default",
   );
   const [threshold, setThreshold] = useState(schedule?.tightGapThresholdPct ?? 50);
+  const [details, setDetails] = useState(schedule?.details ?? "");
+  const [endsOn, setEndsOn] = useState(schedule?.endsOn ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -38,6 +40,8 @@ export function ScheduleForm({ tankId, schedule }: { tankId: number; schedule?: 
       autoReschedule,
       tightGapPolicy: policy === "default" ? null : policy,
       tightGapThresholdPct: policy === "suppress" ? threshold : null,
+      details: details.trim() === "" ? null : details.trim(),
+      endsOn: endsOn === "" ? null : endsOn,
     };
     const res = editing
       ? await (await import("@/app/actions")).updateSchedule(schedule.id, input)
@@ -68,6 +72,22 @@ export function ScheduleForm({ tankId, schedule }: { tankId: number; schedule?: 
           <input type="number" min={1} max={365} className={field} style={input} value={intervalDays}
             onChange={(e) => setIntervalDays(Number(e.target.value))} required />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs uppercase tracking-wide mb-1">Details (optional)</label>
+        <input className={field} style={input} value={details}
+          placeholder='e.g. "30 L of 60 L (50 %)" or "10 ml iron fertilizer"'
+          onChange={(e) => setDetails(e.target.value)} maxLength={300} />
+      </div>
+
+      <div>
+        <label className="block text-xs uppercase tracking-wide mb-1">Ends on (optional)</label>
+        <input type="date" className={field} style={input} value={endsOn}
+          onChange={(e) => setEndsOn(e.target.value)} />
+        <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+          After this date the task disappears from dashboard, calendar and ICS feed — history stays.
+        </p>
       </div>
 
       <div>

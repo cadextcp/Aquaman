@@ -57,6 +57,11 @@ export const schedules = sqliteTable(
     lastDoneAt: text("last_done_at"),
     snoozedUntil: text("snoozed_until"),
     snoozeSource: text("snooze_source", { enum: ["user"] }),
+    // free-text concrete instructions (issue #30): "30 L of 60 L (50 %)", "10 ml iron fertilizer"
+    details: text("details"),
+    // optional end date (issue #31): bounded schedules — after this date the event
+    // disappears from dashboard/calendar/ICS; history/logs stay untouched
+    endsOn: text("ends_on"), // YYYY-MM-DD date-only string, compared lexically
     // incremented on every mutation → feeds ICS SEQUENCE together with missedSlots()
     scheduleVersion: integer("schedule_version").notNull().default(0),
     // Tight-gap policy after catch-up (issue #1): 'fixed' = keep grid, 'suppress' = skip

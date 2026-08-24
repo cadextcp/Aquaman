@@ -38,6 +38,8 @@ export type IcsSchedule = ScheduleLike & {
   scheduleVersion: number;
   updatedAt: string; // ISO-8601 UTC
   active: boolean;
+  /** issue #30: free-text instructions → ICS DESCRIPTION */
+  details?: string | null;
 };
 
 /** "water_change" → "Water change" — matches the dashboard's casing. */
@@ -93,6 +95,7 @@ function buildVEvent(
   const summary = escapeText(`Aquaman: ${actionLabel(schedule.actionType)} — ${schedule.tankName}`);
   const dtstart = toIcsDate(occ.plannedFor);
   const dtend = toIcsDate(addDays(occ.plannedFor, 1)); // exclusive end, per RFC 5545 all-day convention
+  // issue #30: concrete instructions (dosage, liters) travel in DESCRIPTION
   const lines = [
     "BEGIN:VEVENT",
     `UID:${uid}`,
@@ -101,6 +104,9 @@ function buildVEvent(
     `DTEND;VALUE=DATE:${dtend}`,
     `SEQUENCE:${sequence}`,
     `SUMMARY:${summary}`,
+    ...(schedule.details
+      ? [`DESCRIPTION:${escapeText(schedule.details)}`]
+      : []),
     "END:VEVENT",
   ];
   return lines.map(foldLine).join("\r\n");

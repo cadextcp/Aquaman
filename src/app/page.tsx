@@ -2,8 +2,8 @@ import Link from "next/link";
 import { listTanks, listSchedules, feedAllToday } from "@/lib/repo";
 import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
-import { TaskActions } from "@/components/schedule-form";
-import { FeedCheckbox } from "@/components/feed-checkbox";
+import { ScheduleCard } from "@/components/schedule-card";
+import { FeedControl } from "@/components/feed-checkbox";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,6 @@ export default function Dashboard() {
   const t = todayStr();
   const weekEnd = addDays(t, 7);
   const feeds = feedAllToday(t);
-  const fedTankIds = new Set(feeds.map((f) => f.tankId));
 
   // projection for every schedule
   const tasks = schedules
@@ -37,30 +36,8 @@ export default function Dashboard() {
   );
 
   const card = (item: (typeof tasks)[number]) => {
-    const { s, due, missed } = item;
-    return (
-      <div key={s.id} className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-        <div className="flex items-center justify-between gap-3 mb-1.5">
-          <div className="font-medium">
-            {s.actionType.replace(/_/g, " ")}
-            <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}> — {s.tankName}</span>
-          </div>
-          <TaskActions scheduleId={s.id} compact />
-        </div>
-        <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-          {due.overdueDays > 0 ? (
-            <span style={{ color: "var(--warning)" }}>behind {due.overdueDays}d</span>
-          ) : due.plannedFor === t ? (
-            <span style={{ color: "var(--accent)" }}>today</span>
-          ) : (
-            due.plannedFor
-          )}
-          {missed >= MISSED_SLOTS_HINT && (
-            <span style={{ color: "var(--warning)" }}> · {missed} missed — interval too tight?</span>
-          )}
-        </div>
-      </div>
-    );
+    const { s, due } = item;
+    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} />;
   };
 
   return (
@@ -72,11 +49,10 @@ export default function Dashboard() {
             <div className="text-xs uppercase tracking-wide mb-3" style={{ color: "var(--muted-foreground)" }}>
               Feeding today
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
               {tanks.map((tank) => (
-                <FeedCheckbox key={tank.id} tankId={tank.id} tankName={tank.name}
-                  timesFed={feeds.find((f) => f.tankId === tank.id)?.timesFed ?? 0}
-                  checked={fedTankIds.has(tank.id)} />
+                <FeedControl key={tank.id} tankId={tank.id} tankName={tank.name}
+                  timesFed={feeds.find((f) => f.tankId === tank.id)?.timesFed ?? 0} />
               ))}
             </div>
           </div>
@@ -96,12 +72,7 @@ export default function Dashboard() {
           <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
             If you only do one thing today
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <div className="font-semibold">
-              {catchUpCandidate.s.actionType.replace(/_/g, " ")} — {catchUpCandidate.s.tankName}
-            </div>
-            <TaskActions scheduleId={catchUpCandidate.s.id} compact />
-          </div>
+          <ScheduleCard schedule={{ ...catchUpCandidate.s, due: catchUpCandidate.due, today: t }} />
           <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
             {behind.length - 1} more tasks behind — they keep rescheduling to your preferred days, no rush.
           </div>

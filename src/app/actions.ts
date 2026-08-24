@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { z } from "zod";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { tanks, schedules } from "@/lib/db/schema";
+import { tanks, schedules, maintenanceLogs, waterTests, feedLogs } from "@/lib/db/schema";
 import {
   tankInputSchema,
   scheduleInputSchema,
@@ -155,6 +156,8 @@ export async function updateSchedule(id: number, input: ScheduleInput): Promise<
         autoReschedule: parsed.data.autoReschedule,
         tightGapPolicy: parsed.data.tightGapPolicy,
         tightGapThresholdPct: parsed.data.tightGapThresholdPct,
+        details: parsed.data.details ?? null,
+        endsOn: parsed.data.endsOn ?? null,
         // Issue #27: atomic increment — no read-modify-write, no silent ?? 0
         scheduleVersion: sql`${schedules.scheduleVersion} + 1`,
         updatedAt: new Date().toISOString(),
@@ -293,5 +296,142 @@ export async function rotateIcsTokenAction(): Promise<ActionResult<{ token: stri
   } catch (err) {
     console.error("[rotateIcsTokenAction]", err);
     return { ok: false, error: "Could not rotate token" };
+  }
+}
+
+
+// ==================== Undo done (issue #34) ====================
+
+/**
+ * Undo a wrongly marked-done task: deletes the most recent maintenance-log
+ * row for this schedule and restores the PREVIOUS lastDoneAt (the second-newest
+ * log for this tank+action, or null when the undone one was the first).
+ * scheduleVersion bumps so ICS consumers see the change.
+ */
+export async function undoLastDone(scheduleId: number): Promise<ActionResult> {
+  try {
+    const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
+    if (!s) return { ok: false, error: "Schedule not found" };
+    if (!s.lastDoneAt) return { ok: false, error: "Nothing to undo" };
+
+    const logs = db
+      .select()
+      .from(maintenanceLogs)
+      .where(and(eq(maintenanceLogs.tankId, s.tankId), eq(maintenanceLogs.actionType, s.actionType)))
+      .orderBy(desc(maintenanceLogs.doneAt))
+      .limit(2)
+      .all();
+
+    if (logs.length === 0) return { ok: false, error: "Nothing to undo" };
+
+    db.delete(maintenanceLogs).where(eq(maintenanceLogs.id, logs[0].id)).run();
+
+    // restore: previous completion if there was one, else null (never done)
+    const previous = logs[1]?.doneAt ?? null;
+
+    db.update(schedules)
+      .set({
+        lastDoneAt: previous,
+        snoozedUntil: null,
+        snoozeSource: null,
+        scheduleVersion: sql`${schedules.scheduleVersion} + 1`,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(schedules.id, scheduleId))
+      .run();
+
+    revalidatePath("/");
+    revalidatePath(`/tanks/${s.tankId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("[undoLastDone]", err);
+    return { ok: false, error: "Could not undo" };
+  }
+}
+
+// ==================== Feed adjust ± (issue #32) ====================
+
+/**
+ * Increment/decrement today's feeding count (bounds 0..5). Decrement below 0
+ * is a no-op; a count reaching 0 deletes today's row ("not fed today").
+ */
+export async function adjustFeedToday(tankId: number, delta: 1 | -1): Promise<ActionResult<{ timesFed: number }>> {
+  try {
+    const { markFed, todayFeed } = await import("@/lib/repo");
+    const day = todayStr();
+    const current = todayFeed(tankId, day);
+    const nowCount = current?.timesFed ?? 0;
+
+    if (delta === -1) {
+      if (!current || nowCount <= 0) return { ok: true, data: { timesFed: 0 } };
+      if (nowCount === 1) {
+        db.delete(feedLogs).where(eq(feedLogs.id, current.id)).run();
+        revalidatePath("/");
+        return { ok: true, data: { timesFed: 0 } };
+      }
+      db.update(feedLogs).set({ timesFed: nowCount - 1 }).where(eq(feedLogs.id, current.id)).run();
+      revalidatePath("/");
+      return { ok: true, data: { timesFed: nowCount - 1 } };
+    }
+
+    // +1, capped at 5
+    if (nowCount >= 5) return { ok: true, data: { timesFed: nowCount } };
+    if (current) {
+      db.update(feedLogs)
+        .set({ timesFed: nowCount + 1, fedAt: new Date().toISOString() })
+        .where(eq(feedLogs.id, current.id))
+        .run();
+    } else {
+      db.insert(feedLogs)
+        .values({ tankId, day, fedAt: new Date().toISOString(), timesFed: 1 })
+        .run();
+    }
+    revalidatePath("/");
+    return { ok: true, data: { timesFed: nowCount + 1 } };
+  } catch (err) {
+    console.error("[adjustFeedToday]", err);
+    return { ok: false, error: "Could not adjust feeding" };
+  }
+}
+
+// ==================== Water test edit/delete (issue #35) ====================
+
+const waterTestUpdateSchema = waterTestInputSchema.extend({ id: z.number().int().positive() });
+
+export async function updateWaterTest(input: unknown): Promise<ActionResult> {
+  const parsed = waterTestUpdateSchema.safeParse(input);
+  if (!parsed.success) return zodFail(parsed.error);
+  const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
+  if (!tank) return { ok: false, error: "Tank not found" };
+  const { validateWaterValues } = await import("@/lib/schemas");
+  const [clean, vErr] = validateWaterValues(parsed.data.values, tank.waterType);
+  if (vErr || !clean) return { ok: false, error: vErr ?? "Invalid values" };
+  try {
+    const existing = db.select().from(waterTests).where(eq(waterTests.id, parsed.data.id)).get();
+    if (!existing) return { ok: false, error: "Water test not found" };
+    db.update(waterTests)
+      .set({ measuredAt: parsed.data.measuredAt, values: clean, note: parsed.data.note ?? null })
+      .where(eq(waterTests.id, parsed.data.id))
+      .run();
+    revalidatePath("/");
+    revalidatePath(`/tanks/${parsed.data.tankId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("[updateWaterTest]", err);
+    return { ok: false, error: "Could not update water test" };
+  }
+}
+
+export async function deleteWaterTest(id: number): Promise<ActionResult> {
+  try {
+    const existing = db.select().from(waterTests).where(eq(waterTests.id, id)).get();
+    if (!existing) return { ok: false, error: "Water test not found" };
+    db.delete(waterTests).where(eq(waterTests.id, id)).run();
+    revalidatePath("/");
+    revalidatePath(`/tanks/${existing.tankId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("[deleteWaterTest]", err);
+    return { ok: false, error: "Could not delete water test" };
   }
 }

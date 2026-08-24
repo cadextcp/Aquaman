@@ -43,6 +43,15 @@ export const scheduleInputSchema = z.object({
   autoReschedule: z.boolean().default(true),
   tightGapPolicy: z.enum(["fixed", "suppress"]).nullable().default(null),
   tightGapThresholdPct: z.number().int().min(1).max(99).nullable().default(null),
+  // issue #30: concrete instructions, e.g. "30 L of 60 L (50 %)" / "10 ml iron fertilizer"
+  details: z.string().trim().max(300).optional().nullable(),
+  // issue #31: optional end date — after it, the event vanishes from calendar/ICS
+  endsOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "endsOn must be YYYY-MM-DD")
+    .optional()
+    .nullable()
+    .refine((v) => v === null || v === undefined || v >= new Date().toISOString().slice(0, 10) || true, "invalid date"),
 });
 export type ScheduleInput = z.infer<typeof scheduleInputSchema>;
 

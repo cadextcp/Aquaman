@@ -63,6 +63,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
             autoReschedule: true,
             tightGapPolicy: null,
             tightGapThresholdPct: null,
+            details: c.details ?? null,
           })
           .run();
         applied.push(describeChange(c));
@@ -88,6 +89,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
         db.update(schedules)
           .set({
             intervalDays: c.intervalDays,
+            ...(c.details !== undefined ? { details: c.details } : {}),
             scheduleVersion: sql`${schedules.scheduleVersion} + 1`,
             updatedAt: new Date().toISOString(),
             snoozedUntil: null,

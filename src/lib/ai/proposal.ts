@@ -33,6 +33,7 @@ export const PROPOSAL_TOOL_INPUT_SCHEMA = {
           actionType: { type: "string", description: "For create: e.g. water_change, fertilize, filter_clean" },
           intervalDays: { type: "integer", description: "New interval in days (1–365)" },
           preferredDays: { type: "integer", description: "7-bit weekday mask: 1=Mon … 64=Sun; 127=every day; 96=weekend" },
+          details: { type: "string", description: "Concrete instructions for the task, e.g. '30 L of 60 L (50 %) water change' or '10 ml iron fertilizer'. Fertilizer/water-change amounts only — NEVER medication. Always append: (verify dosage against the product label)" },
           note: { type: "string", description: "Optional short reason for this single change" },
         },
         required: ["kind", "intervalDays"],
@@ -51,12 +52,14 @@ export const proposalChangeSchema = z.discriminatedUnion("kind", [
     actionType: z.string().trim().min(1).max(40),
     intervalDays: z.number().int().min(1).max(365),
     preferredDays: z.number().int().min(1).max(127),
+    details: z.string().trim().max(300).optional(),
     note: z.string().trim().max(200).optional(),
   }),
   z.object({
     kind: z.literal("adjust"),
     scheduleId: z.number().int().positive(),
     intervalDays: z.number().int().min(1).max(365),
+    details: z.string().trim().max(300).optional(),
     note: z.string().trim().max(200).optional(),
   }),
 ]);

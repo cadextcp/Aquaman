@@ -43,10 +43,22 @@ export type ScheduleLike = {
   tightGapPolicy?: TightGapPolicy | null;
   /** threshold as % of intervalDays (1–99); default: 50 */
   tightGapThresholdPct?: number | null;
+  /** issue #31: optional end date (YYYY-MM-DD) — after it the schedule is over */
+  endsOn?: string | null;
 };
 
 function isoToDateStr(iso: string): string {
   return iso.slice(0, 10);
+}
+
+/**
+ * True when the schedule has ended as of `dateStr` (issue #31).
+ * endsOn is INCLUSIVE: the endsOn day itself is still a valid occurrence day.
+ * The dashboard should treat ended schedules as invisible (not overdue!).
+ */
+export function hasEnded(schedule: ScheduleLike, dateStr: string): boolean {
+  if (!schedule.endsOn) return false;
+  return dateStr > schedule.endsOn;
 }
 
 /** Defensive mask normalization: 0 or invalid → every day (guards infinite loops). */
@@ -207,9 +219,13 @@ export function occurrenceDetailsInRange(
   const original = originalDueAt(schedule);
   const projection = nextDue(schedule, now, tz);
 
+  // issue #31: ended schedules emit nothing (endsOn day itself still counts)
+  if (hasEnded(schedule, fromStr)) return [];
+
   const out: OccurrenceDetail[] = [];
   const seen = new Set<string>();
   const add = (originalDate: string, plannedDate: string) => {
+    if (schedule.endsOn && originalDate > schedule.endsOn) return; // past the end
     if (plannedDate >= fromStr && plannedDate <= toStr && !seen.has(plannedDate)) {
       out.push({ originalDueAt: originalDate, plannedFor: plannedDate });
       seen.add(plannedDate);
@@ -246,6 +262,7 @@ export function occurrenceDetailsInRange(
   let cur = original;
   let guard = 0;
   while (cur <= toStr && guard++ < 1000) {
+    if (schedule.endsOn && cur > schedule.endsOn) break; // issue #31: grid stops at endsOn
     if (cur > projection.plannedFor) {
       if (suppressNext) {
         suppressNext = false; // skip exactly one grid point

@@ -220,9 +220,19 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
   );
 }
 
-function ProposalCard({ proposal }: { proposal: Proposal }) {
+function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
   const [state, setState] = useState<"pending" | "applied" | "failed" | "partial">("pending");
   const [result, setResult] = useState<string>("");
+  // issue #36: editable approval card — the user can correct AI-suggested
+  // dosages/details/intervals BEFORE approving. Re-validated in applyProposal.
+  const [proposal, setProposal] = useState<Proposal>(initial);
+
+  function updateChange(i: number, patch: Partial<Proposal["changes"][number]>) {
+    setProposal((p) => ({
+      ...p,
+      changes: p.changes.map((c, idx) => (idx === i ? ({ ...c, ...patch } as Proposal["changes"][number]) : c)),
+    }));
+  }
 
   async function apply() {
     const res = await applyProposal(proposal);
@@ -248,17 +258,37 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
       <div className="text-xs uppercase tracking-wide mb-1" style={{ color: "var(--accent)" }}>
         Proposed schedule change (draft)
       </div>
-      <p className="text-sm mb-2">{proposal.rationale}</p>
-      <ul className="text-sm space-y-1 mb-2" style={{ color: "var(--muted-foreground)" }}>
+      <textarea
+        className="w-full rounded-lg px-3 py-2 text-sm mb-2 resize-none"
+        style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "inherit" }}
+        rows={2}
+        value={proposal.rationale}
+        onChange={(e) => setProposal((p) => ({ ...p, rationale: e.target.value }))}
+      />
+      <div className="space-y-2 mb-2">
         {proposal.changes.map((c, i) => (
-          <li key={i}>
-            {c.kind === "create"
-              ? `+ ${c.actionType.replace(/_/g, " ")} every ${c.intervalDays}d (mask ${c.preferredDays})`
-              : `~ schedule #${c.scheduleId} → every ${c.intervalDays}d`}
-            {c.note ? ` — ${c.note}` : ""}
-          </li>
+          <div key={i} className="rounded-lg p-2.5 text-sm" style={{ background: "var(--secondary)" }}>
+            <div className="mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+              {c.kind === "create" ? `+ ${c.actionType.replace(/_/g, " ")}` : `~ schedule #${c.scheduleId}`}
+            </div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <label className="text-xs" style={{ color: "var(--muted-foreground)" }}>every</label>
+              <input type="number" min={1} max={365} value={c.intervalDays}
+                onChange={(e) => updateChange(i, { intervalDays: Number(e.target.value) })}
+                className="w-20 rounded px-2 py-1.5 text-sm" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit" }} />
+              <label className="text-xs" style={{ color: "var(--muted-foreground)" }}>days</label>
+            </div>
+            <input
+              className="w-full rounded px-2 py-1.5 text-sm"
+              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit" }}
+              placeholder='Details, e.g. "30 L of 60 L (50 %)" — verify dosages against the product label'
+              defaultValue={c.details ?? ""}
+              onChange={(e) => updateChange(i, { details: e.target.value || undefined })}
+              maxLength={300}
+            />
+          </div>
         ))}
-      </ul>
+      </div>
       {state === "pending" ? (
         <button
           onClick={apply}

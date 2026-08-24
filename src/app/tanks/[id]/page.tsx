@@ -5,8 +5,10 @@ import { nextDue, missedSlots, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler"
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { TankForm } from "@/components/tank-form";
 import { ScheduleForm } from "@/components/schedule-form";
-import { TaskActions } from "@/components/schedule-form";
+import { ScheduleCard } from "@/components/schedule-card";
+import { today as todayStrLocal } from "@/lib/domain/dates";
 import { WaterTestForm } from "@/components/water-test-form";
+import { WaterTestHistory } from "@/components/water-test-history";
 
 export const dynamic = "force-dynamic";
 
@@ -81,28 +83,15 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
               const due = nextDue(s);
               const missed = missedSlots(s);
               return (
-                <div key={s.id} className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div>
-                      <span className="font-medium">{s.actionType.replace(/_/g, " ")}</span>
-                      <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                        {" "}· every {s.intervalDays}d
-                      </span>
-                    </div>
-                    <TaskActions scheduleId={s.id} compact />
-                  </div>
-                  <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                    {due.overdueDays > 0 ? (
-                      <>
-                        <span style={{ color: "var(--warning)" }}>behind {due.overdueDays}d</span>
-                        {" · planned "}
-                      </>
-                    ) : ("planned ")}
-                    <strong>{due.plannedFor}</strong>
-                    {missed >= MISSED_SLOTS_HINT && (
-                      <span style={{ color: "var(--warning)" }}> · interval too tight? ({missed} missed)</span>
-                    )}
-                  </div>
+                <div key={s.id}>
+                  <ScheduleCard
+                    schedule={{ ...s, due, today: todayStrLocal() }}
+                  />
+                  {missed >= MISSED_SLOTS_HINT && (
+                    <p className="text-xs mt-1 mb-2" style={{ color: "var(--warning)" }}>
+                      interval too tight? ({missed} missed slots)
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -125,23 +114,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
             <WaterTestForm tankId={tank.id} ranges={ranges.map((r) => ({ key: r.key, label: r.label, unit: r.unit }))} />
           </div>
         </details>
-        {tests.length > 0 && (
-          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-              History ({tests.length})
-            </div>
-            <ul className="text-sm space-y-1" style={{ color: "var(--muted-foreground)" }}>
-              {tests.slice(0, 5).map((t) => {
-                const vals = Object.entries(t.values).filter(([, v]) => v !== null);
-                return (
-                  <li key={t.id}>
-                    {t.measuredAt.slice(0, 10)}: {vals.map(([k, v]) => `${k} ${v}`).join(" · ")}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+        <WaterTestHistory tankId={tank.id} tests={tests} ranges={ranges.map((r) => ({ key: r.key, label: r.label, unit: r.unit }))} />
       </section>
 
       {/* Logs */}
