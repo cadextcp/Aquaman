@@ -3,9 +3,9 @@
 Self-hosted aquarium care & water tracking with an AI coach, flexible scheduling
 and an ICS calendar feed for Google Calendar.
 
-> **Status:** v0.1.0 — all MVP features implemented (tanks, flexible
-> scheduling, water values incl. NH₃, calendar + ICS feed, AI coach with
-> approval gates, export/import, statistics).
+> **Status:** v0.2.0 — MVP complete incl. owner feedback round 1
+> (schedule details & endsOn, editing everywhere, feeding stepper, undo,
+> water-test presets, AI dosage proposals with label warning).
 > Planning docs: [`docs/PRD-Aquaman-MVP.md`](docs/PRD-Aquaman-MVP.md) ·
 > [`docs/TechDesign-Aquaman-MVP.md`](docs/TechDesign-Aquaman-MVP.md)
 
