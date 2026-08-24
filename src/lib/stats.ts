@@ -232,6 +232,25 @@ export function crossTankStats(now: Date = new Date()) {
   return { actions: logs.length };
 }
 
+/** Daily care-action counts for the last N days (design: the 30-bar activity chart). */
+export function dailyActivity(days = 30): { date: string; count: number }[] {
+  const t = today();
+  const from = addDays(t, -(days - 1));
+  const fromIso = `${from}T00:00:00.000Z`;
+  const logs = db.select().from(maintenanceLogs).where(gte(maintenanceLogs.doneAt, fromIso)).all();
+  const byDay = new Map<string, number>();
+  for (const l of logs) {
+    const d = l.doneAt.slice(0, 10);
+    byDay.set(d, (byDay.get(d) ?? 0) + 1);
+  }
+  const out: { date: string; count: number }[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = addDays(t, -i);
+    out.push({ date: d, count: byDay.get(d) ?? 0 });
+  }
+  return out;
+}
+
 /** Weekly summary for the empty-queue state (design: "4 tasks closed this week, zero behind"). */
 export function weeklySummary(now: Date = new Date()) {
   const t = today();

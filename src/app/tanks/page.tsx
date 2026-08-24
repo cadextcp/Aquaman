@@ -3,7 +3,7 @@ import { listTanks, listSchedules, waterTestsForTank } from "@/lib/repo";
 import { nextDue } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
-import { scheduleAdherence, crossTankStats, cyclingInfo } from "@/lib/stats";
+import { scheduleAdherence, crossTankStats, cyclingInfo, dailyActivity } from "@/lib/stats";
 import { db } from "@/lib/db";
 import { maintenanceLogs } from "@/lib/db/schema";
 
@@ -16,6 +16,8 @@ export default async function TanksPage() {
   const allSchedules = listSchedules();
   const allLogs = db.select().from(maintenanceLogs).all();
   const cross = crossTankStats();
+  const activity = dailyActivity(30);
+  const maxCount = Math.max(1, ...activity.map((a) => a.count));
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-5xl">
@@ -138,16 +140,30 @@ export default async function TanksPage() {
         </div>
       )}
 
-      {/* Across both tanks (design) */}
+      {/* Across both tanks (design): 30-bar daily activity chart */}
       {tanks.length > 0 && (
-        <div className="mt-4 rounded-xl p-4 flex items-center justify-between" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
+        <div className="mt-4 rounded-xl p-4 edge-card">
           <span className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
             Across {tanks.length === 1 ? "tank" : "all tanks"} · 30 d
           </span>
-          <span className="text-sm tnum">
-            <strong className="font-medium text-lg">{cross.actions}</strong>{" "}
-            <span style={{ color: "var(--muted-foreground)" }}>care actions</span>
-          </span>
+          <div className="flex items-end gap-1 mt-3" style={{ height: 44 }}>
+            {activity.map((a, i) => (
+              <span
+                key={a.date}
+                className="flex-1 rounded-sm"
+                style={{
+                  height: `${Math.max(6, Math.round((a.count / maxCount) * 100))}%`,
+                  background: i >= activity.length - 4 ? "var(--accent)" : "rgba(34,211,238,0.45)",
+                }}
+                title={`${a.date}: ${a.count}`}
+              />
+            ))}
+          </div>
+          <div className="flex items-center justify-between mt-2 text-[9px] tnum" style={{ color: "rgba(233,233,237,0.35)" }}>
+            <span>{activity[0]?.date.slice(5)}</span>
+            <span>{cross.actions} care actions</span>
+            <span>{activity[activity.length - 1]?.date.slice(5)}</span>
+          </div>
         </div>
       )}
     </main>

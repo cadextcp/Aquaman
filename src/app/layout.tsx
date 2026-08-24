@@ -26,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex">
+        <div aria-hidden className="aqua-glow" />
         {/* Issue #21: nav lives HERE (root layout) so no page can lose it again */}
         <div className="flex min-h-dvh flex-1">
           <SideNav />

@@ -57,10 +57,27 @@ html {
 }
 
 body {
-  background: var(--background);
+  /* design: every screen sits on a vertical gradient ground, not a flat
+     fill — #1c2033 top → #161826 mid → #111320 bottom, fixed so it reads
+     as one ambient backdrop behind scrolling content instead of repeating */
+  background: linear-gradient(180deg, #1c2033 0%, #161826 46%, #111320 100%);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ambient top glow (design: the animated "caustic" radial behind the header
+   of every screen) — one fixed, non-animated version behind all pages */
+.aqua-glow {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 260px;
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(34, 211, 238, 0.10), transparent 60%),
+    radial-gradient(90% 80% at 85% 8%, rgba(145, 132, 217, 0.13), transparent 62%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 /* ---- design-system utilities ---- */

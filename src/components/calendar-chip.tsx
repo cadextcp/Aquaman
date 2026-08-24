@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * Calendar chip → opens the schedule editor (issue #31). Receives the plain
- * schedule row (server component) and manages the edit dialog client-side.
+ * Calendar event stripe → opens the schedule editor (issue #31). Renders as
+ * a thin full-width colored bar (design: `d.dots`), not a text pill — the
+ * day cell is small, so the label lives in the tooltip/aria-label instead.
+ * Receives the plain schedule row (server component) and manages the edit
+ * dialog client-side.
  */
 
 import { useState, useTransition } from "react";
@@ -12,14 +15,20 @@ import { deleteSchedule } from "@/app/actions";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 
+const STRIPE_COLOR = {
+  behind: "var(--warning)",
+  due: "var(--due)",
+  upcoming: "var(--accent)",
+} as const;
+
 export function CalendarChip({
   schedule,
   label,
-  overdue,
+  variant,
 }: {
   schedule: Schedule & { tankName: string };
   label: string;
-  overdue: boolean;
+  variant: "behind" | "due" | "upcoming";
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -38,16 +47,10 @@ export function CalendarChip({
         type="button"
         onClick={() => setOpen(true)}
         title={`${label} — click to edit`}
-        className="rounded px-1 py-0.5 truncate w-full text-left"
-        style={{
-          background: overdue ? "var(--warning)" : "var(--primary)",
-          color: overdue ? "var(--background)" : "var(--primary-foreground)",
-          fontSize: "10px",
-          cursor: "pointer",
-        }}
-      >
-        {label}
-      </button>
+        aria-label={`${label} — click to edit`}
+        className="block w-full rounded-full"
+        style={{ height: 3, padding: 0, border: "none", background: STRIPE_COLOR[variant], cursor: "pointer" }}
+      />
 
       {open &&
         createPortal(

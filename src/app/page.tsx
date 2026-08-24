@@ -9,6 +9,15 @@ import { FeedControl } from "@/components/feed-checkbox";
 
 export const dynamic = "force-dynamic";
 
+/** "Monday 24 August" (design header label) — date-only string, UTC-safe. */
+function fullDateLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const weekday = dt.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+  const month = dt.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  return `${weekday} ${d} ${month}`;
+}
+
 export default async function Dashboard() {
   const tanks = listTanks();
   const schedules = listSchedules();
@@ -62,6 +71,26 @@ export default async function Dashboard() {
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
+      {/* Page header (design): date label + "Today" + streak badge */}
+      <div className="flex items-end justify-between mb-5">
+        <div>
+          <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+            {fullDateLabel(t)}
+          </div>
+          <h1 className="text-2xl font-bold mt-1">Today</h1>
+        </div>
+        {tanks.length > 0 && (
+          <div
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
+            style={{ background: "var(--due-soft)", boxShadow: "inset 0 0 0 1px var(--due-edge)" }}
+          >
+            <i aria-hidden className="ph-fill ph-drop text-sm" style={{ color: "var(--due)" }} />
+            <span className="text-sm font-medium tnum">{streak}</span>
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>day streak</span>
+          </div>
+        )}
+      </div>
+
       {/* Feeding (daily habit) */}
       {tanks.length > 0 && (
         <section className="mb-6">
@@ -77,22 +106,6 @@ export default async function Dashboard() {
             </div>
           </div>
         </section>
-      )}
-
-      {/* Streak (Nocturne header card) */}
-      {tanks.length > 0 && (
-        <div className="rounded-xl p-4 mb-4 flex items-center justify-between" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
-          <div className="flex items-center gap-2.5">
-            <i aria-hidden className="ph-fill ph-drop text-lg" style={{ color: "var(--due)" }} />
-            <span className="text-xl font-medium tnum">{streak}</span>
-            <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-              day{streak === 1 ? "" : "s"} streak
-            </span>
-          </div>
-          <span className="text-xs" style={{ color: "var(--faint)" }}>
-            days without neglected care
-          </span>
-        </div>
       )}
 
       {/* Adherence · 30 d (design) */}
