@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: "◧" },
   { href: "/tanks", label: "Tanks", icon: "◍" },
   { href: "/calendar", label: "Calendar", icon: "▦" },
+  { href: "/coach", label: "Coach", icon: "✦" },
   { href: "/more", label: "More", icon: "☰" },
 ] as const;
 
@@ -20,7 +21,7 @@ export function BottomNav() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {NAV_ITEMS.map((i) => (
           <Link
             key={i.href}

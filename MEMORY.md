@@ -5,9 +5,9 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Current State
 
-- Current task: Phase 3 (Calendar & ICS) implemented — occurrenceDetailsInRange, ICS feed route, month calendar view, token settings UI
-- Current phase: Phase 3 done, awaiting review/merge; Phase 4 (AI Coach) next
-- Next step: review Phase 3 diff → merge → Phase 4 (AI client, coach chat, propose_schedule, cost guard)
+- Current task: Phase 4 (AI Coach) implemented — AI client (Anthropic-compatible), /coach chat with NDJSON streaming, propose_schedule approval gate, two-tier cost guard
+- Current phase: Phase 4 done, awaiting review/merge; Phase 5 (Launch: export/import, stats, README, v0.1.0) next
+- Next step: review Phase 4 diff → merge → Phase 5
 - Blocked by: none
 
 ## Decisions
@@ -35,6 +35,13 @@ manages its own memory automatically — this file serves other agents and human
 - 2026-08-23 Cost ceiling: AQUAMAN_AI_MAX_CALLS_PER_DAY=20 AND AQUAMAN_AI_MAX_TOKENS_PER_DAY≈200k; reset local midnight
 - 2026-08-23 Eval prompts in agent_docs/testing.md (nitrate-high, NH3-at-pH-8, CO2-gasping, two-week-gap, injection-refusal)
 
+## Decisions
+
+- 2026-08-24 Phase 4 AI client: single code path via @anthropic-ai/sdk with baseURL env — one path for api.anthropic.com AND z.ai GLM. tool_use inputs accumulated from input_json_delta chunks, zod-validated on content_block_stop (reject, never repair). Usage from message_start (input) + message_delta (output) — the only events that carry real counts.
+- 2026-08-24 Approval gate: `applyProposal` in src/app/actions-ai.ts is the ONLY write path for AI proposals. Re-validates proposal (zod) + live data (tank live, schedule active) at write time — the AI saw a snapshot, the write must survive a stale one. Partial application with per-change results (one stale id doesn't block valid rest). adjust bumps scheduleVersion (ICS SEQUENCE) and clears snooze (changed plan invalidates it).
+- 2026-08-24 Coach route `/api/coach`: POST-only NDJSON stream, not token-gated (sits behind reverse proxy like every page). Input caps (question 2000 chars, history 12×4000), failure-only rate limit (30/h per IP, same limiter as ICS, key prefix coach:), guards BEFORE any provider call: no config → 503, budget → 429 with reason.
+- 2026-08-04 Cost guard: aggregates via count()/sum() over aiCalls rows of the local day — one row per finished call, INSERT-only audit trail; no cron, reset is implicit (next day's check reads a different day).
+
 ## Known Issues
 
 - docs/research-Aquaman.md contains ~15 editorial artifacts (marked historical, non-authoritative); PRD v1.2 + TechDesign v1.1 supersede it
@@ -52,6 +59,6 @@ manages its own memory automatically — this file serves other agents and human
 - [x] Phase 2 code review fixes (#1–#20): DB CHECK constraints, NH3/NO2 range corrections, token 404s, tight-gap policy, non-root Docker — 2026-08-23
 - [x] Phase 2 second-pass review fixes (#21–#27): navigation-in-root-layout regression, CVE upgrades (next/drizzle-orm), integration tests, water-value bounds, feed-cycle undo, action hardening — 2026-08-24
 - [x] Phase 3: Calendar & ICS (`occurrenceDetailsInRange`, ICS feed route with token+rate-limit, month calendar view, token rotation UI) — 2026-08-24
-- [ ] Phase 4: AI Coach
+- [x] Phase 4: AI Coach (`src/lib/ai/*`: config/cost-guard/context/client/proposal; `/api/coach` NDJSON streaming route; `applyProposal` approval action in `src/app/actions-ai.ts`; `/coach` UI + approval cards; AI status in /more; 122 tests green) — 2026-08-24
 - [ ] Phase 5: Launch v0.1.0
 - [ ] v1.1: MCP + OpenClaw

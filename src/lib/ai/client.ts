@@ -1,0 +1,158 @@
+/**
+ * Anthropic-compatible streaming client (Phase 4 — TechDesign §4.5/§8).
+ *
+ * Official SDK with baseURL from env — one code path for api.anthropic.com
+ * AND z.ai GLM. Streams text deltas + tool_use blocks.
+ *
+ * - tool_use inputs arrive as `input_json_delta` chunks → accumulated per
+ *   content-block index, parsed + zod-validated on content_block_stop
+ *   (malformed → rejected, never repaired)
+ * - usage comes from the FINAL events (message_start = input tokens,
+ *   message_delta = output tokens) — reading anywhere else counts zero
+ *   (AGENTS streaming gotcha)
+ * - consecutive same-role turns are merged: the API requires strict
+ *   user/assistant alternation and a leading user turn
+ */
+
+import Anthropic from "@anthropic-ai/sdk";
+import { getAiConfig, REQUEST_TIMEOUT_MS } from "./config";
+import { parseProposal, PROPOSAL_TOOL_NAME, PROPOSAL_TOOL_DESCRIPTION, PROPOSAL_TOOL_INPUT_SCHEMA, type Proposal } from "./proposal";
+
+export type CoachMessage = { role: "user" | "assistant"; content: string };
+
+export type CoachStreamEvent =
+  | { type: "text"; delta: string }
+  | { type: "proposal"; proposal: Proposal }
+  | { type: "done"; usage: { promptTokens: number; completionTokens: number } }
+  | { type: "error"; message: string };
+
+/** Merge consecutive same-role turns; drop leading assistant turns. */
+export function normalizeHistory(history: CoachMessage[], question: string): { role: "user" | "assistant"; content: string }[] {
+  const merged: CoachMessage[] = [];
+  for (const m of [...history, { role: "user" as const, content: question }]) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === m.role) {
+      last.content = `${last.content}\n\n${m.content}`;
+    } else {
+      merged.push({ ...m });
+    }
+  }
+  while (merged.length > 0 && merged[0].role === "assistant") merged.shift();
+  return merged.slice(-12); // hard cap on history cost
+}
+
+type ToolAcc = { name: string; json: string };
+
+/**
+ * Stream a coach answer. `onEvent` fires per event; provider failures surface
+ * as { type: "error" } so the UI can degrade gracefully (fallback rule).
+ */
+export async function streamCoachAnswer(opts: {
+  system: string;
+  question: string;
+  history: CoachMessage[];
+  onEvent: (ev: CoachStreamEvent) => void;
+  signal?: AbortSignal;
+}): Promise<void> {
+  const config = getAiConfig();
+  if (!config) {
+    opts.onEvent({ type: "error", message: "AI is not configured — core features are fully working without it." });
+    return;
+  }
+
+  let client: Anthropic;
+  try {
+    client = new Anthropic({ apiKey: config.apiKey, baseURL: config.baseUrl, timeout: REQUEST_TIMEOUT_MS });
+  } catch {
+    opts.onEvent({ type: "error", message: "AI is not configured — core features are fully working without it." });
+    return;
+  }
+
+  const usage = { promptTokens: 0, completionTokens: 0 };
+  const tools: Record<number, ToolAcc> = {}; // content-block index → accumulator
+  const timer = setTimeout(() => {
+    try {
+      opts.signal?.throwIfAborted();
+    } catch {
+      /* handled via catch below */
+    }
+  }, REQUEST_TIMEOUT_MS);
+
+  try {
+    const stream = client.messages.stream({
+      model: config.model,
+      max_tokens: 1024,
+      system: opts.system,
+      messages: normalizeHistory(opts.history, opts.question),
+      tools: [
+        {
+          name: PROPOSAL_TOOL_NAME,
+          description: PROPOSAL_TOOL_DESCRIPTION,
+          input_schema: { ...PROPOSAL_TOOL_INPUT_SCHEMA, type: "object" as const },
+        },
+      ],
+    });
+
+    for await (const event of stream) {
+      switch (event.type) {
+        case "message_start":
+          usage.promptTokens = event.message.usage?.input_tokens ?? 0;
+          break;
+        case "content_block_start":
+          if (event.content_block.type === "tool_use") {
+            tools[event.index] = { name: event.content_block.name, json: "" };
+          }
+          break;
+        case "content_block_delta":
+          if (event.delta.type === "text_delta") {
+            opts.onEvent({ type: "text", delta: event.delta.text });
+          } else if (event.delta.type === "input_json_delta") {
+            tools[event.index]!.json += event.delta.partial_json;
+          }
+          break;
+        case "content_block_stop": {
+          const acc = tools[event.index];
+          if (acc && acc.name === PROPOSAL_TOOL_NAME) {
+            let raw: unknown = null;
+            try {
+              raw = JSON.parse(acc.json || "{}");
+            } catch {
+              raw = null;
+            }
+            const parsed = parseProposal(raw);
+            if (parsed) {
+              opts.onEvent({ type: "proposal", proposal: parsed });
+            } else {
+              opts.onEvent({ type: "text", delta: "\n(I drafted a schedule proposal, but it failed validation — nothing was saved.)\n" });
+            }
+          }
+          delete tools[event.index];
+          break;
+        }
+        case "message_delta":
+          if (event.usage?.output_tokens !== undefined) {
+            usage.completionTokens = event.usage.output_tokens;
+          }
+          break;
+        default:
+          break;
+      }
+    }
+
+    opts.onEvent({ type: "done", usage: { promptTokens: usage.promptTokens, completionTokens: usage.completionTokens } });
+  } catch (err) {
+    opts.onEvent({ type: "error", message: friendlyError(err) });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function friendlyError(err: unknown): string {
+  if (err instanceof Anthropic.APIError) {
+    if (err.status === 401 || err.status === 403) return "AI rejected the credentials — check AQUAMAN_AI_API_KEY. Core features are fully working without it.";
+    if (err.status === 429) return "AI provider rate limit reached — try again in a moment.";
+    return `AI provider error (${err.status ?? "?"}) — core features are fully working without it.`;
+  }
+  if (err instanceof Error && err.name === "AbortError") return "AI request timed out — core features are fully working without it.";
+  return "AI is unreachable — core features are fully working without it.";
+}

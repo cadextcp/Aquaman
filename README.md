@@ -3,7 +3,7 @@
 Self-hosted aquarium care & water tracking with an AI coach, flexible scheduling
 and an ICS calendar feed for Google Calendar.
 
-> **Status:** Phase 1 (vertical slice) — foundation live, features incoming.
+> **Status:** Phase 4 (AI coach) implemented — tanks, scheduling, calendar/ICS, coach live; export & launch next.
 > Planning docs: [`docs/PRD-Aquaman-MVP.md`](docs/PRD-Aquaman-MVP.md) ·
 > [`docs/TechDesign-Aquaman-MVP.md`](docs/TechDesign-Aquaman-MVP.md)
 
