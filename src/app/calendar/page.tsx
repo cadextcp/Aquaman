@@ -92,12 +92,12 @@ export default async function CalendarPage({
               key={d}
               className="rounded-lg p-1.5 min-h-[72px] sm:min-h-[92px] text-xs"
               style={{
-                background: isToday ? "var(--secondary)" : "var(--card)",
-                border: isToday ? "1px solid var(--accent)" : "1px solid var(--border)",
-                opacity: inMonth ? 1 : 0.4,
+                background: isToday ? "rgba(145,132,217,0.14)" : "rgba(15,17,28,0.4)",
+                boxShadow: isToday ? "inset 0 0 0 1px var(--accent)" : "inset 0 0 0 1px rgba(233,233,237,0.05)",
+                opacity: inMonth ? 1 : 0.32,
               }}
             >
-              <div className="font-medium mb-1" style={{ color: isToday ? "var(--accent)" : undefined }}>
+              <div className="font-medium tnum mb-1" style={{ color: isToday ? "var(--accent-light)" : "rgba(233,233,237,0.65)" }}>
                 {Number(d.slice(8, 10))}
               </div>
               <div className="space-y-0.5">

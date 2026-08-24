@@ -1,15 +1,15 @@
 import Link from "next/link";
 
-/** Shared nav config — single source (issue #16 cleanup). */
+/** Shared nav config — single source (issue #16 cleanup). Phosphor icons since #43. */
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: "◧" },
-  { href: "/tanks", label: "Tanks", icon: "◍" },
-  { href: "/calendar", label: "Calendar", icon: "▦" },
-  { href: "/coach", label: "Coach", icon: "✦" },
-  { href: "/more", label: "More", icon: "☰" },
+  { href: "/", label: "Dashboard", icon: "house" },
+  { href: "/tanks", label: "Tanks", icon: "fish" },
+  { href: "/calendar", label: "Calendar", icon: "calendar-blank" },
+  { href: "/coach", label: "Coach", icon: "sparkle" },
+  { href: "/more", label: "More", icon: "sliders-horizontal" },
 ] as const;
 
-/** Bottom navigation (mobile-first). Desktop gets a sidebar in Phase 2 polish. */
+/** Bottom navigation (mobile-first). Desktop gets a sidebar. */
 export function BottomNav() {
   return (
     <nav
@@ -29,9 +29,7 @@ export function BottomNav() {
             className="flex flex-col items-center justify-center gap-1 py-2 text-xs"
             style={{ color: "var(--muted-foreground)", minHeight: 56 }}
           >
-            <span aria-hidden className="text-lg">
-              {i.icon}
-            </span>
+            <i aria-hidden className={`ph ph-${i.icon} text-xl`} />
             {i.label}
           </Link>
         ))}
@@ -47,17 +45,18 @@ export function SideNav() {
       className="hidden lg:flex lg:flex-col lg:w-60 lg:border-r p-4 gap-1"
       style={{ borderColor: "var(--border)", background: "var(--card)" }}
     >
-      <div className="text-lg font-bold mb-4 px-2" style={{ color: "var(--accent)" }}>
-        🌊 Aquaman
+      <div className="text-lg font-bold mb-4 px-2 flex items-center gap-2" style={{ color: "var(--accent-light)" }}>
+        <i aria-hidden className="ph ph-drop text-2xl" />
+        Aquaman
       </div>
       {NAV_ITEMS.map((i) => (
         <Link
           key={i.href}
           href={i.href}
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm"
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-white/5"
           style={{ color: "var(--secondary-foreground)" }}
         >
-          <span aria-hidden>{i.icon}</span>
+          <i aria-hidden className={`ph ph-${i.icon} text-lg`} />
           {i.label}
         </Link>
       ))}

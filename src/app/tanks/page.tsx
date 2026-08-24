@@ -125,7 +125,7 @@ function Badge({ children }: { children: React.ReactNode }) {
 function Stat({ label, value, accent, warn }: { label: string; value: number; accent?: boolean; warn?: boolean }) {
   return (
     <div className="rounded-lg p-2 text-center" style={{ background: "var(--secondary)" }}>
-      <div className="text-lg font-bold" style={{ color: warn ? "var(--warning)" : accent ? "var(--accent)" : undefined }}>
+      <div className="text-lg font-medium tnum" style={{ color: warn ? "var(--warning)" : accent ? "var(--due)" : undefined }}>
         {value}
       </div>
       <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{label}</div>

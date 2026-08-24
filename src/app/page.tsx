@@ -1,15 +1,20 @@
 import Link from "next/link";
 import { listTanks, listSchedules, feedAllToday } from "@/lib/repo";
 import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
+import { careStreak } from "@/lib/domain/streak";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
 import { ScheduleCard } from "@/components/schedule-card";
 import { FeedControl } from "@/components/feed-checkbox";
 
 export const dynamic = "force-dynamic";
 
-export default function Dashboard() {
+export default async function Dashboard() {
   const tanks = listTanks();
   const schedules = listSchedules();
+  const { db } = await import("@/lib/db");
+  const { maintenanceLogs } = await import("@/lib/db/schema");
+  const allLogs = db.select().from(maintenanceLogs).all();
+  const streak = careStreak(schedules, allLogs);
   const t = todayStr();
   const weekEnd = addDays(t, 7);
   const feeds = feedAllToday(t);
@@ -57,6 +62,22 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Streak (Nocturne header card) */}
+      {tanks.length > 0 && (
+        <div className="rounded-xl p-4 mb-4 flex items-center justify-between" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
+          <div className="flex items-center gap-2.5">
+            <i aria-hidden className="ph-fill ph-drop text-lg" style={{ color: "var(--due)" }} />
+            <span className="text-xl font-medium tnum">{streak}</span>
+            <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+              day{streak === 1 ? "" : "s"} streak
+            </span>
+          </div>
+          <span className="text-xs" style={{ color: "var(--faint)" }}>
+            days without neglected care
+          </span>
+        </div>
       )}
 
       {/* KPIs */}

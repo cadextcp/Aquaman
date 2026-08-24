@@ -135,9 +135,9 @@ export default async function MorePage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg p-3" style={{ background: "var(--secondary)" }}>
-      <div className="text-xl font-bold">{value}</div>
-      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+    <div className="rounded-lg p-3" style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.07)" }}>
+      <div className="text-2xl font-medium tnum">{value}</div>
+      <div className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: "var(--muted-foreground)" }}>
         {label}
       </div>
     </div>

@@ -164,8 +164,8 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
             className="rounded-xl px-4 py-3 max-w-[85%] text-sm whitespace-pre-wrap"
             style={
               m.role === "user"
-                ? { background: "var(--accent)", color: "#fff" }
-                : { background: "var(--card)", border: "1px solid var(--border)" }
+                ? { background: "rgba(145,132,217,0.16)", boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.35)", borderRadius: "13px 13px 4px 13px" }
+                : { background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 1px 0 rgba(233,233,237,0.06)", borderRadius: "13px 13px 13px 4px" }
             }
           >
             {m.content}
@@ -255,8 +255,11 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
 
   return (
     <div className="mt-3 rounded-lg p-3" style={{ background: "var(--secondary)", border: "1px dashed var(--border)" }}>
-      <div className="text-xs uppercase tracking-wide mb-1" style={{ color: "var(--accent)" }}>
-        Proposed schedule change (draft)
+      <div className="flex items-center gap-2 mb-2">
+        <i aria-hidden className="ph ph-seal-check text-sm" style={{ color: "var(--accent)" }} />
+        <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--accent)" }}>
+          Proposal · needs your approval
+        </span>
       </div>
       <textarea
         className="w-full rounded-lg px-3 py-2 text-sm mb-2 resize-none"
@@ -272,11 +275,23 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
               {c.kind === "create" ? `+ ${c.actionType.replace(/_/g, " ")}` : `~ schedule #${c.scheduleId}`}
             </div>
             <div className="flex items-center gap-2 mb-1.5">
-              <label className="text-xs" style={{ color: "var(--muted-foreground)" }}>every</label>
-              <input type="number" min={1} max={365} value={c.intervalDays}
-                onChange={(e) => updateChange(i, { intervalDays: Number(e.target.value) })}
-                className="w-20 rounded px-2 py-1.5 text-sm" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit" }} />
-              <label className="text-xs" style={{ color: "var(--muted-foreground)" }}>days</label>
+              <span className="flex-1 text-xs" style={{ color: "rgba(233,233,237,0.7)" }}>
+                {c.kind === "adjust" ? "interval" : "every"}
+              </span>
+              {c.kind === "adjust" && (
+                <span className="text-xs tnum" style={{ color: "rgba(233,233,237,0.4)", textDecoration: "line-through" }}>
+                  {initial.changes[i]?.intervalDays ?? c.intervalDays} d
+                </span>
+              )}
+              <i aria-hidden className="ph ph-arrow-right text-[11px]" style={{ color: "rgba(233,233,237,0.35)" }} />
+              <button type="button" onClick={() => updateChange(i, { intervalDays: Math.max(1, c.intervalDays - 1) })}
+                className="rounded-[7px] text-sm font-medium"
+                style={{ width: 26, height: 26, background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "rgba(233,233,237,0.6)", cursor: "pointer" }}>−</button>
+              <span className="text-sm font-medium tnum w-7 text-center">{c.intervalDays}</span>
+              <button type="button" onClick={() => updateChange(i, { intervalDays: Math.min(365, c.intervalDays + 1) })}
+                className="rounded-[7px] text-sm font-medium"
+                style={{ width: 26, height: 26, background: "rgba(145,132,217,0.14)", boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.4)", color: "var(--accent-light)", cursor: "pointer" }}>+</button>
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>d</span>
             </div>
             <input
               className="w-full rounded px-2 py-1.5 text-sm"

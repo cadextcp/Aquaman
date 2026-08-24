@@ -21,6 +21,20 @@ export type ScheduleCardData = Schedule & {
   today: string; // YYYY-MM-DD
 };
 
+/** actionType → Phosphor icon + rail color (from the design's TASKS list) */
+const ACTION_ICON: Record<string, { icon: string; color: string }> = {
+  water_change: { icon: "drop-half", color: "var(--due)" },
+  water_test: { icon: "eyedropper", color: "var(--accent)" },
+  fertilize: { icon: "flask", color: "var(--warning)" },
+  filter_change: { icon: "funnel", color: "var(--accent)" },
+  filter_clean: { icon: "funnel", color: "var(--accent)" },
+  glass_clean: { icon: "sparkle", color: "var(--accent)" },
+  plant_trim: { icon: "leaf", color: "var(--success)" },
+};
+function actionVisual(actionType: string) {
+  return ACTION_ICON[actionType] ?? { icon: "check", color: "var(--secondary-foreground)" };
+}
+
 function daysUntil(dateStr: string, today: string): number {
   const [y1, m1, d1] = today.split("-").map(Number);
   const [y2, m2, d2] = dateStr.split("-").map(Number);
@@ -75,13 +89,23 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleCardData }) {
         tabIndex={0}
         onClick={() => setEditOpen(true)}
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditOpen(true)}
-        className="rounded-xl p-4 cursor-pointer transition-shadow hover:shadow-md"
-        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+        className="rounded-xl p-3.5 cursor-pointer flex gap-3 items-stretch anim-tickin"
+        style={{
+          background: justDone ? "var(--success-soft)" : "rgba(233,233,237,0.05)",
+          boxShadow: `inset 0 0 0 1px ${justDone ? "rgba(74,222,128,0.22)" : "rgba(233,233,237,0.08)"}`,
+          opacity: justDone ? 0.85 : 1,
+        }}
         title="Click to view & edit this schedule"
       >
+        {/* icon rail */}
+        <span
+          aria-hidden
+          className={`ph ph-${actionVisual(schedule.actionType).icon} text-xl shrink-0 self-center`}
+          style={{ color: justDone ? "var(--success)" : actionVisual(schedule.actionType).color }}
+        />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="font-medium truncate">
+            <div className="font-medium truncate" style={{ textDecoration: justDone ? "line-through" : "none" }}>
               {schedule.actionType.replace(/_/g, " ")}
               <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}>
                 {" "}· every {schedule.intervalDays}d

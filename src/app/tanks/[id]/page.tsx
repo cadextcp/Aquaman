@@ -4,6 +4,7 @@ import { getTank, listSchedules, recentLogs, waterTestsForTank } from "@/lib/rep
 import { nextDue, missedSlots, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { EditTankButton } from "@/components/edit-tank-button";
+import { Sparkline } from "@/components/sparkline";
 import { ScheduleForm } from "@/components/schedule-form";
 import { ScheduleCard } from "@/components/schedule-card";
 import { today as todayStrLocal } from "@/lib/domain/dates";
@@ -47,6 +48,16 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         <Link href="/tanks" className="text-sm underline" style={{ color: "var(--accent)" }}>← Tanks</Link>
       </div>
 
+      {/* NH₃ alert banner (Nocturne style) */}
+      {problems.filter((p) => p.key === "nh3").map((p) => (
+        <div key="nh3" className="rounded-lg px-3.5 py-2.5 mb-3 flex items-center gap-2.5" style={{ background: "var(--destructive-soft)", boxShadow: "0 0 0 1px var(--destructive-edge)" }}>
+          <i aria-hidden className="ph-fill ph-warning" style={{ color: "var(--destructive)" }} />
+          <span className="text-sm tnum" style={{ color: "var(--foreground)" }}>
+            {p.message ?? `Free NH₃ ${p.value} mg/l — above 0.020 toxic threshold`}
+          </span>
+        </div>
+      ))}
+
       {/* Last water test verdict */}
       {lastTest && (
         <div className="rounded-xl p-4 mb-6" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
@@ -68,6 +79,34 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {/* Sparklines: last 6 tests per parameter */}
+      {tests.length >= 2 && (
+        <div className="rounded-xl p-4 mb-6" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
+          <div className="text-xs uppercase tracking-widest mb-3" style={{ color: "var(--muted-foreground)" }}>
+            Water · last {Math.min(6, tests.length)} tests
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-3">
+            {Object.keys(tests[0].values).filter((k) => tests.some((t) => typeof t.values[k] === "number")).slice(0, 9).map((key) => {
+              const series = tests.slice(0, 6).reverse().map((t) => t.values[key]).filter((v): v is number => typeof v === "number");
+              const range = ranges.find((r) => r.key === key);
+              const last = series[series.length - 1];
+              const st = range && last !== undefined
+                ? last < range.min || last > range.max ? "warn" : "ok"
+                : "ok";
+              return (
+                <div key={key} className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>{range?.label ?? key}</div>
+                    <div className="text-sm tnum" style={{ color: st === "warn" ? "var(--warning)" : "var(--foreground)" }}>{last}</div>
+                  </div>
+                  <Sparkline series={series} color={st === "warn" ? "var(--warning)" : "var(--success)"} />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -112,10 +151,10 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         <details className="rounded-xl p-4 mb-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
           <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>+ Log water test</summary>
           <div className="pt-4">
-            <WaterTestForm tankId={tank.id} ranges={ranges.map((r) => ({ key: r.key, label: r.label, unit: r.unit }))} />
+            <WaterTestForm tankId={tank.id} ranges={ranges} lastValues={tests[1]?.values} />
           </div>
         </details>
-        <WaterTestHistory tankId={tank.id} tests={tests} ranges={ranges.map((r) => ({ key: r.key, label: r.label, unit: r.unit }))} />
+        <WaterTestHistory tankId={tank.id} tests={tests} ranges={ranges} />
       </section>
 
       {/* Logs */}

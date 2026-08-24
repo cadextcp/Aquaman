@@ -13,6 +13,8 @@ import { deleteWaterTest } from "@/app/actions";
 import { WaterTestForm } from "./water-test-form";
 import type { WaterTest } from "@/lib/db/schema";
 
+type RangeLike = { key: string; label: string; unit: string; min: number; max: number; warnMin?: number; warnMax?: number };
+
 export function WaterTestHistory({
   tankId,
   tests,
@@ -20,7 +22,7 @@ export function WaterTestHistory({
 }: {
   tankId: number;
   tests: WaterTest[];
-  ranges: { key: string; label: string; unit: string }[];
+  ranges: RangeLike[];
 }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<number | null>(null);

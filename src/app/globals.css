@@ -1,44 +1,52 @@
 @import "tailwindcss";
 
+/*
+ * Nocturne design system — "deep water" (issue #43, owner-provided design).
+ * Near-neutral dark ground, ONE accent (blurple #9184d9) marking only what
+ * is actionable, cyan for due/action, status colors ok/warn/critical.
+ * Inter throughout, tabular numbers for all measurements.
+ * Token names are kept compatible with the existing components (--card,
+ * --primary, --accent …) so most of the app inherits the new look for free.
+ */
 :root {
-  --background: #071a20;
-  --foreground: #d7f0f2;
-  --card: #0b2831;
-  --card-foreground: #d7f0f2;
-  --primary: #14b8a6;
-  --primary-foreground: #04211d;
-  --secondary: #0f3540;
-  --secondary-foreground: #a5d8dc;
-  --accent: #22d3ee;
-  --muted: #0f3540;
-  --muted-foreground: #7ba7ad;
-  --border: #14424f;
-  --input: #14424f;
-  --ring: #14b8a6;
-  --destructive: #f87171;
+  /* ground */
+  --background: #0f111c;
+  --foreground: #e9e9ed;
+  --card: #161826;
+  --card-foreground: #e9e9ed;
+  --card-raised: #1c2033;
+  /* the single accent (Nocturne blurple) */
+  --primary: #9184d9;
+  --primary-foreground: #0f111c;
+  --accent: #9184d9;
+  --accent-light: #b5abfc;
+  --secondary: #1c2033;
+  --secondary-foreground: #b9b9c6;
+  --muted: #1c2033;
+  --muted-foreground: rgba(233, 233, 237, 0.55);
+  --faint: rgba(233, 233, 237, 0.38);
+  --border: rgba(233, 233, 237, 0.12);
+  --border-strong: rgba(233, 233, 237, 0.2);
+  --input: rgba(233, 233, 237, 0.12);
+  --ring: #9184d9;
+  /* status / action colors (from the design) */
+  --due: #22d3ee;          /* due today / water / feed action */
+  --due-soft: rgba(34, 211, 238, 0.12);
+  --due-edge: rgba(34, 211, 238, 0.45);
   --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.08);
   --warning: #fbbf24;
-  --radius: 0.75rem;
+  --warning-soft: rgba(251, 191, 36, 0.07);
+  --warning-edge: rgba(251, 191, 36, 0.28);
+  --destructive: #f87171;
+  --destructive-soft: rgba(248, 113, 113, 0.08);
+  --destructive-edge: rgba(248, 113, 113, 0.3);
+  --radius: 8px;
+  /* focus per design system rules */
+  --focus-ring: 2px solid var(--accent);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #f2fafb;
-    --foreground: #0c2b31;
-    --card: #ffffff;
-    --card-foreground: #0c2b31;
-    --primary: #0d9488;
-    --primary-foreground: #ffffff;
-    --secondary: #e0f2f1;
-    --secondary-foreground: #37564f;
-    --accent: #0891b2;
-    --muted: #e6f1f2;
-    --muted-foreground: #5f7a80;
-    --border: #c8dfe2;
-    --input: #c8dfe2;
-    --ring: #0d9488;
-  }
-}
+/* Light mode deliberately NOT re-themed yet (owner decision: dark only for now) */
 
 * {
   border-color: var(--border);
@@ -51,12 +59,78 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  /* safe-area for iOS bottom-nav */
+  font-family: var(--font-inter), system-ui, sans-serif;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Subtle aqua gradient accent */
-.aqua-gradient {
-  background: linear-gradient(135deg, var(--background) 0%, #0a2e38 60%, #0e3a44 100%);
+/* ---- design-system utilities ---- */
+
+/* tabular figures for every measured value (60× in the design) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* themed keyboard focus — never the browser default blue */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* outlined action button (design: outlined > solid-filled) */
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent-light);
+  cursor: pointer;
+}
+.btn-outline:hover {
+  background: rgba(145, 132, 217, 0.14);
+}
+.btn-outline:active {
+  transform: scale(0.97);
+}
+
+/* card with 1px inset edge instead of heavy shadow */
+.edge-card {
+  background: rgba(233, 233, 237, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(233, 233, 237, 0.08);
+}
+
+/* ---- animations (all subtle; disabled under reduced motion) ---- */
+
+@keyframes aqua-bub {
+  0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  15% { opacity: 0.85; }
+  100% { transform: translate(var(--dx, 0), -64px) scale(1); opacity: 0; }
+}
+@keyframes aqua-checkpop {
+  0% { transform: scale(0.4); opacity: 0; }
+  55% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes aqua-tickin {
+  0% { transform: translateY(6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.anim-bub {
+  animation: aqua-bub 1.1s ease-out forwards;
+  pointer-events: none;
+}
+.anim-checkpop {
+  animation: aqua-checkpop 0.35s ease-out forwards;
+}
+.anim-tickin {
+  animation: aqua-tickin 0.25s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-bub,
+  .anim-checkpop,
+  .anim-tickin {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
 }
