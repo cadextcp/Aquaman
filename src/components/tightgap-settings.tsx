@@ -34,7 +34,7 @@ export function TightGapSettings({
   const input = { background: "var(--secondary)", border: "1px solid var(--border)", color: "inherit" };
 
   return (
-    <div className="rounded-xl p-5" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
         Scheduling — after catching up
       </div>
@@ -76,8 +76,8 @@ export function TightGapSettings({
           type="button"
           onClick={save}
           disabled={pending}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44, cursor: "pointer" }}
+          className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
+          style={{ minHeight: 44 }}
         >
           Save
         </button>

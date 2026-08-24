@@ -150,8 +150,8 @@ export function TankForm({ tank }: { tank?: Tank }) {
 
       <div className="flex gap-3 pt-2">
         <button type="submit" disabled={pending}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44 }}>
+          className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
+          style={{ minHeight: 44 }}>
           {editing ? "Save changes" : "Create tank"}
         </button>
         {editing && (

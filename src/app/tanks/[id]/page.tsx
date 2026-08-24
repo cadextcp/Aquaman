@@ -72,7 +72,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
 
       {/* Last water test verdict */}
       {lastTest && (
-        <div className="rounded-xl p-4 mb-6" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <div className="rounded-xl p-4 mb-6 edge-card">
           <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
             Last water test · {lastTest.measuredAt.slice(0, 10)}
           </div>
@@ -96,7 +96,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
 
       {/* Sparklines: last 6 tests per parameter */}
       {tests.length >= 2 && (
-        <div className="rounded-xl p-4 mb-6" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
+        <div className="rounded-xl p-4 mb-6 edge-card">
           <div className="text-xs uppercase tracking-widest mb-3" style={{ color: "var(--muted-foreground)" }}>
             Water · last {Math.min(6, tests.length)} tests
           </div>
@@ -150,7 +150,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
             })}
           </div>
         )}
-        <details className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <details className="rounded-xl p-4 edge-card">
           <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>+ Add schedule</summary>
           <div className="pt-4">
             <ScheduleForm tankId={tank.id} />
@@ -161,7 +161,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
       {/* Water test */}
       <section className="mb-6">
         <h2 className="text-lg font-semibold mb-3">Water tests</h2>
-        <details className="rounded-xl p-4 mb-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <details className="rounded-xl p-4 mb-3 edge-card">
           <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>+ Log water test</summary>
           <div className="pt-4">
             <WaterTestForm tankId={tank.id} ranges={ranges} lastValues={tests[1]?.values} />

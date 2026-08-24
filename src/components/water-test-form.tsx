@@ -282,8 +282,8 @@ export function WaterTestForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44, cursor: "pointer" }}
+          className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
+          style={{ minHeight: 44 }}
         >
           {edit ? "Save changes" : "Save test"}
         </button>

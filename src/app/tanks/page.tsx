@@ -21,14 +21,14 @@ export default async function TanksPage() {
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-5xl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Tanks</h1>
-        <Link href="/tanks/new" className="rounded-lg px-4 py-2.5 text-sm font-medium"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44 }}>
+        <Link href="/tanks/new" className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium"
+          style={{ minHeight: 44 }}>
           + New tank
         </Link>
       </div>
 
       {tanks.length === 0 ? (
-        <div className="rounded-xl p-8 text-center" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <div className="rounded-xl p-8 text-center edge-card">
           <p className="mb-4" style={{ color: "var(--muted-foreground)" }}>No tanks yet — create your first tank.</p>
           <Link href="/tanks/new" className="underline" style={{ color: "var(--accent)" }}>
             Create tank →
@@ -75,8 +75,7 @@ export default async function TanksPage() {
 
             return (
               <Link key={tank.id} href={`/tanks/${tank.id}`}
-                className="rounded-xl p-5 block transition-shadow hover:shadow-md"
-                style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                className="rounded-xl p-5 block edge-card">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <div className="text-lg font-semibold">{tank.name}</div>
