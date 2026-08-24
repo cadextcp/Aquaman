@@ -68,3 +68,29 @@ export function saveAiSettings(input: unknown): AiProviderSettingsData {
     .run();
   return parsed;
 }
+
+
+// ==================== daily coach suggestions cache (issue #41) ====================
+
+import { parseSuggestions, type DailySuggestions } from "./ai/proposal";
+import { today as todayStrLocal } from "./domain/dates";
+
+const SUGG_KEY = "coachSuggestions.v1";
+
+export function getDailySuggestions(now: Date = new Date()): DailySuggestions | null {
+  const row = db.select().from(appSettings).where(eq(appSettings.key, SUGG_KEY)).get();
+  const parsed = parseSuggestions(row?.value);
+  if (!parsed) return null;
+  return parsed.day === todayStrLocal(undefined, now) ? parsed : null; // stale day → miss
+}
+
+export function saveDailySuggestions(items: { label: string; prompt: string }[], now: Date = new Date()): DailySuggestions {
+  const payload: DailySuggestions = { day: todayStrLocal(undefined, now), items };
+  const parsed = parseSuggestions(payload);
+  if (!parsed) throw new Error("invalid suggestions");
+  db.insert(appSettings)
+    .values({ key: SUGG_KEY, value: parsed })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value: parsed } })
+    .run();
+  return parsed;
+}

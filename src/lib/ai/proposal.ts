@@ -77,3 +77,29 @@ export function parseProposal(input: unknown): Proposal | null {
   const parsed = proposalSchema.safeParse(input);
   return parsed.success ? parsed.data : null;
 }
+
+
+// ==================== daily suggestions (issue #41) ====================
+
+/**
+ * 5 clickable coach suggestions per day, context-aware. Generated ONCE per
+ * local day (purpose 'suggestions', one AI call), cached in appSettings.
+ */
+export const suggestionSchema = z.object({
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  items: z
+    .array(
+      z.object({
+        label: z.string().trim().min(3).max(80), // chip text
+        prompt: z.string().trim().min(3).max(400), // what gets sent to the coach
+      }),
+    )
+    .min(1)
+    .max(6),
+});
+export type DailySuggestions = z.infer<typeof suggestionSchema>;
+
+export function parseSuggestions(input: unknown): DailySuggestions | null {
+  const parsed = suggestionSchema.safeParse(input);
+  return parsed.success ? parsed.data : null;
+}

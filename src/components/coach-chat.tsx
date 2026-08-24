@@ -16,12 +16,37 @@ type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal };
 
 type UsageInfo = { calls: number; totalTokens: number; maxCalls: number; maxTokens: number } | null;
 
+type Suggestion = { label: string; prompt: string };
+
 export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [usage, setUsage] = useState<UsageInfo>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestionsLoaded, setSuggestionsLoaded] = useState(false);
+
+  // issue #41: load today's clickable suggestions once (cached per day server-side)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/coach/suggestions");
+        if (res.ok) {
+          const data = (await res.json()) as { items?: Suggestion[] };
+          if (!cancelled) setSuggestions(data.items ?? []);
+        }
+      } catch {
+        /* offline/AI off → no chips, everything else works */
+      } finally {
+        if (!cancelled) setSuggestionsLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const endRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
 
@@ -31,6 +56,10 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
 
   async function ask() {
     const question = input.trim();
+    await askWithQuestion(question);
+  }
+
+  async function askWithQuestion(question: string) {
     if (!question || busy || busyRef.current) return;
     setBusy(true);
     busyRef.current = true;
@@ -180,6 +209,32 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
           {banner}
         </div>
       )}
+
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.map((sg) => (
+            <button
+              key={sg.label}
+              type="button"
+              onClick={() => {
+                setInput(sg.prompt);
+                // send immediately — one tap, like the design's ask-chips
+                askWithQuestion(sg.prompt);
+              }}
+              className="rounded-full px-3 py-1.5 text-xs"
+              style={{
+                background: "rgba(145,132,217,0.1)",
+                boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.35)",
+                color: "var(--accent-light)",
+                cursor: "pointer",
+              }}
+            >
+              {sg.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {suggestionsLoaded && suggestions.length === 0 && aiConfigured && null}
 
       <div className="flex gap-2">
         <textarea
