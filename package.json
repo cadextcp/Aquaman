@@ -17,13 +17,13 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
-    "drizzle-orm": "^0.44.2",
-    "next": "15.5.4",
+    "drizzle-orm": "^0.45.2",
+    "next": "^15.5.23",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.86.0",
     "recharts": "^3.10.1",
-    "sharp": "^0.35.3",
+    "sharp": "0.35.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -35,10 +35,14 @@
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.2",
     "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "eslint-config-next": "^15.5.23",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.20.3",
     "typescript": "^5",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "postcss": "8.5.26",
+    "sharp": "0.35.3"
   }
 }

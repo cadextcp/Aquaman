@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { tanks, schedules } from "@/lib/db/schema";
 import {
@@ -13,11 +13,17 @@ import {
   type ScheduleInput,
 } from "@/lib/schemas";
 import { addMaintenanceLog, addWaterTest } from "@/lib/repo";
-import { addDays, today as todayStr } from "@/lib/domain/dates";
+import { today as todayStr } from "@/lib/domain/dates";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
+
+/** Issue #27: consistent liveness check — soft-deleted tanks are invisible but FK-valid. */
+function assertLiveTank(tankId: number): boolean {
+  const t = db.select().from(tanks).where(and(eq(tanks.id, tankId), isNull(tanks.deletedAt))).get();
+  return !!t;
+}
 
 function zodFail(e: { flatten: () => { formErrors: string[]; fieldErrors: Record<string, string[]> } }): ActionResult {
   const f = e.flatten();
@@ -111,6 +117,7 @@ export async function deleteTank(id: number): Promise<ActionResult> {
 export async function createSchedule(input: ScheduleInput): Promise<ActionResult<{ id: number }>> {
   const parsed = scheduleInputSchema.safeParse(input);
   if (!parsed.success) return zodFail(parsed.error);
+  if (!assertLiveTank(parsed.data.tankId)) return { ok: false, error: "Tank not found" };
   try {
     const row = db
       .insert(schedules)
@@ -137,6 +144,7 @@ export async function createSchedule(input: ScheduleInput): Promise<ActionResult
 export async function updateSchedule(id: number, input: ScheduleInput): Promise<ActionResult> {
   const parsed = scheduleInputSchema.safeParse(input);
   if (!parsed.success) return zodFail(parsed.error);
+  if (!assertLiveTank(parsed.data.tankId)) return { ok: false, error: "Tank not found" };
   try {
     db.update(schedules)
       .set({
@@ -147,7 +155,8 @@ export async function updateSchedule(id: number, input: ScheduleInput): Promise<
         autoReschedule: parsed.data.autoReschedule,
         tightGapPolicy: parsed.data.tightGapPolicy,
         tightGapThresholdPct: parsed.data.tightGapThresholdPct,
-        scheduleVersion: (db.select().from(schedules).where(eq(schedules.id, id)).get()?.scheduleVersion ?? 0) + 1,
+        // Issue #27: atomic increment — no read-modify-write, no silent ?? 0
+        scheduleVersion: sql`${schedules.scheduleVersion} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(schedules.id, id))
@@ -202,6 +211,11 @@ export async function markDone(scheduleId: number, note?: string): Promise<Actio
 export async function snooze(scheduleId: number, until: string): Promise<ActionResult> {
   const parsed = snoozeInputSchema.safeParse({ scheduleId, until });
   if (!parsed.success) return zodFail(parsed.error);
+  // Issue #27: a past snooze is meaningless (nextDue ignores it) — reject it
+  const todayLocal = todayStr();
+  if (until < todayLocal) {
+    return { ok: false, error: "Cannot snooze to a past date", fieldErrors: { until: "must be today or later" } };
+  }
   try {
     const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
     if (!s) return { ok: false, error: "Schedule not found" };
@@ -229,11 +243,17 @@ export async function snooze(scheduleId: number, until: string): Promise<ActionR
 export async function logWaterTest(input: unknown): Promise<ActionResult> {
   const parsed = waterTestInputSchema.safeParse(input);
   if (!parsed.success) return zodFail(parsed.error);
+  const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
+  if (!tank) return { ok: false, error: "Tank not found" };
+  // Issue #24: whitelist keys + plausibility bounds per water type
+  const { validateWaterValues } = await import("@/lib/schemas");
+  const [clean, vErr] = validateWaterValues(parsed.data.values, tank.waterType);
+  if (vErr || !clean) return { ok: false, error: vErr ?? "Invalid values" };
   try {
     addWaterTest({
       tankId: parsed.data.tankId,
       measuredAt: parsed.data.measuredAt,
-      values: parsed.data.values,
+      values: clean,
       note: parsed.data.note ?? undefined,
     });
     revalidatePath("/");
@@ -247,10 +267,11 @@ export async function logWaterTest(input: unknown): Promise<ActionResult> {
 
 // ==================== Feeding (daily habit) ====================
 
-export async function markFedToday(tankId: number, tz?: string): Promise<ActionResult> {
+export async function markFedToday(tankId: number): Promise<ActionResult> {
+  // Issue #25: NO caller-supplied timezone — AQUAMAN_TIMEZONE governs "today".
   try {
     const { markFed } = await import("@/lib/repo");
-    const day = todayStr(tz);
+    const day = todayStr();
     markFed(tankId, day);
     revalidatePath("/");
     return { ok: true };
@@ -258,15 +279,4 @@ export async function markFedToday(tankId: number, tz?: string): Promise<ActionR
     console.error("[markFedToday]", err);
     return { ok: false, error: "Could not mark fed" };
   }
-}
-
-// ==================== helpers for UI ====================
-
-export async function quickSnoozeOptions(): Promise<{ label: string; date: string }[]> {
-  const t = todayStr();
-  return [
-    { label: "Tomorrow", date: addDays(t, 1) },
-    { label: "+3 days", date: addDays(t, 3) },
-    { label: "+7 days", date: addDays(t, 7) },
-  ];
 }

@@ -102,20 +102,30 @@ export function feedAllToday(localDay: string): FeedLog[] {
   return db.select().from(feedLogs).where(eq(feedLogs.day, localDay)).all();
 }
 
-/** Toggle: first tap = fed, second tap = +1, never deletes history for the day. */
+/**
+ * Cycle 0 → 1 → 2 → 0 within the same local day (issue #26):
+ * research says feeding is 1–2×/day, so two is the cap; the wrap back to 0
+ * (row deleted) lets a mis-tap be undone with one more tap. Only the
+ * CURRENT day's row is ever touched.
+ */
 export function markFed(tankId: number, localDay: string): FeedLog {
   const existing = todayFeed(tankId, localDay);
-  if (existing) {
+  if (!existing) {
     return db
-      .update(feedLogs)
-      .set({ timesFed: existing.timesFed + 1, fedAt: new Date().toISOString() })
-      .where(eq(feedLogs.id, existing.id))
+      .insert(feedLogs)
+      .values({ tankId, day: localDay, fedAt: new Date().toISOString(), timesFed: 1 })
       .returning()
       .get();
   }
+  if (existing.timesFed >= 2) {
+    // wrap: back to "not fed today" — undo of an accidental extra tap
+    db.delete(feedLogs).where(eq(feedLogs.id, existing.id)).run();
+    return { id: existing.id, tankId, day: localDay, fedAt: existing.fedAt, timesFed: 0 };
+  }
   return db
-    .insert(feedLogs)
-    .values({ tankId, day: localDay, fedAt: new Date().toISOString(), timesFed: 1 })
+    .update(feedLogs)
+    .set({ timesFed: existing.timesFed + 1, fedAt: new Date().toISOString() })
+    .where(eq(feedLogs.id, existing.id))
     .returning()
     .get();
 }

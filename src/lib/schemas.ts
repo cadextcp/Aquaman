@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FRESHWATER_RANGES, SALTWATER_RANGES, type Range } from "./domain/ranges";
 
 /**
  * Shared zod schemas — SAME schema validates the client form and the
@@ -54,9 +55,44 @@ export type SnoozeInput = z.infer<typeof snoozeInputSchema>;
 export const waterTestInputSchema = z.object({
   tankId: z.number().int().positive(),
   measuredAt: z.string().datetime().optional(),
+  // Issue #24: keys whitelisted per water type; values bounded for plausibility.
+  // Validated in validateWaterValues() against the range catalogs (see actions).
   values: z.record(z.string(), z.number().nonnegative().nullable()),
   note: z.string().trim().max(500).optional().nullable(),
 });
+
+/** Known parameter keys per water type (derived from the range catalogs). */
+export function knownWaterKeys(waterType: "fresh" | "salt"): Set<string> {
+  const ranges = waterType === "salt" ? SALTWATER_RANGES : FRESHWATER_RANGES;
+  return new Set(ranges.map((r: Range) => r.key));
+}
+
+/**
+ * Validate a water-values map for a given water type.
+ * - unknown keys → rejected (they would poison export + AI context, issue #24)
+ * - values above 10× the catalog warnMax (or warnMin-based floor) → rejected
+ *   as physically implausible (fat-finger guard: 250 °C instead of 25 °C)
+ * Returns [clean, error]
+ */
+export function validateWaterValues(
+  values: Record<string, number | null>,
+  waterType: "fresh" | "salt",
+): [Record<string, number | null> | null, string | null] {
+  const ranges: Range[] = waterType === "salt" ? SALTWATER_RANGES : FRESHWATER_RANGES;
+  const byKey = new Map(ranges.map((r: Range) => [r.key, r]));
+  const clean: Record<string, number | null> = {};
+  for (const [k, v] of Object.entries(values)) {
+    const range = byKey.get(k);
+    if (!range) return [null, `Unknown parameter: ${k}`];
+    if (v === null) { clean[k] = null; continue; }
+    // Fat-finger guard: 3× beyond the critical threshold is implausible for ANY
+    // parameter (temp: 28×3=84 → 250 rejected; no3: 50×3=150; ph: 8×3=24).
+    const ceiling = (range.warnMax ?? range.max) * 3;
+    if (v > ceiling) return [null, `${k}: ${v} is not a plausible value (max ${ceiling})`];
+    clean[k] = v;
+  }
+  return [clean, null];
+}
 export type WaterTestInput = z.infer<typeof waterTestInputSchema>;
 
 /** Weekday mask helpers: bit 0 = Mon … bit 6 = Sun. */

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { BottomNav, SideNav } from "@/components/nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* Issue #21: nav lives HERE (root layout) so no page can lose it again */}
+        <div className="flex min-h-dvh flex-1">
+          <SideNav />
+          {children}
+        </div>
+        <BottomNav />
+      </body>
     </html>
   );
 }
