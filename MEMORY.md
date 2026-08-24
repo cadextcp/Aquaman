@@ -5,9 +5,9 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Current State
 
-- Current task: Nachprüfung eingearbeitet (PRD v1.3, TechDesign v1.2) — wartet auf Owner-Freigabe für Phase 1
-- Current phase: Foundation (pre-build; Phase 1 = vertical slice incl. Docker/CI/NAS)
-- Next step: Owner genehmigt → Phase 1: Vertical Slice (Next.js + Schema + Health + CI + TrueNAS-Deployment)
+- Current task: Phase 3 (Calendar & ICS) implemented — occurrenceDetailsInRange, ICS feed route, month calendar view, token settings UI
+- Current phase: Phase 3 done, awaiting review/merge; Phase 4 (AI Coach) next
+- Next step: review Phase 3 diff → merge → Phase 4 (AI client, coach chat, propose_schedule, cost guard)
 - Blocked by: none
 
 ## Decisions
@@ -19,6 +19,10 @@ manages its own memory automatically — this file serves other agents and human
 - 2026-08-23 SQLite-typing: text({mode:'json'}) + 7-bit weekday mask (no jsonb/int[])
 - 2026-08-23 `AQUAMAN_TIMEZONE` (default Europe/Berlin) governs all today/midnight logic via Intl helpers; weekday mask Bit 0 = Mon via `localWeekdayIndex()`
 - 2026-08-23 ICS: expanded VEVENTs via `occurrencesInRange()` (current occurrence projected, future on fixed grid); UID `{scheduleId}-{originalDueAtISO}@aquaman` — keyed on the immutable target so snooze/reschedule move `DTSTART` instead of delete+recreate; `SEQUENCE = scheduleVersion + missedSlots`, `DTSTAMP = updatedAt`; byte-identical feed test; invalid token → 404; rate limit
+- 2026-08-24 Phase 3: `occurrenceDetailsInRange()` added (returns `{originalDueAt, plannedFor}` pairs per occurrence — `occurrencesInRange()` is now a thin `.map(plannedFor)` wrapper over it, same algorithm, zero behavior change, verified against all 25 prior scheduler tests unchanged). This is what makes the UID-per-occurrence scheme in `ics.ts` possible: only the CURRENT occurrence's identity differs from its display date, every future grid point IS its own originalDueAt.
+- 2026-08-24 ICS token: stored in `appSettings` (plaintext, needed to render the subscribe URL in Settings), compared via SHA-256(both sides)+`timingSafeEqual` (never raw — avoids a `RangeError`/500 on a wrong-length token, which would leak the token's length). Lazy-created on first read so a fresh install needs no manual setup step.
+- 2026-08-24 ICS route (`/api/calendar.ics`) verified end-to-end against a real RFC 5545 parser (Python `icalendar`), and the UID-survives-snooze property verified against a live server + real DB: snoozing a schedule keeps `UID` identical and only moves `DTSTART`, with `SEQUENCE` incrementing — confirmed this is a genuine "event moved" from a calendar client's perspective, not delete+recreate.
+- 2026-08-24 Calendar month view: Monday-start grid via new `monthGridRange()`/`shiftMonth()` in `dates.ts` (pure, tested), reuses `occurrencesInRange()` — one occurrence-expansion algorithm shared by dashboard, calendar UI, and the ICS feed, per the API-first design goal.
 - 2026-08-23 MCP moved to product v1.1 (owner decision after plan review); fully bearer-gated
 - 2026-08-23 Two-tier AI cost ceiling (calls AND tokens); streaming usage from final event
 - 2026-08-23 NH3 calculated from NH4+pH+temp (Emerson 1975), evaluated instead of raw NH4; NO2 target 0 established; tankState cycling|established
@@ -42,9 +46,12 @@ manages its own memory automatically — this file serves other agents and human
 - [x] External plan review (docs/plan-review.md) — 2026-08-23
 - [x] Review incorporated: PRD v1.2, TechDesign v1.1, AGENTS.md, agent_docs/* — 2026-08-23
 - [x] Review follow-up verified & incorporated (ICS UID, missedSlots, gridded originalDueAt): PRD v1.3, TechDesign v1.2 — 2026-08-23
-- [ ] Phase 1: Vertical Slice
-- [ ] Phase 2: Core Features
-- [ ] Phase 3: Calendar & ICS
+- [x] Phase 1: Vertical Slice (Next.js, Drizzle schema, health route, CI, Docker, TrueNAS-ready image) — 2026-08-23
+- [x] Phase 1 code review fixes: agent docs restored, Docker boot path fixed, occurrence grid unified — 2026-08-23
+- [x] Phase 2: Core Features (tank CRUD, schedules, dashboard, water tests, feeding) — 2026-08-23
+- [x] Phase 2 code review fixes (#1–#20): DB CHECK constraints, NH3/NO2 range corrections, token 404s, tight-gap policy, non-root Docker — 2026-08-23
+- [x] Phase 2 second-pass review fixes (#21–#27): navigation-in-root-layout regression, CVE upgrades (next/drizzle-orm), integration tests, water-value bounds, feed-cycle undo, action hardening — 2026-08-24
+- [x] Phase 3: Calendar & ICS (`occurrenceDetailsInRange`, ICS feed route with token+rate-limit, month calendar view, token rotation UI) — 2026-08-24
 - [ ] Phase 4: AI Coach
 - [ ] Phase 5: Launch v0.1.0
 - [ ] v1.1: MCP + OpenClaw

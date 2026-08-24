@@ -280,3 +280,18 @@ export async function markFedToday(tankId: number): Promise<ActionResult> {
     return { ok: false, error: "Could not mark fed" };
   }
 }
+
+// ==================== ICS feed token (Phase 3) ====================
+
+/** Rotates the ICS feed token — the old subscribe URL stops working immediately. */
+export async function rotateIcsTokenAction(): Promise<ActionResult<{ token: string }>> {
+  try {
+    const { rotateIcsToken } = await import("@/lib/ics-token");
+    const token = rotateIcsToken();
+    revalidatePath("/more");
+    return { ok: true, data: { token } };
+  } catch (err) {
+    console.error("[rotateIcsTokenAction]", err);
+    return { ok: false, error: "Could not rotate token" };
+  }
+}

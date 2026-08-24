@@ -176,27 +176,49 @@ function firstGridPointAfter(original: string, afterStr: string, schedule: Sched
  * or before the projected current occurrence, so it no longer matters which
  * day the caller views it from.
  */
-export function occurrencesInRange(
+/**
+ * One occurrence's identity for the ICS feed (TechDesign §4.4):
+ * - `originalDueAt` is the stable key the UID is built from — it's the date
+ *   this occurrence was ALWAYS going to land on, never the projected one.
+ * - `plannedFor` is what actually gets shown/scheduled (DTSTART) — it only
+ *   differs from `originalDueAt` for the CURRENT (still-open) occurrence,
+ *   which is the only one that ever gets projected (snooze/auto-reschedule).
+ *   Every future grid point is its own `originalDueAt` — it hasn't had the
+ *   chance to be overdue yet.
+ */
+export type OccurrenceDetail = { originalDueAt: string; plannedFor: string };
+
+/**
+ * All occurrences in [fromStr, toStr] with per-occurrence identity — the
+ * basis for ICS UIDs (Plan-Review N.1: UID keyed on originalDueAt, not the
+ * planned date, so snooze/reschedule move DTSTART without the event being
+ * seen as deleted+recreated). Same Variant-B fixed-grid algorithm as
+ * `occurrencesInRange` (issue #Hoch-1 fix) — that function is now a thin
+ * `.map(o => o.plannedFor)` wrapper over this one, so there is exactly one
+ * place the grid-walk + tight-gap-suppression logic lives.
+ */
+export function occurrenceDetailsInRange(
   schedule: ScheduleLike,
   fromStr: string,
   toStr: string,
   now: Date = new Date(),
   tz?: string,
-): string[] {
+): OccurrenceDetail[] {
   const original = originalDueAt(schedule);
   const projection = nextDue(schedule, now, tz);
 
-  const out: string[] = [];
+  const out: OccurrenceDetail[] = [];
   const seen = new Set<string>();
-  const add = (d: string) => {
-    if (d >= fromStr && d <= toStr && !seen.has(d)) {
-      out.push(d);
-      seen.add(d);
+  const add = (originalDate: string, plannedDate: string) => {
+    if (plannedDate >= fromStr && plannedDate <= toStr && !seen.has(plannedDate)) {
+      out.push({ originalDueAt: originalDate, plannedFor: plannedDate });
+      seen.add(plannedDate);
     }
   };
 
-  // current (open) occurrence → the projection (covers snooze + auto-reschedule)
-  add(projection.plannedFor);
+  // current (open) occurrence → the projection (covers snooze + auto-reschedule).
+  // Its identity is the schedule's own originalDueAt — NOT the projected date.
+  add(original, projection.plannedFor);
 
   // Tight-gap suppression (issue #1, Option C): if the FIRST grid point after
   // the projection is closer than threshold% of intervalDays, skip it. Only
@@ -220,6 +242,7 @@ export function occurrencesInRange(
   // fixed grid, chained from originalDueAt — always the same sequence of
   // dates regardless of `now`. Grid points at or before the projected current
   // occurrence ARE that occurrence (already emitted above) and are skipped.
+  // A future grid point has not been overdue yet, so it IS its own original.
   let cur = original;
   let guard = 0;
   while (cur <= toStr && guard++ < 1000) {
@@ -227,13 +250,44 @@ export function occurrencesInRange(
       if (suppressNext) {
         suppressNext = false; // skip exactly one grid point
       } else {
-        add(cur);
+        add(cur, cur);
       }
     }
     cur = nextPreferredDay(addDays(cur, schedule.intervalDays), schedule.preferredDays);
   }
 
-  return out.sort();
+  return out.sort((a, b) => (a.plannedFor < b.plannedFor ? -1 : a.plannedFor > b.plannedFor ? 1 : 0));
+}
+
+/**
+ * All occurrences (YYYY-MM-DD) in [fromStr, toStr] — 90-day ICS horizon.
+ * Variant B (review N.1.6): future occurrences sit on the FIXED grid starting
+ * at originalDueAt (originalDue, then +interval chained, each weekday-gridded
+ * in turn), because chaining from plannedFor would drag the whole calendar
+ * along on every day of backlog. ONLY the current occurrence gets the
+ * reschedule projection.
+ *
+ * ONE algorithm regardless of whether `original` is in the past or future
+ * relative to `now` (code review finding "Hoch 1": two separate formulas here
+ * used to produce different future grids for the same schedule depending on
+ * which day you asked from — the k*interval-from-original arithmetic branch
+ * and the cur+interval chain branch drift apart whenever intervalDays isn't a
+ * multiple of 7). The chain below is single-sourced and dedupes anything at
+ * or before the projected current occurrence, so it no longer matters which
+ * day the caller views it from.
+ *
+ * Thin wrapper over `occurrenceDetailsInRange` — kept for callers (dashboard,
+ * calendar month grid) that only need the display date, not the per-occurrence
+ * ICS identity.
+ */
+export function occurrencesInRange(
+  schedule: ScheduleLike,
+  fromStr: string,
+  toStr: string,
+  now: Date = new Date(),
+  tz?: string,
+): string[] {
+  return occurrenceDetailsInRange(schedule, fromStr, toStr, now, tz).map((o) => o.plannedFor);
 }
 
 /**

@@ -7,6 +7,9 @@ import {
   weekdayOf,
   today,
   dayMatchesMask,
+  daysInMonth,
+  monthGridRange,
+  shiftMonth,
 } from "../src/lib/domain/dates";
 
 const TZ = "Europe/Berlin";
@@ -80,5 +83,44 @@ describe("today", () => {
   it("uses app timezone, not server timezone", () => {
     // 2026-08-23 22:30 UTC = 2026-08-24 00:30 Berlin → today is the 24th
     expect(today(TZ, new Date("2026-08-23T22:30:00Z"))).toBe("2026-08-24");
+  });
+});
+
+describe("daysInMonth", () => {
+  it("August has 31 days, February 2026 (non-leap) has 28", () => {
+    expect(daysInMonth("2026-08")).toBe(31);
+    expect(daysInMonth("2026-02")).toBe(28);
+  });
+  it("2028 is a leap year", () => {
+    expect(daysInMonth("2028-02")).toBe(29);
+  });
+});
+
+describe("monthGridRange (Monday-start, full weeks)", () => {
+  it("August 2026: Aug 1 is a Saturday, Aug 31 is a Monday", () => {
+    const { from, to, days } = monthGridRange("2026-08");
+    expect(from).toBe("2026-07-27"); // Monday before Aug 1
+    expect(to).toBe("2026-09-06"); // Sunday after Aug 31
+    expect(days.length % 7).toBe(0);
+    expect(days[0]).toBe(from);
+    expect(days[days.length - 1]).toBe(to);
+  });
+  it("every grid always starts on a Monday and ends on a Sunday", () => {
+    for (const m of ["2026-01", "2026-02", "2026-11", "2027-06"]) {
+      const { from, to } = monthGridRange(m);
+      expect(weekdayOf(from)).toBe(0); // Mon
+      expect(weekdayOf(to)).toBe(6); // Sun
+    }
+  });
+});
+
+describe("shiftMonth", () => {
+  it("rolls forward/backward across year boundaries", () => {
+    expect(shiftMonth("2026-12", 1)).toBe("2027-01");
+    expect(shiftMonth("2026-01", -1)).toBe("2025-12");
+  });
+  it("multi-month shifts", () => {
+    expect(shiftMonth("2026-08", 6)).toBe("2027-02");
+    expect(shiftMonth("2026-08", -20)).toBe("2024-12");
   });
 });
