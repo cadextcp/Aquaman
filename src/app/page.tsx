@@ -49,9 +49,9 @@ export default async function Dashboard() {
   const catchUpCandidate = behind.length > 5 ? behind.sort((a, b) => b.weight - a.weight)[0] : null;
 
   const kpi = (label: string, value: number | string, color?: string) => (
-    <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-4 edge-card">
       <div className="text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</div>
-      <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+      <div className="text-2xl font-medium tnum" style={{ color }}>{value}</div>
     </div>
   );
 
@@ -65,7 +65,7 @@ export default async function Dashboard() {
       {/* Feeding (daily habit) */}
       {tanks.length > 0 && (
         <section className="mb-6">
-          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="rounded-xl p-4 edge-card">
             <div className="text-xs uppercase tracking-wide mb-3" style={{ color: "var(--muted-foreground)" }}>
               Feeding today
             </div>
@@ -182,12 +182,12 @@ export default async function Dashboard() {
 
       {/* Empty state */}
       {tanks.length === 0 && (
-        <div className="rounded-xl p-8 text-center" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <div className="rounded-xl p-8 text-center edge-card">
           <p className="mb-4" style={{ color: "var(--muted-foreground)" }}>
             No tanks yet — create your first tank to get started.
           </p>
-          <Link href="/tanks/new" className="rounded-lg px-5 py-2.5 text-sm font-medium inline-block"
-            style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44 }}>
+          <Link href="/tanks/new" className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium inline-block"
+            style={{ minHeight: 44 }}>
             Create tank
           </Link>
         </div>

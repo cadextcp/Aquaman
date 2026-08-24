@@ -57,7 +57,7 @@ export function DataCard() {
   }
 
   return (
-    <div className="rounded-xl p-5" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
         Data — export / import
       </div>
@@ -69,14 +69,14 @@ export function DataCard() {
         <a
           href="/api/export"
           download
-          className="rounded-lg px-4 py-2.5 text-sm font-medium text-center"
-          style={{ background: "var(--accent)", color: "#fff", minHeight: 44 }}
+          className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium text-center"
+          style={{ minHeight: 44 }}
         >
           ⬇ Download JSON export
         </a>
         <label
           className="rounded-lg px-4 py-2.5 text-sm font-medium text-center cursor-pointer"
-          style={{ background: "var(--secondary)", color: "var(--secondary-foreground)", minHeight: 44, opacity: busy ? 0.6 : 1 }}
+          style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "var(--muted-foreground)", minHeight: 44, opacity: busy ? 0.6 : 1 }}
         >
           {busy ? "Importing…" : "⬆ Import snapshot…"}
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFile} disabled={busy} />

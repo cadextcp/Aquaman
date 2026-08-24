@@ -36,7 +36,7 @@ export function WaterTestHistory({
   if (tests.length === 0) return null;
 
   return (
-    <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-4 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
         History ({tests.length})
       </div>

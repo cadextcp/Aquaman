@@ -146,7 +146,7 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
               aria-label="Delete schedule"
               title="Delete schedule"
               className="rounded-md text-sm"
-              style={{ width: 30, height: 28, color: "var(--destructive)", border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer" }}
+              style={{ width: 30, height: 28, color: "var(--destructive)", border: "1px solid var(--border)", background: "transparent", cursor: "pointer" }}
             >
               🗑
             </button>
@@ -165,8 +165,8 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
                 onClick={done}
                 disabled={pending}
                 aria-label={`Mark ${schedule.actionType} done`}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
-                style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 40, cursor: "pointer" }}
+                className="btn-outline flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
+                style={{ minHeight: 40 }}
               >
                 <span aria-hidden className="text-base">☐</span> Done
               </button>

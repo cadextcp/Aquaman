@@ -152,7 +152,7 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
       )}
 
       {messages.length === 0 && (
-        <div className="rounded-xl p-4 text-sm" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
+        <div className="rounded-xl p-4 text-sm edge-card" style={{ color: "var(--muted-foreground)" }}>
           Ask about your tanks, values or plan — e.g. <em>&quot;Nitrite is 0.3, what should I do?&quot;</em> or{" "}
           <em>&quot;Set up a care plan for my new tank&quot;</em>. Schedule changes arrive as proposals you approve.
         </div>
@@ -200,8 +200,8 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
         <button
           onClick={ask}
           disabled={busy || !aiConfigured || input.trim().length === 0}
-          className="rounded-lg px-5 text-sm font-medium"
-          style={{ background: "var(--accent)", color: "#fff", minHeight: 44, opacity: busy || !aiConfigured ? 0.6 : 1 }}
+          className="btn-outline rounded-lg px-5 text-sm font-medium"
+          style={{ minHeight: 44, opacity: busy || !aiConfigured ? 0.6 : 1 }}
         >
           {busy ? "…" : "Ask"}
         </button>
@@ -307,8 +307,8 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
       {state === "pending" ? (
         <button
           onClick={apply}
-          className="rounded-lg px-4 py-2 text-sm font-medium"
-          style={{ background: "var(--accent)", color: "#fff", minHeight: 44 }}
+          className="btn-outline rounded-lg px-4 py-2 text-sm font-medium"
+          style={{ minHeight: 44 }}
         >
           Approve &amp; apply
         </button>

@@ -50,7 +50,7 @@ export default async function MorePage() {
       </div>
 
       {/* Statistics */}
-      <div className="rounded-xl p-5 mb-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+      <div className="rounded-xl p-5 mb-4 edge-card">
         <div className="text-xs uppercase tracking-wide mb-3" style={{ color: "var(--muted-foreground)" }}>
           This month ({thisMonth})
         </div>
@@ -109,7 +109,7 @@ export default async function MorePage() {
       </div>
 
       {/* AI status + 30-day cost */}
-      <div className="rounded-xl p-5 mb-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+      <div className="rounded-xl p-5 mb-4 edge-card">
         <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
           AI coach
         </div>

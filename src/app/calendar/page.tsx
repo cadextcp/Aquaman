@@ -54,7 +54,7 @@ export default async function CalendarPage({
           <Link
             href={`/calendar?m=${prevMonth}`}
             className="rounded-lg px-3 py-2 text-sm"
-            style={{ background: "var(--secondary)", color: "var(--secondary-foreground)", minHeight: 44 }}
+            style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "var(--muted-foreground)", minHeight: 44 }}
           >
             ←
           </Link>
@@ -62,7 +62,7 @@ export default async function CalendarPage({
           <Link
             href={`/calendar?m=${nextMonth}`}
             className="rounded-lg px-3 py-2 text-sm"
-            style={{ background: "var(--secondary)", color: "var(--secondary-foreground)", minHeight: 44 }}
+            style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "var(--muted-foreground)", minHeight: 44 }}
           >
             →
           </Link>
@@ -122,10 +122,7 @@ export default async function CalendarPage({
       </div>
 
       {schedules.length === 0 && (
-        <div
-          className="rounded-xl p-8 text-center mt-6"
-          style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-        >
+        <div className="rounded-xl p-8 text-center mt-6 edge-card">
           <p style={{ color: "var(--muted-foreground)" }}>No schedules yet — add care schedules on a tank&apos;s page.</p>
         </div>
       )}

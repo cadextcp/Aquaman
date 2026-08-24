@@ -25,7 +25,7 @@ export function EditTankButton({ tank }: { tank: Tank }) {
         aria-label={`Edit ${tank.name}`}
         title="Edit tank"
         className="rounded-lg shrink-0"
-        style={{ width: 36, height: 36, border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer" }}
+        style={{ width: 36, height: 36, border: "1px solid var(--border)", background: "transparent", cursor: "pointer" }}
       >
         ✎
       </button>
@@ -56,8 +56,8 @@ export function EditTankButton({ tank }: { tank: Tank }) {
                     setOpen(false);
                     startTransition(() => router.refresh());
                   }}
-                  className="rounded-lg px-5 py-2.5 text-sm font-medium"
-                  style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44, cursor: "pointer" }}
+                  className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
+                  style={{ minHeight: 44 }}
                 >
                   Done
                 </button>

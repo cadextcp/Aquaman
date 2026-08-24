@@ -34,7 +34,7 @@ export function IcsSettings({ initialUrl }: { initialUrl: string }) {
   const input = { background: "var(--secondary)", border: "1px solid var(--border)", color: "inherit" };
 
   return (
-    <div className="rounded-xl p-5" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
         Calendar feed (ICS)
       </div>
@@ -53,8 +53,8 @@ export function IcsSettings({ initialUrl }: { initialUrl: string }) {
         <button
           onClick={copy}
           type="button"
-          className="rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
-          style={{ background: "var(--secondary)", color: "var(--secondary-foreground)", minHeight: 44 }}
+          className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
+          style={{ minHeight: 44 }}
         >
           {copied ? "✓ Copied" : "Copy"}
         </button>

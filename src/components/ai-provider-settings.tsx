@@ -68,7 +68,7 @@ export function AiProviderSettings({
   const input = { background: "var(--secondary)", border: "1px solid var(--border)", color: "inherit" };
 
   return (
-    <div className="rounded-xl p-5" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
         AI provider
       </div>
@@ -87,8 +87,9 @@ export function AiProviderSettings({
             onClick={() => pickProvider(p)}
             className="rounded-lg px-3 py-2 text-sm"
             style={{
-              background: draft.provider === p ? "var(--primary)" : "var(--secondary)",
-              color: draft.provider === p ? "var(--primary-foreground)" : "var(--secondary-foreground)",
+              background: draft.provider === p ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+              boxShadow: draft.provider === p ? "inset 0 0 0 1px var(--accent)" : "none",
+              color: draft.provider === p ? "var(--accent-light)" : "var(--secondary-foreground)",
               cursor: "pointer",
             }}
           >
@@ -100,8 +101,9 @@ export function AiProviderSettings({
           onClick={() => pickProvider("custom")}
           className="rounded-lg px-3 py-2 text-sm"
           style={{
-            background: draft.provider === "custom" ? "var(--primary)" : "var(--secondary)",
-            color: draft.provider === "custom" ? "var(--primary-foreground)" : "var(--secondary-foreground)",
+            background: draft.provider === "custom" ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+            boxShadow: draft.provider === "custom" ? "inset 0 0 0 1px var(--accent)" : "none",
+            color: draft.provider === "custom" ? "var(--accent-light)" : "var(--secondary-foreground)",
             cursor: "pointer",
           }}
         >
@@ -185,8 +187,8 @@ export function AiProviderSettings({
           type="button"
           onClick={save}
           disabled={pending}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44, cursor: "pointer" }}
+          className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
+          style={{ minHeight: 44 }}
         >
           Save AI settings
         </button>

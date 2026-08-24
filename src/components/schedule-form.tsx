@@ -109,8 +109,9 @@ export function ScheduleForm({
               className="rounded-lg px-3 py-2 text-xs font-medium"
               style={{
                 minHeight: 44,
-                background: days.includes(i) ? "var(--primary)" : "var(--secondary)",
-                color: days.includes(i) ? "var(--primary-foreground)" : "var(--secondary-foreground)",
+                background: days.includes(i) ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+                boxShadow: days.includes(i) ? "inset 0 0 0 1px var(--accent)" : "none",
+                color: days.includes(i) ? "var(--accent-light)" : "var(--secondary-foreground)",
               }}>
               {d}
             </button>
@@ -140,8 +141,9 @@ export function ScheduleForm({
             <button key={v} type="button" onClick={() => setPolicy(v)}
               className="rounded-lg px-3 py-2 text-xs"
               style={{
-                background: policy === v ? "var(--primary)" : "var(--secondary)",
-                color: policy === v ? "var(--primary-foreground)" : "var(--secondary-foreground)",
+                background: policy === v ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+                boxShadow: policy === v ? "inset 0 0 0 1px var(--accent)" : "none",
+                color: policy === v ? "var(--accent-light)" : "var(--secondary-foreground)",
               }}>
               {labelText}
             </button>
@@ -160,8 +162,8 @@ export function ScheduleForm({
 
       <div className="flex gap-3">
         <button type="submit" disabled={pending}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 44 }}>
+          className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
+          style={{ minHeight: 44 }}>
           {editing ? "Save" : "Add schedule"}
         </button>
         {editing && (
@@ -199,8 +201,8 @@ export function TaskActions({ scheduleId, compact = false }: { scheduleId: numbe
 
   return (
     <div className="flex items-center gap-1.5">
-      <button onClick={done} disabled={pending} className={`${btn} ${pad}`}
-        style={{ background: "var(--primary)", color: "var(--primary-foreground)", minHeight: 36 }}>
+      <button onClick={done} disabled={pending} className={`btn-outline ${btn} ${pad}`}
+        style={{ minHeight: 36 }}>
         ✓ Done
       </button>
       <div className="relative">
