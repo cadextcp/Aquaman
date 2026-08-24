@@ -1,12 +1,11 @@
 "use client";
 
 /**
- * Nocturne water test form (issue #43): one row per parameter with
- * - the value + unit and its status color
- * - a mini band scale (warn range → target band → warn range) with a marker
- * - delta vs the last measurement (▲ +0.2)
- * - a dropdown with preset options, each showing its band verdict
- *   (in band / off band / critical) — plus custom typing and clear.
+ * Nocturne water test form (issue #43, redesign round 4): a 2-column grid
+ * of self-contained parameter cards — matches the design's per-parameter
+ * card layout exactly (not a row-list): big value, thin band-scale bar with
+ * marker, band label + delta footer, tap-to-open dropdown (presets +
+ * custom typing + clear).
  */
 
 import { useState, useTransition } from "react";
@@ -143,10 +142,16 @@ export function WaterTestForm({
           {filled}/{ranges.length} values
         </span>
       </div>
+      <div className="h-[3px] rounded-full overflow-hidden" style={{ background: "rgba(233,233,237,0.08)" }}>
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${Math.round((filled / ranges.length) * 100)}%`, background: "linear-gradient(90deg, var(--due), var(--accent))" }}
+        />
+      </div>
 
       {error && <div className="text-sm" style={{ color: "var(--destructive)" }}>{error}</div>}
 
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {ranges.map((r) => {
           const raw = values[r.key];
           const num = raw !== undefined && raw !== "" ? Number(raw.replace(",", ".")) : null;
@@ -154,6 +159,7 @@ export function WaterTestForm({
           const presets = PRESETS[r.key] ?? [];
           const last = lastValues?.[r.key] ?? null;
           const delta = num !== null && last !== null && last !== undefined ? Math.round((num - last) * 100) / 100 : null;
+          const isOpen = open === r.key;
 
           // band scale geometry (warnMin..warnMax window, or padded min/max)
           const lo = r.warnMin !== undefined ? r.warnMin : r.min - Math.max(r.max - r.min, 0.1) * 0.6;
@@ -166,63 +172,83 @@ export function WaterTestForm({
           return (
             <div
               key={r.key}
-              className="rounded-lg px-3 py-2"
+              className="relative rounded-lg px-2.5 py-2"
               style={{
                 background: st === "critical" ? "var(--destructive-soft)" : st === "warn" ? "var(--warning-soft)" : "rgba(233,233,237,0.04)",
                 boxShadow: `inset 0 0 0 1px ${st === "critical" ? "var(--destructive-edge)" : st === "warn" ? "var(--warning-edge)" : "rgba(233,233,237,0.07)"}`,
               }}
             >
-              <div className="flex items-center gap-2.5">
-                <span className="text-sm w-14 shrink-0">{r.label}</span>
-
-                {/* band mini-scale */}
-                <span className="relative flex-1 h-4 hidden sm:block" aria-hidden>
-                  <span className="absolute inset-y-1.5 left-0 right-0 rounded-full" style={{ background: "rgba(233,233,237,0.08)" }} />
-                  <span
-                    className="absolute inset-y-1.5 rounded-full"
-                    style={{ left: `${bandLeft}%`, width: `${bandW}%`, background: "rgba(74,222,128,0.35)" }}
-                  />
-                  {marker !== null && (
-                    <span
-                      className="absolute top-0 bottom-0 rounded-full"
-                      style={{ left: `calc(${marker}% - 2px)`, width: 4, background: COL[st], boxShadow: "0 0 6px " + COL[st] }}
-                    />
-                  )}
-                </span>
-
-                {/* value + delta */}
-                <span className="text-sm tnum w-20 text-right" style={{ color: num === null ? "var(--faint)" : "var(--foreground)" }}>
-                  {num === null ? "not measured" : num}
-                </span>
-                <span className="text-[10px] tnum w-12 shrink-0" style={{ color: delta === null ? "transparent" : "rgba(233,233,237,0.4)" }}>
-                  {delta === null ? "·" : delta === 0 ? "= 0" : `${delta > 0 ? "▲ +" : "▼"}${Math.abs(delta)}`}
-                </span>
-
-                {/* dropdown toggle */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(open === r.key ? null : r.key);
-                    setDraft("");
-                  }}
-                  className="rounded-md shrink-0"
-                  style={{ width: 30, height: 26, background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)", color: "var(--secondary-foreground)", cursor: "pointer" }}
-                  aria-label={`Choose ${r.label} value`}
-                >
-                  <i aria-hidden className={`ph ph-caret-${open === r.key ? "up" : "down"}`} />
-                </button>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-[11px] font-medium" style={{ color: "rgba(233,233,237,0.68)" }}>{r.label}</span>
+                <span className="text-[9px]" style={{ color: "rgba(233,233,237,0.32)" }}>{r.unit}</span>
               </div>
 
-              {/* band label row */}
-              <div className="flex justify-between mt-1 text-[10px] tnum" style={{ color: "var(--faint)" }}>
-                <span>{r.min === r.max ? String(r.min) : `${r.min}–${r.max}`} {r.unit}</span>
-                {num !== null && <span style={{ color: COL[st] }}>{st === "ok" ? "in band" : st === "warn" ? "off band" : "critical"}</span>}
+              {/* value display / dropdown toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(isOpen ? null : r.key);
+                  setDraft("");
+                }}
+                className="flex items-center justify-between w-full mt-1.5 rounded-md px-2 py-1.5"
+                style={{
+                  background: "rgba(15,17,28,0.5)",
+                  boxShadow: `inset 0 0 0 1px ${isOpen ? "var(--accent)" : "rgba(233,233,237,0.12)"}`,
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+                aria-label={`Choose ${r.label} value`}
+              >
+                <span className="text-base font-medium tnum" style={{ color: num === null ? "var(--faint)" : "var(--foreground)" }}>
+                  {num === null ? "—" : num}
+                </span>
+                <i aria-hidden className={`ph ph-caret-${isOpen ? "up" : "down"} text-xs`} style={{ color: "var(--faint)" }} />
+              </button>
+
+              {/* band mini-scale */}
+              <div className="relative h-1 rounded-full mt-2" style={{ background: "rgba(233,233,237,0.08)" }} aria-hidden>
+                <span
+                  className="absolute inset-y-0 rounded-full"
+                  style={{ left: `${bandLeft}%`, width: `${bandW}%`, background: "rgba(34,211,238,0.28)" }}
+                />
+              </div>
+              <div className="relative h-1.5 -mt-1.5" aria-hidden>
+                {marker !== null && (
+                  <span
+                    className="absolute top-0 rounded-full"
+                    style={{ left: `calc(${marker}% - 3px)`, width: 6, height: 6, background: COL[st], boxShadow: "0 0 0 2px var(--card)" }}
+                  />
+                )}
+              </div>
+
+              {/* footer: band label + delta */}
+              <div className="flex items-center justify-between mt-0.5 text-[9px] tnum">
+                <span style={{ color: "rgba(233,233,237,0.3)" }}>
+                  {r.min === r.max ? String(r.min) : `${r.min}–${r.max}`}
+                </span>
+                <span style={{ color: delta === null ? "rgba(233,233,237,0.3)" : st === "ok" ? "rgba(233,233,237,0.45)" : COL[st] }}>
+                  {delta === null ? (num !== null ? "new" : "not measured") : delta === 0 ? "= 0" : `${delta > 0 ? "▲ +" : "▼"}${Math.abs(delta)}`}
+                </span>
               </div>
 
               {/* preset dropdown */}
-              {open === r.key && (
-                <div className="mt-2 rounded-lg p-1.5" style={{ background: "var(--card-raised)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
-                  <div className="flex flex-wrap gap-1">
+              {isOpen && (
+                <div
+                  className="absolute left-0 right-0 top-[34px] z-20 mt-0 rounded-lg p-2"
+                  style={{ background: "rgba(26,29,45,0.98)", boxShadow: "inset 0 0 0 1px var(--accent), 0 16px 34px rgba(0,0,0,0.6)" }}
+                >
+                  <div className="flex items-center gap-1.5 rounded-md px-2 py-1.5" style={{ background: "rgba(15,17,28,0.7)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.1)" }}>
+                    <i aria-hidden className="ph ph-pencil-simple text-[11px]" style={{ color: "rgba(233,233,237,0.4)" }} />
+                    <input
+                      className="flex-1 min-w-0 text-sm tnum bg-transparent border-0 outline-none"
+                      style={{ color: "inherit" }}
+                      placeholder="type"
+                      inputMode="decimal"
+                      value={draft}
+                      onChange={(e) => typeValue(r.key, e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-0.5 mt-1.5 max-h-28 overflow-y-auto">
                     {presets.map((o) => {
                       const ost = statusOf(r, o);
                       const selected = num === o;
@@ -231,7 +257,7 @@ export function WaterTestForm({
                           key={o}
                           type="button"
                           onClick={() => pick(r.key, o)}
-                          className="rounded-md px-2 py-1.5 text-xs tnum flex items-center gap-1.5"
+                          className="flex items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-xs tnum"
                           style={{
                             background: selected ? "rgba(145,132,217,0.2)" : "transparent",
                             color: selected ? "var(--foreground)" : "rgba(233,233,237,0.8)",
@@ -239,30 +265,24 @@ export function WaterTestForm({
                           }}
                         >
                           {o}
-                          <span
-                            className="inline-block rounded-full"
-                            style={{ width: 5, height: 5, background: ost === "ok" ? "var(--success)" : ost === "warn" ? "var(--warning)" : "var(--destructive)" }}
-                            title={ost === "ok" ? "in band" : ost === "warn" ? "off band" : "critical"}
-                          />
+                          <span className="flex items-center gap-1">
+                            <span style={{ fontSize: 9, color: COL[ost] }}>{ost === "ok" ? "in band" : ost === "warn" ? "off band" : "critical"}</span>
+                            <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: COL[ost] }} />
+                          </span>
                         </button>
                       );
                     })}
                   </div>
-                  <div className="flex gap-1.5 mt-1.5">
-                    <input
-                      className="flex-1 rounded-md px-2 py-1.5 text-sm"
-                      style={{ background: "rgba(233,233,237,0.05)", boxShadow: open === r.key ? "inset 0 0 0 1px var(--accent)" : "inset 0 0 0 1px rgba(233,233,237,0.12)", color: "inherit" }}
-                      placeholder="custom value"
-                      inputMode="decimal"
-                      value={draft}
-                      onChange={(e) => typeValue(r.key, e.target.value)}
-                    />
-                    {num !== null && (
-                      <button type="button" onClick={() => clear(r.key)} className="rounded-md px-2 text-xs" style={{ border: "1px solid var(--border)", color: "var(--muted-foreground)", cursor: "pointer" }}>
-                        clear
-                      </button>
-                    )}
-                  </div>
+                  {num !== null && (
+                    <button
+                      type="button"
+                      onClick={() => clear(r.key)}
+                      className="w-full mt-1.5 rounded-md px-2 py-1.5 text-[10px]"
+                      style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)", color: "var(--muted-foreground)", cursor: "pointer" }}
+                    >
+                      not measured
+                    </button>
+                  )}
                 </div>
               )}
             </div>

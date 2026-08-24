@@ -48,8 +48,13 @@ export default async function CalendarPage({
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Calendar</h1>
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-bold">{monthLabel(month).split(" ")[0]}</h1>
+          <span className="text-sm tnum" style={{ color: "var(--muted-foreground)" }}>
+            {monthPlanned} planned{monthBehind > 0 ? ` · ${monthBehind} behind` : ""}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <Link
             href={`/calendar?m=${prevMonth}`}
@@ -58,7 +63,6 @@ export default async function CalendarPage({
           >
             ←
           </Link>
-          <div className="text-sm font-medium w-36 text-center">{monthLabel(month)}</div>
           <Link
             href={`/calendar?m=${nextMonth}`}
             className="rounded-lg px-3 py-2 text-sm"
@@ -67,19 +71,6 @@ export default async function CalendarPage({
             →
           </Link>
         </div>
-      </div>
-
-      {/* month summary (design: "18 planned · 2 behind") */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm tnum" style={{ color: "var(--muted-foreground)" }}>
-          {monthPlanned} planned{monthBehind > 0 ? ` · ${monthBehind} behind` : ""}
-        </span>
-        <span className="text-xs" style={{ color: "var(--faint)" }}>
-          This plan is subscribed in Google Calendar ·{" "}
-          <Link href="/more" className="underline" style={{ color: "var(--accent)" }}>
-            manage
-          </Link>
-        </span>
       </div>
 
       <div className="grid grid-cols-7 gap-1.5 mb-1.5">
@@ -126,6 +117,42 @@ export default async function CalendarPage({
           <p style={{ color: "var(--muted-foreground)" }}>No schedules yet — add care schedules on a tank&apos;s page.</p>
         </div>
       )}
+
+      {/* today's tasks (design: date heading + rows under the grid) */}
+      {(byDate.get(t) ?? []).length > 0 && (
+        <div className="mt-6">
+          <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
+            Today
+          </div>
+          <div className="flex flex-col gap-2">
+            {(byDate.get(t) ?? []).map((task, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 edge-card">
+                <span className="flex-1 text-sm">{task.label}</span>
+                <span
+                  className="text-xs px-2 py-1 rounded-md tnum"
+                  style={{
+                    background: task.overdue ? "var(--warning-soft)" : "var(--due-soft)",
+                    color: task.overdue ? "var(--warning)" : "var(--due)",
+                  }}
+                >
+                  {task.overdue ? "behind" : "due"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ICS subscribe hint (design) */}
+      <div className="mt-6 flex items-center gap-2.5 rounded-lg px-3.5 py-3 edge-card">
+        <i aria-hidden className="ph ph-rss-simple text-base" style={{ color: "var(--accent)" }} />
+        <span className="flex-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+          Subscribe to this plan from a calendar app
+        </span>
+        <Link href="/more" className="text-xs underline" style={{ color: "var(--accent)" }}>
+          manage
+        </Link>
+      </div>
     </main>
   );
 }
