@@ -278,3 +278,32 @@ describe("schedule details/endsOn roundtrip via export (issues #30/#31)", () => 
     expect(() => importSnapshot(legacy)).not.toThrow();
   });
 });
+
+describe("deleteSchedule (owner follow-up)", () => {
+  it("removes the schedule row; tank/logs stay", async () => {
+    const { deleteSchedule, markDone } = await import("../src/app/actions");
+    const { db } = await import("../src/lib/db");
+    const { tanks, schedules, maintenanceLogs } = await import("../src/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+
+    const tank = db.insert(tanks).values({ name: "DelS", volumeL: 60, waterType: "fresh" }).returning().get();
+    const s = db.insert(schedules).values({ tankId: tank.id, actionType: "water_change", intervalDays: 7, preferredDays: 127 }).returning().get();
+    await markDone(s.id);
+
+    const res = await deleteSchedule(s.id);
+    expect(res.ok).toBe(true);
+
+    expect(db.select().from(schedules).where(eq(schedules.id, s.id)).all()).toHaveLength(0);
+    // history survives
+    const logs = db.select().from(maintenanceLogs).where(eq(maintenanceLogs.tankId, tank.id)).all();
+    expect(logs.length).toBe(1);
+    // tank survives
+    expect(db.select().from(tanks).where(eq(tanks.id, tank.id)).get()).toBeDefined();
+  });
+
+  it("unknown id → error, nothing thrown", async () => {
+    const { deleteSchedule } = await import("../src/app/actions");
+    const res = (await deleteSchedule(999999)) as { ok: boolean };
+    expect(res.ok).toBe(false);
+  });
+});

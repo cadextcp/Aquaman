@@ -10,7 +10,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { markDone, snooze, undoLastDone } from "@/app/actions";
+import { createPortal } from "react-dom";
+import { markDone, snooze, undoLastDone, deleteSchedule } from "@/app/actions";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 
@@ -58,6 +59,13 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleCardData }) {
     startTransition(() => router.refresh());
   }
 
+  async function remove() {
+    if (!confirm(`Delete "${schedule.actionType.replace(/_/g, " ")}" (${schedule.tankName})?\nLogs and history stay — only the schedule disappears.`)) return;
+    setEditOpen(false);
+    await deleteSchedule(schedule.id);
+    startTransition(() => router.refresh());
+  }
+
   if (ended) return null; // issue #31: ended schedules are invisible
 
   return (
@@ -72,7 +80,7 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleCardData }) {
         title="Click to view & edit this schedule"
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="font-medium truncate">
               {schedule.actionType.replace(/_/g, " ")}
               <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}>
@@ -98,7 +106,17 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleCardData }) {
           </div>
 
           {/* state-dependent controls — click must NOT open the editor */}
-          <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <div className="flex flex-col items-end gap-1" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <button
+              onClick={remove}
+              disabled={pending}
+              aria-label="Delete schedule"
+              title="Delete schedule"
+              className="rounded-md text-sm"
+              style={{ width: 30, height: 28, color: "var(--destructive)", border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer" }}
+            >
+              🗑
+            </button>
             {justDone ? (
               <button
                 onClick={undo}
@@ -163,29 +181,41 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleCardData }) {
         </div>
       </div>
 
-      {/* edit dialog */}
-      {editOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => setEditOpen(false)}
-        >
+      {/* edit dialog — PORTAL: the calendar grid fades padding days via
+          opacity, and opacity creates a stacking context that a plain
+          position:fixed child cannot escape → the dialog inherited the
+          translucency. Rendering into document.body fixes it. */}
+      {editOpen &&
+        createPortal(
           <div
-            className="rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5"
-            style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.55)" }}
+            onClick={() => setEditOpen(false)}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Edit schedule</h2>
-              <button onClick={() => setEditOpen(false)} aria-label="Close"
-                className="rounded-lg px-2 py-1 text-lg" style={{ cursor: "pointer" }}>
-                ✕
-              </button>
+            <div
+              className="rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5"
+              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Edit schedule</h2>
+                <div className="flex items-center gap-1">
+                  <button onClick={remove} disabled={pending} aria-label="Delete schedule" title="Delete schedule"
+                    className="rounded-lg px-2.5 py-1.5"
+                    style={{ color: "var(--destructive)", cursor: "pointer", border: "1px solid var(--border)" }}>
+                    🗑
+                  </button>
+                  <button onClick={() => setEditOpen(false)} aria-label="Close"
+                    className="rounded-lg px-2 py-1 text-lg" style={{ cursor: "pointer" }}>
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <ScheduleForm tankId={schedule.tankId} schedule={schedule} />
             </div>
-            <ScheduleForm tankId={schedule.tankId} schedule={schedule} />
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

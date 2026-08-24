@@ -173,6 +173,26 @@ export async function updateSchedule(id: number, input: ScheduleInput): Promise<
   }
 }
 
+/**
+ * Hard-delete a schedule (owner request: quick delete in tank view).
+ * Safe: nothing references schedules.id — maintenance logs hang off
+ * (tankId, actionType), history stays intact. Confirm lives in the UI.
+ */
+export async function deleteSchedule(id: number): Promise<ActionResult> {
+  try {
+    const s = db.select().from(schedules).where(eq(schedules.id, id)).get();
+    if (!s) return { ok: false, error: "Schedule not found" };
+    db.delete(schedules).where(eq(schedules.id, id)).run();
+    revalidatePath("/");
+    revalidatePath("/calendar");
+    revalidatePath(`/tanks/${s.tankId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("[deleteSchedule]", err);
+    return { ok: false, error: "Could not delete schedule" };
+  }
+}
+
 export async function setScheduleActive(id: number, active: boolean): Promise<ActionResult> {
   try {
     db.update(schedules).set({ active, updatedAt: new Date().toISOString() }).where(eq(schedules.id, id)).run();
