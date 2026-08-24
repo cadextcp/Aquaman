@@ -30,12 +30,19 @@ export default async function CalendarPage({
   const { from, to, days } = monthGridRange(month);
 
   // date (YYYY-MM-DD) → list of tasks (with schedule ref → clickable, issue #31)
-  const byDate = new Map<string, { label: string; overdue: boolean; schedule: (typeof schedules)[number] }[]>();
+  type DayTask = { label: string; overdue: boolean; variant: "behind" | "due" | "upcoming"; schedule: (typeof schedules)[number] };
+  const byDate = new Map<string, DayTask[]>();
   for (const s of schedules) {
     const occs = occurrencesInRange(s, from, to);
     for (const date of occs) {
       const list = byDate.get(date) ?? [];
-      list.push({ label: `${s.actionType.replace(/_/g, " ")} — ${s.tankName}`, overdue: date < t, schedule: s });
+      const overdue = date < t;
+      list.push({
+        label: `${s.actionType.replace(/_/g, " ")} — ${s.tankName}`,
+        overdue,
+        variant: overdue ? "behind" : date === t ? "due" : "upcoming",
+        schedule: s,
+      });
       byDate.set(date, list);
     }
   }
@@ -96,15 +103,15 @@ export default async function CalendarPage({
                 opacity: inMonth ? 1 : 0.32,
               }}
             >
-              <div className="font-medium tnum mb-1" style={{ color: isToday ? "var(--accent-light)" : "rgba(233,233,237,0.65)" }}>
+              <div className="font-medium tnum mb-1.5 text-center" style={{ color: isToday ? "var(--accent-light)" : "rgba(233,233,237,0.65)" }}>
                 {Number(d.slice(8, 10))}
               </div>
-              <div className="space-y-0.5">
+              <div className="flex flex-col gap-[3px] items-center">
                 {tasks.slice(0, 3).map((task, i) => (
-                  <CalendarChip key={i} schedule={task.schedule} label={task.label} overdue={task.overdue} />
+                  <CalendarChip key={i} schedule={task.schedule} label={task.label} variant={task.variant} />
                 ))}
                 {tasks.length > 3 && (
-                  <div style={{ color: "var(--muted-foreground)", fontSize: "10px" }}>+{tasks.length - 3} more</div>
+                  <div style={{ color: "var(--muted-foreground)", fontSize: "9px" }}>+{tasks.length - 3}</div>
                 )}
               </div>
             </div>

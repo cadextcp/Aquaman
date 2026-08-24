@@ -234,8 +234,12 @@ export function WaterTestForm({
               {/* preset dropdown */}
               {isOpen && (
                 <div
-                  className="absolute left-0 right-0 top-[34px] z-20 mt-0 rounded-lg p-2"
-                  style={{ background: "rgba(26,29,45,0.98)", boxShadow: "inset 0 0 0 1px var(--accent), 0 16px 34px rgba(0,0,0,0.6)" }}
+                  className="absolute left-0 right-0 top-[34px] z-20 mt-0 rounded-lg p-2 anim-tickin"
+                  style={{
+                    background: "rgba(26,29,45,0.97)",
+                    backdropFilter: "blur(16px)",
+                    boxShadow: "0 0 0 1px rgba(145,132,217,0.45), 0 16px 34px rgba(0,0,0,0.6)",
+                  }}
                 >
                   <div className="flex items-center gap-1.5 rounded-md px-2 py-1.5" style={{ background: "rgba(15,17,28,0.7)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.1)" }}>
                     <i aria-hidden className="ph ph-pencil-simple text-[11px]" style={{ color: "rgba(233,233,237,0.4)" }} />
@@ -257,7 +261,7 @@ export function WaterTestForm({
                           key={o}
                           type="button"
                           onClick={() => pick(r.key, o)}
-                          className="flex items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-xs tnum"
+                          className="flex items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium tnum"
                           style={{
                             background: selected ? "rgba(145,132,217,0.2)" : "transparent",
                             color: selected ? "var(--foreground)" : "rgba(233,233,237,0.8)",
@@ -273,16 +277,14 @@ export function WaterTestForm({
                       );
                     })}
                   </div>
-                  {num !== null && (
-                    <button
-                      type="button"
-                      onClick={() => clear(r.key)}
-                      className="w-full mt-1.5 rounded-md px-2 py-1.5 text-[10px]"
-                      style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)", color: "var(--muted-foreground)", cursor: "pointer" }}
-                    >
-                      not measured
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => clear(r.key)}
+                    className="w-full mt-1.5 rounded-md px-2 py-1.5 text-[10px]"
+                    style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)", color: "var(--muted-foreground)", cursor: "pointer" }}
+                  >
+                    not measured
+                  </button>
                 </div>
               )}
             </div>
