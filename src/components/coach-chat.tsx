@@ -207,8 +207,8 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
         </button>
       </div>
 
-      <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-        AI tips are recommendations — not medication dosages. For disease questions consult a specialist retailer.
+      <p className="text-xs" style={{ color: "var(--faint)" }}>
+        Advice, not medication dosages — every schedule change waits for your approval.
         {usage && (
           <>
             {" "}

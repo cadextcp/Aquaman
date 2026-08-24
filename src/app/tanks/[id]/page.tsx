@@ -5,6 +5,7 @@ import { nextDue, missedSlots, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler"
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { EditTankButton } from "@/components/edit-tank-button";
 import { Sparkline } from "@/components/sparkline";
+import { scheduleAdherence } from "@/lib/stats";
 import { ScheduleForm } from "@/components/schedule-form";
 import { ScheduleCard } from "@/components/schedule-card";
 import { today as todayStrLocal } from "@/lib/domain/dates";
@@ -31,6 +32,17 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
       })
     : [];
   const problems = evaluation.filter((e) => e.status !== "ok");
+  const tankLogs = logs; // recentLogs already fetched
+  const adherenceBySchedule = new Map<number, number | null>();
+  for (const sch of schedules) {
+    adherenceBySchedule.set(
+      sch.id,
+      scheduleAdherence(
+        { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active },
+        tankLogs.filter((l) => l.actionType === sch.actionType),
+      ),
+    );
+  }
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
@@ -126,6 +138,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                 <div key={s.id}>
                   <ScheduleCard
                     schedule={{ ...s, due, today: todayStrLocal() }}
+                    adherence={adherenceBySchedule.get(s.id) ?? null}
                   />
                   {missed >= MISSED_SLOTS_HINT && (
                     <p className="text-xs mt-1 mb-2" style={{ color: "var(--warning)" }}>
@@ -157,19 +170,71 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         <WaterTestHistory tankId={tank.id} tests={tests} ranges={ranges} />
       </section>
 
-      {/* Logs */}
+      {/* Log all activity (design): unified feed of care actions + water tests */}
       <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Recent activity</h2>
-        {logs.length === 0 ? (
+        <h2 className="text-lg font-semibold mb-3">Log all activity</h2>
+        {(logs.length === 0 && tests.length === 0) ? (
           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Nothing logged yet.</p>
         ) : (
-          <ul className="text-sm space-y-1" style={{ color: "var(--muted-foreground)" }}>
-            {logs.map((l) => (
-              <li key={l.id}>
-                {l.doneAt.slice(0, 10)} — {l.actionType.replace(/_/g, " ")}{l.note ? ` (${l.note})` : ""}
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-2">
+            {[
+              ...tests.slice(0, 10).map((tst) => {
+                const off = evaluateWaterTest(tst.values, ranges, {
+                  ph: tst.values["ph"] ?? null,
+                  temp: tst.values["temp"] ?? null,
+                  tankState: tank.tankState,
+                }).filter((e) => e.status !== "ok").length;
+                const filled = Object.values(tst.values).filter((v) => v !== null).length;
+                return {
+                  key: `t-${tst.id}`,
+                  date: tst.measuredAt.slice(0, 10),
+                  title: "Water test",
+                  note: `${filled} value${filled === 1 ? "" : "s"}${off > 0 ? ` · ${off} outside band` : ""}`,
+                  color: off > 0 ? "var(--warning)" : "var(--success)",
+                };
+              }),
+              ...logs.slice(0, 10).map((l) => {
+                // lateness annotation: compare against the schedule interval
+                const sch = schedules.find((x) => x.actionType === l.actionType);
+                let note = l.note ?? "";
+                let color = "var(--success)";
+                if (sch) {
+                  const prev = logs.find((x) => x.actionType === l.actionType && x.doneAt < l.doneAt);
+                  if (prev && sch) {
+                    const gap = Math.round((new Date(l.doneAt).getTime() - new Date(prev.doneAt).getTime()) / 86400000);
+                    const late = gap - sch.intervalDays;
+                    if (late > 1) { note = note || `${late} d late`; color = "var(--warning)"; }
+                    else if (late < -1) { note = note || "early"; }
+                  }
+                }
+                return {
+                  key: `l-${l.id}`,
+                  date: l.doneAt.slice(0, 10),
+                  title: l.actionType.replace(/_/g, " "),
+                  note,
+                  color,
+                };
+              }),
+            ]
+              .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+              .slice(0, 10)
+              .map((row) => (
+                <div
+                  key={row.key}
+                  className="flex items-center justify-between gap-3 rounded-lg px-3.5 py-2.5"
+                  style={{ background: "rgba(233,233,237,0.04)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.07)" }}
+                >
+                  <span className="text-sm">
+                    <strong className="font-medium">{row.title}</strong>
+                    {row.note && (
+                      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}> · {row.note}</span>
+                    )}
+                  </span>
+                  <span className="text-xs tnum" style={{ color: "var(--faint)" }}>{row.date}</span>
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.color }} />
+                </div>
+              ))}
+          </div>
         )}
       </section>
 

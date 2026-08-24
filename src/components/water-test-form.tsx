@@ -191,8 +191,8 @@ export function WaterTestForm({
                 </span>
 
                 {/* value + delta */}
-                <span className="text-sm tnum w-16 text-right" style={{ color: num === null ? "var(--faint)" : "var(--foreground)" }}>
-                  {num === null ? "—" : num}
+                <span className="text-sm tnum w-20 text-right" style={{ color: num === null ? "var(--faint)" : "var(--foreground)" }}>
+                  {num === null ? "not measured" : num}
                 </span>
                 <span className="text-[10px] tnum w-12 shrink-0" style={{ color: delta === null ? "transparent" : "rgba(233,233,237,0.4)" }}>
                   {delta === null ? "·" : delta === 0 ? "= 0" : `${delta > 0 ? "▲ +" : "▼"}${Math.abs(delta)}`}

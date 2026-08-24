@@ -41,7 +41,7 @@ function daysUntil(dateStr: string, today: string): number {
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
 }
 
-export function ScheduleCard({ schedule }: { schedule: ScheduleCardData }) {
+export function ScheduleCard({ schedule, adherence = null }: { schedule: ScheduleCardData; adherence?: number | null }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
@@ -111,6 +111,15 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleCardData }) {
                 {" "}· every {schedule.intervalDays}d
                 {schedule.endsOn ? ` · until ${schedule.endsOn}` : ""}
               </span>
+              {adherence !== null && (
+                <span
+                  className="text-xs tnum ml-1.5"
+                  style={{ color: adherence >= 80 ? "var(--success)" : "var(--warning)" }}
+                  title="share of planned occurrences closed on time (30 d)"
+                >
+                  · {adherence}% on time
+                </span>
+              )}
             </div>
             {schedule.details && (
               <div className="text-sm mt-0.5" style={{ color: "var(--accent)" }}>

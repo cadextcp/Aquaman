@@ -62,8 +62,11 @@ export default async function MorePage() {
         </div>
 
         <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-          Care reliability (median delay, target &lt; 2 d water change / &lt; 1 d fertilize)
+          Median delay by plan
         </div>
+        <p className="text-xs mb-2" style={{ color: "var(--faint)" }}>
+          target &lt; 2 d water change · &lt; 1 d fertilize
+        </p>
         {reliability.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
             No completed tasks yet — check tasks off and this fills in.

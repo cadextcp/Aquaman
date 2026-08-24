@@ -8,12 +8,12 @@
  * stays a read-only projection; stats never mutate anything).
  */
 
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { maintenanceLogs, waterTests, feedLogs, schedules, aiCalls } from "@/lib/db/schema";
 import { listTanks, listSchedules } from "@/lib/repo";
 import { missedSlots, nextPreferredDay } from "@/lib/domain/scheduler";
-import { addDays, today } from "@/lib/domain/dates";
+import { addDays, today, dayMatchesMask } from "@/lib/domain/dates";
 
 export type MonthlyStats = {
   month: string; // YYYY-MM
@@ -174,4 +174,89 @@ function dayDiff(a: string, b: string): number {
   const [y1, m1, d1] = a.split("-").map(Number);
   const [y2, m2, d2] = b.split("-").map(Number);
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
+
+// ==================== Nocturne additions (issue #43, round 2) ====================
+
+/**
+ * Adherence per schedule over the last N days (design: "94% on time"):
+ * share of planned occurrences (weekday-gridded originalDue dates in the
+ * window) that were closed within a grace of 1 day past their due date.
+ * Schedules without any planned occurrence in the window return null
+ * (nothing to be on time FOR — design hides the % in that case).
+ */
+export function scheduleAdherence(
+  schedule: {
+    id: number;
+    intervalDays: number;
+    preferredDays: number;
+    lastDoneAt: string | null;
+    createdAt: string;
+    active: boolean;
+  },
+  logs: { actionType: string; doneAt: string }[],
+  days = 30,
+  now: Date = new Date(),
+): number | null {
+  const t = today(undefined, now);
+  const from = addDays(t, -days);
+
+  // planned occurrences: chain from createdAt (approximation without per-occurrence persistence)
+  const created = schedule.createdAt.slice(0, 10);
+  let due = addDays(created, schedule.intervalDays);
+  let guard = 0;
+  const dues: string[] = [];
+  while (due <= t && guard++ < 400) {
+    let g2 = 0;
+    while (!dayMatchesMask(due, schedule.preferredDays) && g2++ < 7) due = addDays(due, 1);
+    if (due > t) break;
+    if (due >= from) dues.push(due);
+    due = addDays(due, schedule.intervalDays);
+  }
+  if (dues.length === 0) return null;
+
+  const doneDays = new Set(logs.map((l) => l.doneAt.slice(0, 10)));
+  let onTime = 0;
+  for (const d of dues) {
+    // closed on the due day or the day after (grace 1 d, like the median-delay clamp)
+    if (doneDays.has(d) || doneDays.has(addDays(d, 1))) onTime++;
+  }
+  return Math.round((onTime / dues.length) * 100);
+}
+
+/** Cross-tank 30-day summary (design: "60 care actions"). */
+export function crossTankStats(now: Date = new Date()) {
+  const from = addDays(today(), -30);
+  const fromIso = `${from}T00:00:00.000Z`;
+  const logs = db.select().from(maintenanceLogs).where(gte(maintenanceLogs.doneAt, fromIso)).all();
+  return { actions: logs.length };
+}
+
+/** Weekly summary for the empty-queue state (design: "4 tasks closed this week, zero behind"). */
+export function weeklySummary(now: Date = new Date()) {
+  const t = today();
+  const from = addDays(t, -7);
+  const fromIso = `${from}T00:00:00.000Z`;
+  const logs = db.select().from(maintenanceLogs).where(gte(maintenanceLogs.doneAt, fromIso)).all();
+  return { closed: logs.length };
+}
+
+/** Cycling progress: days since creation + falling NO2 trend (design badge). */
+export function cyclingInfo(tank: { tankState: string; createdAt: string; id: number }) {
+  if (tank.tankState !== "cycling") return null;
+  const created = new Date(tank.createdAt).getTime();
+  const day = Math.max(1, Math.floor((Date.now() - created) / 86400000));
+  const tests = db
+    .select()
+    .from(waterTests)
+    .where(eq(waterTests.tankId, tank.id))
+    .orderBy(desc(waterTests.measuredAt))
+    .limit(3)
+    .all();
+  let no2trend: "falling" | "rising" | "flat" | null = null;
+  const series = tests.map((x) => x.values["no2"]).filter((v): v is number => typeof v === "number");
+  if (series.length >= 2) {
+    no2trend = series[0] < series[series.length - 1] ? "falling" : series[0] > series[series.length - 1] ? "rising" : "flat";
+  }
+  return { day, no2trend };
 }

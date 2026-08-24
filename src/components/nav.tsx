@@ -2,9 +2,9 @@ import Link from "next/link";
 
 /** Shared nav config — single source (issue #16 cleanup). Phosphor icons since #43. */
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: "house" },
+  { href: "/", label: "Today", icon: "house" },
   { href: "/tanks", label: "Tanks", icon: "fish" },
-  { href: "/calendar", label: "Calendar", icon: "calendar-blank" },
+  { href: "/calendar", label: "Plan", icon: "calendar-blank" },
   { href: "/coach", label: "Coach", icon: "sparkle" },
   { href: "/more", label: "More", icon: "sliders-horizontal" },
 ] as const;

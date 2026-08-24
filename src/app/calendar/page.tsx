@@ -40,6 +40,9 @@ export default async function CalendarPage({
     }
   }
 
+  const monthPlanned = [...byDate.entries()].filter(([d]) => d.slice(0, 7) === month).reduce((a, [, v]) => a + v.length, 0);
+  const monthBehind = [...byDate.entries()].filter(([d]) => d.slice(0, 7) === month && d < t).reduce((a, [, v]) => a + v.length, 0);
+
   const prevMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
 
@@ -66,13 +69,18 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>
-        Subscribe to this plan in Google Calendar via the ICS feed —{" "}
-        <Link href="/more" className="underline" style={{ color: "var(--accent)" }}>
-          get the link in More
-        </Link>
-        .
-      </p>
+      {/* month summary (design: "18 planned · 2 behind") */}
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm tnum" style={{ color: "var(--muted-foreground)" }}>
+          {monthPlanned} planned{monthBehind > 0 ? ` · ${monthBehind} behind` : ""}
+        </span>
+        <span className="text-xs" style={{ color: "var(--faint)" }}>
+          This plan is subscribed in Google Calendar ·{" "}
+          <Link href="/more" className="underline" style={{ color: "var(--accent)" }}>
+            manage
+          </Link>
+        </span>
+      </div>
 
       <div className="grid grid-cols-7 gap-1.5 mb-1.5">
         {WEEKDAY_LABELS.map((w) => (

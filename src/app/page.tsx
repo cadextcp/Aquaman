@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listTanks, listSchedules, feedAllToday } from "@/lib/repo";
 import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { careStreak } from "@/lib/domain/streak";
+import { scheduleAdherence, crossTankStats, weeklySummary } from "@/lib/stats";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
 import { ScheduleCard } from "@/components/schedule-card";
 import { FeedControl } from "@/components/feed-checkbox";
@@ -15,6 +16,20 @@ export default async function Dashboard() {
   const { maintenanceLogs } = await import("@/lib/db/schema");
   const allLogs = db.select().from(maintenanceLogs).all();
   const streak = careStreak(schedules, allLogs);
+  const week = weeklySummary();
+  const cross = crossTankStats();
+  // adherence over the last 30 d: share of schedules closed on/within 1 d of due
+  const adherences = schedules
+    .map((sch) => ({
+      s: sch,
+      pct: scheduleAdherence(
+        { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active },
+        allLogs.filter((l) => l.tankId === sch.tankId && l.actionType === sch.actionType),
+      ),
+    }))
+    .filter((a) => a.pct !== null);
+  const avgAdherence =
+    adherences.length > 0 ? Math.round(adherences.reduce((acc, a) => acc + (a.pct ?? 0), 0) / adherences.length) : null;
   const t = todayStr();
   const weekEnd = addDays(t, 7);
   const feeds = feedAllToday(t);
@@ -80,6 +95,33 @@ export default async function Dashboard() {
         </div>
       )}
 
+      {/* Adherence · 30 d (design) */}
+      {tanks.length > 0 && avgAdherence !== null && (
+        <div className="rounded-xl p-4 mb-4 flex items-center justify-between" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
+          <div>
+            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>
+              Adherence · 30 d
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-medium tnum">{avgAdherence}</span>
+              <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>%</span>
+            </div>
+            <div className="text-xs tnum mt-1" style={{ color: "var(--faint)" }}>
+              {cross.actions} care actions across {tanks.length} tank{tanks.length === 1 ? "" : "s"}
+            </div>
+          </div>
+          <span
+            className="rounded-full px-2.5 py-1 text-xs tnum"
+            style={{
+              background: avgAdherence >= 80 ? "var(--success-soft)" : "var(--warning-soft)",
+              color: avgAdherence >= 80 ? "var(--success)" : "var(--warning)",
+            }}
+          >
+            {avgAdherence >= 80 ? "on track" : "catching up"}
+          </span>
+        </div>
+      )}
+
       {/* KPIs */}
       <section className="grid grid-cols-3 gap-3 mb-6">
         {kpi("Due today", dueToday.length, dueToday.length > 0 ? "var(--accent)" : "var(--success)")}
@@ -100,15 +142,25 @@ export default async function Dashboard() {
         </div>
       )}
 
-      {/* Due today */}
+      {/* Care queue (design: "tap a card to edit") */}
       <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Due today</h2>
-        {dueToday.length === 0 ? (
-          <div className="rounded-xl p-5 text-sm" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
-            Nothing due today — enjoy your tanks! 🐠
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-lg font-semibold">Care queue</h2>
+          <span className="text-xs" style={{ color: "var(--faint)" }}>tap a card to edit</span>
+        </div>
+        {tasks.length === 0 ? (
+          <div className="rounded-xl p-5 text-sm" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)", color: "var(--muted-foreground)" }}>
+            Queue clear — {week.closed} task{week.closed === 1 ? "" : "s"} closed this week, zero behind.
           </div>
         ) : (
-          <div className="space-y-3">{dueToday.map(card)}</div>
+          <>
+            {dueToday.length === 0 && (
+              <div className="rounded-xl p-4 mb-3 text-sm" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)", color: "var(--success)" }}>
+                Queue clear — {week.closed} task{week.closed === 1 ? "" : "s"} closed this week, zero behind.
+              </div>
+            )}
+            <div className="space-y-3">{dueToday.map(card)}</div>
+          </>
         )}
       </section>
 

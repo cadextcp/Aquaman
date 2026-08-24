@@ -3,6 +3,9 @@ import { listTanks, listSchedules, waterTestsForTank } from "@/lib/repo";
 import { nextDue } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
+import { scheduleAdherence, crossTankStats, cyclingInfo } from "@/lib/stats";
+import { db } from "@/lib/db";
+import { maintenanceLogs } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +14,8 @@ export default async function TanksPage() {
   const t = todayStr();
   const weekEnd = addDays(t, 7);
   const allSchedules = listSchedules();
+  const allLogs = db.select().from(maintenanceLogs).all();
+  const cross = crossTankStats();
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-5xl">
@@ -56,6 +61,18 @@ export default async function TanksPage() {
             const fishSummary = tank.fish.map((f) => `${f.species} ×${f.qty}`).join(", ");
             const plantSummary = tank.plants.map((p) => p.name).join(", ");
 
+            const adherences = schedules
+              .map((sch) =>
+                scheduleAdherence(
+                  { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active },
+                  allLogs.filter((l) => l.tankId === tank.id && l.actionType === sch.actionType),
+                ),
+              )
+              .filter((a): a is number => a !== null);
+            const onTime =
+              adherences.length > 0 ? Math.round(adherences.reduce((a, b) => a + b, 0) / adherences.length) : null;
+            const cycling = cyclingInfo(tank);
+
             return (
               <Link key={tank.id} href={`/tanks/${tank.id}`}
                 className="rounded-xl p-5 block transition-shadow hover:shadow-md"
@@ -69,6 +86,13 @@ export default async function TanksPage() {
                     </div>
                   </div>
                   <div className="flex gap-1">
+                    {cycling && (
+                      <Badge>
+                        <span className="tnum">cycling day {cycling.day}</span>
+                        {cycling.no2trend === "falling" && <span style={{ color: "var(--success)" }}> · NO₂ ▼</span>}
+                        {cycling.no2trend === "rising" && <span style={{ color: "var(--warning)" }}> · NO₂ ▲</span>}
+                      </Badge>
+                    )}
                     {tank.hasCo2 && <Badge>CO₂</Badge>}
                     {tank.hasHeater && <Badge>heat</Badge>}
                     {tank.filterType && <Badge>{tank.filterType}</Badge>}
@@ -95,6 +119,11 @@ export default async function TanksPage() {
                       : schedules.length === 0
                         ? "no plans yet"
                         : "nothing this week"}
+                    {onTime !== null && (
+                      <span className="tnum" style={{ color: onTime >= 80 ? "var(--success)" : "var(--warning)" }}>
+                        {" "}· {onTime}% on time
+                      </span>
+                    )}
                   </span>
                   {lastTest ? (
                     <span style={{ color: problems.length > 0 ? "var(--warning)" : "var(--success)" }}>
@@ -107,6 +136,19 @@ export default async function TanksPage() {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {/* Across both tanks (design) */}
+      {tanks.length > 0 && (
+        <div className="mt-4 rounded-xl p-4 flex items-center justify-between" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
+          <span className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
+            Across {tanks.length === 1 ? "tank" : "all tanks"} · 30 d
+          </span>
+          <span className="text-sm tnum">
+            <strong className="font-medium text-lg">{cross.actions}</strong>{" "}
+            <span style={{ color: "var(--muted-foreground)" }}>care actions</span>
+          </span>
         </div>
       )}
     </main>
