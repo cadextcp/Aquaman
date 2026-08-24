@@ -24,8 +24,16 @@ export const DEFAULT_MAX_TOKENS_PER_DAY = 200_000;
 /** AbortController timeout for the provider call (AGENTS: 30 s fallback). */
 export const REQUEST_TIMEOUT_MS = 30_000;
 
-/** Rolling history size for the coach chat (single-call pattern, §9). */
-export const MAX_HISTORY_MESSAGES = 10;
+/**
+ * Rolling history size for the coach chat (single-call pattern, §9) — the
+ * ONE source of truth for this cap. route.ts truncates incoming history to
+ * this length, client.ts's normalizeHistory re-caps defensively, and
+ * coach-chat.tsx trims before sending. All three must agree: a client that
+ * sends more than the route accepts (and doesn't truncate) breaks every
+ * request for the rest of the conversation (found in review — a real
+ * multi-turn chat died after 7 exchanges before this was unified).
+ */
+export const MAX_HISTORY_MESSAGES = 12;
 
 export function getAiConfig(): AiConfig | null {
   const apiKey = process.env.AQUAMAN_AI_API_KEY?.trim();

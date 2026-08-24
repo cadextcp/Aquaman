@@ -12,10 +12,14 @@
  *   (AGENTS streaming gotcha)
  * - consecutive same-role turns are merged: the API requires strict
  *   user/assistant alternation and a leading user turn
+ * - `opts.signal` is forwarded to the provider call itself (RequestOptions.signal
+ *   on client.messages.stream) — if the caller (route.ts, on client disconnect)
+ *   aborts, the upstream request actually stops instead of running to
+ *   completion for nobody and quietly spending the day's budget
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import { getAiConfig, REQUEST_TIMEOUT_MS } from "./config";
+import { getAiConfig, REQUEST_TIMEOUT_MS, MAX_HISTORY_MESSAGES } from "./config";
 import { parseProposal, PROPOSAL_TOOL_NAME, PROPOSAL_TOOL_DESCRIPTION, PROPOSAL_TOOL_INPUT_SCHEMA, type Proposal } from "./proposal";
 
 export type CoachMessage = { role: "user" | "assistant"; content: string };
@@ -38,7 +42,7 @@ export function normalizeHistory(history: CoachMessage[], question: string): { r
     }
   }
   while (merged.length > 0 && merged[0].role === "assistant") merged.shift();
-  return merged.slice(-12); // hard cap on history cost
+  return merged.slice(-MAX_HISTORY_MESSAGES); // hard cap on history cost
 }
 
 type ToolAcc = { name: string; json: string };
@@ -70,28 +74,26 @@ export async function streamCoachAnswer(opts: {
 
   const usage = { promptTokens: 0, completionTokens: 0 };
   const tools: Record<number, ToolAcc> = {}; // content-block index → accumulator
-  const timer = setTimeout(() => {
-    try {
-      opts.signal?.throwIfAborted();
-    } catch {
-      /* handled via catch below */
-    }
-  }, REQUEST_TIMEOUT_MS);
 
   try {
-    const stream = client.messages.stream({
-      model: config.model,
-      max_tokens: 1024,
-      system: opts.system,
-      messages: normalizeHistory(opts.history, opts.question),
-      tools: [
-        {
-          name: PROPOSAL_TOOL_NAME,
-          description: PROPOSAL_TOOL_DESCRIPTION,
-          input_schema: { ...PROPOSAL_TOOL_INPUT_SCHEMA, type: "object" as const },
-        },
-      ],
-    });
+    const stream = client.messages.stream(
+      {
+        model: config.model,
+        max_tokens: 1024,
+        system: opts.system,
+        messages: normalizeHistory(opts.history, opts.question),
+        tools: [
+          {
+            name: PROPOSAL_TOOL_NAME,
+            description: PROPOSAL_TOOL_DESCRIPTION,
+            input_schema: { ...PROPOSAL_TOOL_INPUT_SCHEMA, type: "object" as const },
+          },
+        ],
+      },
+      // forward the caller's abort signal — a disconnected client actually
+      // stops the upstream call instead of burning budget for nobody
+      { signal: opts.signal },
+    );
 
     for await (const event of stream) {
       switch (event.type) {
@@ -141,9 +143,10 @@ export async function streamCoachAnswer(opts: {
 
     opts.onEvent({ type: "done", usage: { promptTokens: usage.promptTokens, completionTokens: usage.completionTokens } });
   } catch (err) {
+    // an aborted signal surfaces here too (SDK throws on cancellation) — no
+    // one is listening by then, so onEvent below is a harmless no-op if the
+    // caller's send() already guards against a closed stream (route.ts does)
     opts.onEvent({ type: "error", message: friendlyError(err) });
-  } finally {
-    clearTimeout(timer);
   }
 }
 

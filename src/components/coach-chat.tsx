@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { applyProposal } from "@/app/actions-ai";
+import { MAX_HISTORY_MESSAGES } from "@/lib/ai/config";
 import type { Proposal } from "@/lib/ai/proposal";
 
 type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal };
@@ -36,8 +37,13 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
     setInput("");
     setBanner(null);
 
+    // Trim to what the route actually accepts — an unbounded history here
+    // used to break the chat permanently after ~7 exchanges (route.ts 400s
+    // once its own cap is exceeded); the route now truncates too, but there's
+    // no reason to grow the wire payload forever either.
     const history = messages
       .filter((m) => m.content.trim().length > 0)
+      .slice(-MAX_HISTORY_MESSAGES)
       .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
 
     setMessages((prev) => [...prev, { role: "user", content: question }, { role: "assistant", content: "" }]);

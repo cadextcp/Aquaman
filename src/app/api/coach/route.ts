@@ -18,8 +18,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAiConfig, providerLabel, estimateCostMicros } from "@/lib/ai/config";
-import { checkBudget, recordAiCall } from "@/lib/ai/cost-guard";
+import { getAiConfig, providerLabel, estimateCostMicros, MAX_HISTORY_MESSAGES } from "@/lib/ai/config";
+import { checkBudget, recordAiCall, reserveCallSlot, releaseCallSlot } from "@/lib/ai/cost-guard";
 import { buildCoachContext, COACH_SYSTEM_PROMPT } from "@/lib/ai/context";
 import { streamCoachAnswer, type CoachMessage } from "@/lib/ai/client";
 import { isRateLimited, recordFailure, recordSuccess } from "@/lib/rate-limit";
@@ -29,8 +29,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_QUESTION_CHARS = 2000;
-const MAX_HISTORY_MESSAGES = 12;
 const MAX_MESSAGE_CHARS = 4000;
+// Hard safety cap on the WIRE payload — well above MAX_HISTORY_MESSAGES, this
+// only exists to bound how much JSON we're willing to parse/validate at all.
+const MAX_HISTORY_ENTRIES_ACCEPTED = 200;
 
 function clientIp(req: NextRequest): string {
   return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
@@ -40,9 +42,18 @@ function badRequest(msg: string): NextResponse {
   return NextResponse.json({ error: msg }, { status: 400 });
 }
 
+/**
+ * Validate every entry (reject malformed shape outright), then TRUNCATE to
+ * the most recent MAX_HISTORY_MESSAGES instead of rejecting an over-length
+ * array. A client that doesn't trim its own growing message list (found in
+ * review: coach-chat.tsx sent the full conversation every time) must not
+ * permanently break every future request in that conversation — only a
+ * genuinely oversized payload (bug or abuse, not a normal long chat) is
+ * rejected.
+ */
 function parseHistory(raw: unknown): CoachMessage[] | null {
   if (raw === undefined || raw === null) return [];
-  if (!Array.isArray(raw) || raw.length > MAX_HISTORY_MESSAGES) return null;
+  if (!Array.isArray(raw) || raw.length > MAX_HISTORY_ENTRIES_ACCEPTED) return null;
   const clean: CoachMessage[] = [];
   for (const m of raw) {
     if (!m || typeof m !== "object") return null;
@@ -52,7 +63,7 @@ function parseHistory(raw: unknown): CoachMessage[] | null {
     if (typeof content !== "string" || content.length === 0 || content.length > MAX_MESSAGE_CHARS) return null;
     clean.push({ role, content });
   }
-  return clean;
+  return clean.slice(-MAX_HISTORY_MESSAGES);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse | Response> {
@@ -112,6 +123,18 @@ export async function POST(req: NextRequest): Promise<NextResponse | Response> {
     );
   }
 
+  // Reserve the call slot NOW, not just check it — checkBudget alone only
+  // reads committed rows, so two near-simultaneous requests could both pass
+  // it before either's recordAiCall commits, exceeding maxCallsPerDay by
+  // one. The reservation is released exactly once below, however this ends.
+  const reservation = reserveCallSlot(config);
+  if (!reservation.ok) {
+    return NextResponse.json(
+      { error: `AI paused — daily call limit reached (${config.maxCallsPerDay}/day). Resets at local midnight.` },
+      { status: 429 },
+    );
+  }
+
   recordSuccess(`coach:${ip}`); // well-formed request clears the failure counter
 
   // ---- stream ----
@@ -121,7 +144,16 @@ export async function POST(req: NextRequest): Promise<NextResponse | Response> {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (obj: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(obj)}\n`));
+      // A disconnected client (tab closed, navigated away) leaves nobody to
+      // read this — enqueue can throw once the controller is torn down, and
+      // that must not crash the request or skip cleanup below.
+      const send = (obj: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(obj)}\n`));
+        } catch {
+          /* client gone — nothing to deliver to */
+        }
+      };
       let recorded = false;
       try {
         send({
@@ -167,7 +199,12 @@ export async function POST(req: NextRequest): Promise<NextResponse | Response> {
         console.error("[coach] stream failed", err);
         send({ type: "error", message: "AI is unreachable — core features are fully working without it." });
       } finally {
-        controller.close();
+        releaseCallSlot(reservation.day);
+        try {
+          controller.close();
+        } catch {
+          /* already closed (client disconnected) — nothing to do */
+        }
       }
     },
   });

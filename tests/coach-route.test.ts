@@ -118,4 +118,44 @@ describe("POST /api/coach — guards", () => {
     const res = await POST(coachReq({ question: "hi", history: [{ role: "evil", content: "x" }] }));
     expect(res.status).toBe(400);
   });
+
+  describe("history length (review: a long real conversation must not permanently 400)", () => {
+    // AI stays UNCONFIGURED in these — that's a fast, network-free way to
+    // observe "did parseHistory accept this array and reach the next guard"
+    // (503) vs. "was it rejected as malformed" (400), without needing a
+    // live provider call once history validation passes.
+    function historyOf(n: number) {
+      return Array.from({ length: n }, (_, i) => ({ role: i % 2 === 0 ? "user" : "assistant", content: `m${i}` }));
+    }
+
+    it("history longer than MAX_HISTORY_MESSAGES is truncated, not rejected — reaches the next guard (503), not 400", async () => {
+      const { POST } = await import("../src/app/api/coach/route");
+      // 14 entries: exactly the case that broke a real conversation after
+      // ~7 exchanges before this fix (see review) — every message shape is
+      // well-formed, only the ARRAY LENGTH exceeds the cap.
+      const res = await POST(coachReq({ question: "hi", history: historyOf(14) }));
+      expect(res.status).toBe(503); // reached the "AI not configured" guard — history was accepted
+    });
+
+    it("a long conversation (20 simulated exchanges) never 400s on history length alone", async () => {
+      const { POST } = await import("../src/app/api/coach/route");
+      for (let n = 2; n <= 40; n += 2) {
+        const res = await POST(coachReq({ question: `q${n}`, history: historyOf(n) }));
+        expect(res.status).toBe(503); // never 400 — truncation keeps it flowing
+      }
+    });
+
+    it("a genuinely oversized payload (bug/abuse, not a normal chat) is still rejected", async () => {
+      const { POST } = await import("../src/app/api/coach/route");
+      const res = await POST(coachReq({ question: "hi", history: historyOf(500) }));
+      expect(res.status).toBe(400);
+    });
+
+    it("malformed entries are still rejected even inside an over-length array (truncation ≠ skip validation)", async () => {
+      const { POST } = await import("../src/app/api/coach/route");
+      const bad = [...historyOf(20), { role: "not-a-role", content: "x" }];
+      const res = await POST(coachReq({ question: "hi", history: bad }));
+      expect(res.status).toBe(400);
+    });
+  });
 });

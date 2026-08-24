@@ -90,3 +90,65 @@ describe("cost guard", () => {
     expect(typeof s.totalTokens).toBe("number");
   });
 });
+
+describe("reserveCallSlot / releaseCallSlot (review: closes the checkBudget race)", () => {
+  // Earlier tests in this file commit real aiCalls rows for TODAY, so a
+  // fresh 0-usage day is needed here — use a distinct synthetic future day
+  // per test (isolated from both earlier tests AND from each other).
+  let dayOffset = 10;
+  function freshNow(): Date {
+    dayOffset += 1;
+    return new Date(Date.now() + dayOffset * 86_400_000);
+  }
+
+  it("reserving up to the limit succeeds; one more fails without a matching release", async () => {
+    const { reserveCallSlot, __resetPendingCallSlots } = await import("../src/lib/ai/cost-guard");
+    __resetPendingCallSlots();
+    const now = freshNow();
+    const config = cfg({ maxCallsPerDay: 2, maxTokensPerDay: 10_000_000 });
+    const a = reserveCallSlot(config, now);
+    const b = reserveCallSlot(config, now);
+    const c = reserveCallSlot(config, now);
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(true);
+    expect(c.ok).toBe(false); // 3rd reservation exceeds maxCallsPerDay=2, with nothing committed yet
+  });
+
+  it("two near-simultaneous requests can't both slip past a 1-call limit (the actual race)", async () => {
+    const { reserveCallSlot, __resetPendingCallSlots } = await import("../src/lib/ai/cost-guard");
+    __resetPendingCallSlots();
+    const now = freshNow();
+    const config = cfg({ maxCallsPerDay: 1, maxTokensPerDay: 10_000_000 });
+    // simulates two requests calling reserveCallSlot back-to-back, BEFORE
+    // either has a chance to commit a row via recordAiCall (the exact
+    // interleaving that let both pass a plain checkBudget check)
+    const first = reserveCallSlot(config, now);
+    const second = reserveCallSlot(config, now);
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(false);
+  });
+
+  it("release frees the slot for a later reservation on the same day", async () => {
+    const { reserveCallSlot, releaseCallSlot, __resetPendingCallSlots } = await import("../src/lib/ai/cost-guard");
+    __resetPendingCallSlots();
+    const now = freshNow();
+    const config = cfg({ maxCallsPerDay: 1, maxTokensPerDay: 10_000_000 });
+    const first = reserveCallSlot(config, now);
+    expect(first.ok).toBe(true);
+    releaseCallSlot(first.day);
+    const second = reserveCallSlot(config, now);
+    expect(second.ok).toBe(true); // freed by the release, not still blocked
+  });
+
+  it("a reservation plus an already-committed call together respect the limit", async () => {
+    const { reserveCallSlot, recordAiCall, __resetPendingCallSlots } = await import("../src/lib/ai/cost-guard");
+    __resetPendingCallSlots();
+    const now = freshNow();
+    const config = cfg({ maxCallsPerDay: 2, maxTokensPerDay: 10_000_000 });
+    recordAiCall({ provider: "anthropic", model: "m", purpose: "coach", promptTokens: 1, completionTokens: 1, costEstimateMicros: 0, now });
+    const a = reserveCallSlot(config, now); // 1 committed + this reservation = 2 → still allowed
+    const b = reserveCallSlot(config, now); // would make 3 → over the limit of 2
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(false);
+  });
+});

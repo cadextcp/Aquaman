@@ -74,6 +74,48 @@ export function checkBudget(config: AiConfig, now: Date = new Date()): GuardVerd
 }
 
 /**
+ * In-memory reservation for the CALLS side of the budget (review finding:
+ * checkBudget only reads committed aiCalls rows, and recordAiCall only
+ * writes after the provider call finishes — two near-simultaneous requests
+ * can both pass checkBudget before either commits, exceeding maxCallsPerDay
+ * by one). This closes that gap for the calls count specifically.
+ *
+ * Deliberately NOT extended to the tokens side: a token cost is unknown
+ * until the response finishes, so any pre-reservation would have to guess —
+ * either too small (doesn't fix anything) or too conservative (blocks
+ * legitimate requests that would have fit). The calls count has no such
+ * problem: it's exactly 1 per attempt, so it can be reserved precisely.
+ * Resets naturally with the day boundary via `usageDay()`, same as the rest
+ * of the guard; process-local only (single container, no cron needed).
+ */
+const pendingCallsByDay = new Map<string, number>();
+
+/**
+ * Reserve one call slot for today. Returns false (and reserves nothing) if
+ * committed + already-pending calls would meet or exceed the limit. Pair
+ * with `releaseCallSlot(day)` in a finally — exactly once per reservation,
+ * whether the call succeeds, fails, or is aborted.
+ */
+export function reserveCallSlot(config: AiConfig, now: Date = new Date()): { ok: true; day: string } | { ok: false; day: string } {
+  const usage = getUsage(config, now);
+  const pending = pendingCallsByDay.get(usage.day) ?? 0;
+  if (usage.calls + pending >= config.maxCallsPerDay) return { ok: false, day: usage.day };
+  pendingCallsByDay.set(usage.day, pending + 1);
+  return { ok: true, day: usage.day };
+}
+
+/** Release a slot reserved via `reserveCallSlot`. Safe to call at most once per reservation. */
+export function releaseCallSlot(day: string): void {
+  const pending = pendingCallsByDay.get(day) ?? 0;
+  if (pending > 0) pendingCallsByDay.set(day, pending - 1);
+}
+
+/** Test-only: reset in-memory reservation state. */
+export function __resetPendingCallSlots(): void {
+  pendingCallsByDay.clear();
+}
+
+/**
  * Record a finished call. `usage` MUST come from the final streaming event —
  * reading it anywhere else counts zero tokens (AGENTS streaming gotcha).
  */
