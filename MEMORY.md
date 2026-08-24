@@ -5,9 +5,9 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Current State
 
-- Current task: Phase 4 (AI Coach) implemented — AI client (Anthropic-compatible), /coach chat with NDJSON streaming, propose_schedule approval gate, two-tier cost guard
-- Current phase: Phase 4 done, awaiting review/merge; Phase 5 (Launch: export/import, stats, README, v0.1.0) next
-- Next step: review Phase 4 diff → merge → Phase 5
+- Current task: Phase 5 (Launch) implemented — tag v0.1.0 pending — AI client (Anthropic-compatible), /coach chat with NDJSON streaming, propose_schedule approval gate, two-tier cost guard
+- Current phase: MVP complete (Phases 1–5), tag v0.1.0 next
+- Next step: tag v0.1.0 → owner deploys on TrueNAS → real usage; v1.1 MCP after launch
 - Blocked by: none
 
 ## Decisions
@@ -65,5 +65,5 @@ manages its own memory automatically — this file serves other agents and human
   - `client.ts`: `opts.signal` was accepted but never forwarded — the Anthropic call had no way to actually cancel on client disconnect (a dead `setTimeout`/`throwIfAborted` blob did nothing). Now passed as `RequestOptions.signal` on `client.messages.stream()`; verified against the real installed SDK (0.120.0) and with a test that fails on the pre-fix code.
   - `cost-guard.ts`: `checkBudget` only reads committed rows, so two near-simultaneous requests could both pass it before either's `recordAiCall` commits, exceeding `maxCallsPerDay` by one. Added `reserveCallSlot`/`releaseCallSlot` (in-memory, calls-only — token cost is unknowable ahead of the response, so it's not pre-reserved) wired into `route.ts` around the provider call.
   - `route.ts`: `send()`/`controller.close()` now swallow enqueue-after-disconnect errors instead of risking an unhandled exception when a client goes away mid-stream.
-- [ ] Phase 5: Launch v0.1.0
+- [x] Phase 5: Launch v0.1.0 (export/import with roundtrip tests, statistics incl. metric 1a/1b, /api/export, /more overhaul, LICENSE/CONTRIBUTING/SECURITY, README launch guide, version.ts) — 2026-08-24
 - [ ] v1.1: MCP + OpenClaw
