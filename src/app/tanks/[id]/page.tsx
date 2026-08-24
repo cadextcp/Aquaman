@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getTank, listSchedules, recentLogs, waterTestsForTank } from "@/lib/repo";
 import { nextDue, missedSlots, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
-import { TankForm } from "@/components/tank-form";
+import { EditTankButton } from "@/components/edit-tank-button";
 import { ScheduleForm } from "@/components/schedule-form";
 import { ScheduleCard } from "@/components/schedule-card";
 import { today as todayStrLocal } from "@/lib/domain/dates";
@@ -34,8 +34,9 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       <div className="flex items-center justify-between mb-4">
-        <div>
+        <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold">{tank.name}</h1>
+          <EditTankButton tank={tank} />
           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
             {tank.volumeL} L · {tank.waterType === "fresh" ? "Freshwater" : "Saltwater"} ·{" "}
             {tank.tankState === "cycling" ? "cycling" : "established"}
@@ -133,13 +134,6 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         )}
       </section>
 
-      {/* Edit */}
-      <details className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-        <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>Edit tank</summary>
-        <div className="pt-4">
-          <TankForm tank={tank} />
-        </div>
-      </details>
     </main>
   );
 }

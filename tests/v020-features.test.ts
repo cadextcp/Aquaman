@@ -307,3 +307,68 @@ describe("deleteSchedule (owner follow-up)", () => {
     expect(res.ok).toBe(false);
   });
 });
+
+describe("global settings (issues #39/#40)", () => {
+  it("tight-gap defaults round-trip through appSettings", async () => {
+    const { getGlobalSettings, saveGlobalSettings } = await import("../src/lib/settings");
+    saveGlobalSettings({ tightGapPolicy: "fixed", tightGapThresholdPct: 40 });
+    const g = getGlobalSettings();
+    expect(g.tightGapPolicy).toBe("fixed");
+    expect(g.tightGapThresholdPct).toBe(40);
+    // restore defaults
+    saveGlobalSettings({ tightGapPolicy: "suppress", tightGapThresholdPct: 50 });
+  });
+
+  it("corrupt settings row falls back to defaults", async () => {
+    const { getGlobalSettings, DEFAULT_GLOBAL_SETTINGS } = await import("../src/lib/settings");
+    const { db } = await import("../src/lib/db");
+    const { appSettings } = await import("../src/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    db.insert(appSettings).values({ key: "appSettings.v1", value: { nonsense: true } as never })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value: { nonsense: true } as never } }).run();
+    expect(getGlobalSettings()).toEqual(DEFAULT_GLOBAL_SETTINGS);
+    db.delete(appSettings).where(eq(appSettings.key, "appSettings.v1")).run();
+  });
+
+  it("AI settings: valid saves, invalid rejected", async () => {
+    const { saveAiSettings, getAiSettings } = await import("../src/lib/settings");
+    const saved = saveAiSettings({
+      provider: "kimi", baseUrl: "https://api.moonshot.ai/api/anthropic",
+      model: "kimi-k2", maxCallsPerDay: 30, maxTokensPerDay: 300000,
+    });
+    expect(saved.provider).toBe("kimi");
+    expect(getAiSettings()!.model).toBe("kimi-k2");
+    expect(() => saveAiSettings({ provider: "custom", baseUrl: "not-a-url", model: "x", maxCallsPerDay: 5, maxTokensPerDay: 5000 })).toThrow();
+    // cleanup
+    const { db } = await import("../src/lib/db");
+    const { appSettings } = await import("../src/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    db.delete(appSettings).where(eq(appSettings.key, "aiSettings.v1")).run();
+  });
+
+  it("AI config precedence: settings override env", async () => {
+    process.env.AQUAMAN_AI_API_KEY = "k";
+    process.env.AQUAMAN_AI_MODEL = "env-model";
+    process.env.AQUAMAN_AI_MAX_CALLS_PER_DAY = "5";
+    const { saveAiSettings } = await import("../src/lib/settings");
+    saveAiSettings({
+      provider: "zai", baseUrl: "https://api.z.ai/api/anthropic",
+      model: "glm-5.3", maxCallsPerDay: 33, maxTokensPerDay: 123456,
+    });
+    const { getAiConfig, invalidateAiSettingsCache } = await import("../src/lib/ai/config");
+    invalidateAiSettingsCache(); // the save route does exactly this
+    const cfg = getAiConfig();
+    expect(cfg!.model).toBe("glm-5.3");
+    expect(cfg!.maxCallsPerDay).toBe(33);
+    expect(cfg!.baseUrl).toBe("https://api.z.ai/api/anthropic");
+    // cleanup
+    const { db } = await import("../src/lib/db");
+    const { appSettings } = await import("../src/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    db.delete(appSettings).where(eq(appSettings.key, "aiSettings.v1")).run();
+    invalidateAiSettingsCache();
+    delete process.env.AQUAMAN_AI_API_KEY;
+    delete process.env.AQUAMAN_AI_MODEL;
+    delete process.env.AQUAMAN_AI_MAX_CALLS_PER_DAY;
+  });
+});

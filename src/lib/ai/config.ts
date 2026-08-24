@@ -24,27 +24,37 @@ export const DEFAULT_MAX_TOKENS_PER_DAY = 200_000;
 /** AbortController timeout for the provider call (AGENTS: 30 s fallback). */
 export const REQUEST_TIMEOUT_MS = 30_000;
 
-/**
- * Rolling history size for the coach chat (single-call pattern, §9) — the
- * ONE source of truth for this cap. route.ts truncates incoming history to
- * this length, client.ts's normalizeHistory re-caps defensively, and
- * coach-chat.tsx trims before sending. All three must agree: a client that
- * sends more than the route accepts (and doesn't truncate) breaks every
- * request for the rest of the conversation (found in review — a real
- * multi-turn chat died after 7 exchanges before this was unified).
- */
-export const MAX_HISTORY_MESSAGES = 12;
+// MAX_HISTORY_MESSAGES lives in ./constants (client-safe) — re-exported for
+// the existing server-side importers.
+export { MAX_HISTORY_MESSAGES } from "./constants";
+import { MAX_HISTORY_MESSAGES as _mhm } from "./constants";
+void _mhm;
+
+import { getAiSettings } from "../settings";
+import type { AiProviderSettingsData } from "./provider-presets";
 
 export function getAiConfig(): AiConfig | null {
   const apiKey = process.env.AQUAMAN_AI_API_KEY?.trim();
   if (!apiKey) return null; // AI off — core features keep working
 
-  const baseUrl = process.env.AQUAMAN_AI_BASE_URL?.trim() || "https://api.anthropic.com";
-  const model = process.env.AQUAMAN_AI_MODEL?.trim() || "";
-  if (!model) return null; // base URL + key without a model is a misconfiguration
+  // Settings (issue #40: /more → AI provider) take precedence; env is the
+  // bootstrap/fallback. The API key itself is env-only by design — never DB.
+  let baseUrl = process.env.AQUAMAN_AI_BASE_URL?.trim() || "https://api.anthropic.com";
+  let model = process.env.AQUAMAN_AI_MODEL?.trim() || "";
+  let maxCallsPerDay = Math.max(1, Number(process.env.AQUAMAN_AI_MAX_CALLS_PER_DAY) || DEFAULT_MAX_CALLS_PER_DAY);
+  let maxTokensPerDay = Math.max(1_000, Number(process.env.AQUAMAN_AI_MAX_TOKENS_PER_DAY) || DEFAULT_MAX_TOKENS_PER_DAY);
 
-  const maxCallsPerDay = Math.max(1, Number(process.env.AQUAMAN_AI_MAX_CALLS_PER_DAY) || DEFAULT_MAX_CALLS_PER_DAY);
-  const maxTokensPerDay = Math.max(1_000, Number(process.env.AQUAMAN_AI_MAX_TOKENS_PER_DAY) || DEFAULT_MAX_TOKENS_PER_DAY);
+  // Settings (issue #40) override env — config.ts is server-only now
+  // (client components import from ./constants), so a static import works.
+  const stored = loadStoredAiSettings();
+  if (stored) {
+    baseUrl = stored.baseUrl;
+    model = stored.model;
+    maxCallsPerDay = stored.maxCallsPerDay;
+    maxTokensPerDay = stored.maxTokensPerDay;
+  }
+
+  if (!model) return null; // base URL + key without a model is a misconfiguration
 
   return { baseUrl, apiKey, model, maxCallsPerDay, maxTokensPerDay };
 }
@@ -74,4 +84,24 @@ export function estimateCostMicros(model: string, promptTokens: number, completi
   };
   const [inPerM, outPerM] = perMTokens[model] ?? [1, 5]; // conservative fallback
   return Math.round((promptTokens / 1e6) * inPerM * 1e6 + (completionTokens / 1e6) * outPerM * 1e6);
+}
+
+
+// ==================== settings bridge (issue #40) ====================
+
+let cachedSettings: AiProviderSettingsData | null | undefined; // undefined = not loaded yet
+
+function loadStoredAiSettings(): AiProviderSettingsData | null {
+  if (cachedSettings !== undefined) return cachedSettings;
+  try {
+    cachedSettings = getAiSettings();
+  } catch {
+    cachedSettings = null; // DB unavailable (build/prerender) — env stands
+  }
+  return cachedSettings;
+}
+
+/** Called after saving AI settings (API route) so the next read picks them up. */
+export function invalidateAiSettingsCache(): void {
+  cachedSettings = undefined;
 }

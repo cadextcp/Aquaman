@@ -9,7 +9,18 @@ import type { Schedule } from "@/lib/db/schema";
 
 const ACTIONS = ["water_change", "fertilize", "filter_change", "filter_clean", "glass_clean", "plant_trim"];
 
-export function ScheduleForm({ tankId, schedule }: { tankId: number; schedule?: Schedule & { tankName: string } }) {
+export function ScheduleForm({
+  tankId,
+  schedule,
+  globalPolicy = "suppress",
+  globalThreshold = 50,
+}: {
+  tankId: number;
+  schedule?: Schedule & { tankName: string };
+  /** global default from /more (issue #39) — "default" means "like global" */
+  globalPolicy?: "fixed" | "suppress";
+  globalThreshold?: number;
+}) {
   const router = useRouter();
   const editing = !!schedule;
   const [actionType, setActionType] = useState(schedule?.actionType ?? "water_change");
@@ -19,7 +30,7 @@ export function ScheduleForm({ tankId, schedule }: { tankId: number; schedule?: 
   const [policy, setPolicy] = useState<"default" | "fixed" | "suppress">(
     schedule?.tightGapPolicy ?? "default",
   );
-  const [threshold, setThreshold] = useState(schedule?.tightGapThresholdPct ?? 50);
+  const [threshold, setThreshold] = useState(schedule?.tightGapThresholdPct ?? globalThreshold);
   const [details, setDetails] = useState(schedule?.details ?? "");
   const [endsOn, setEndsOn] = useState(schedule?.endsOn ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +133,7 @@ export function ScheduleForm({ tankId, schedule }: { tankId: number; schedule?: 
         <legend className="text-xs uppercase tracking-wide px-2">After catching up</legend>
         <div className="flex flex-wrap gap-2 mb-2">
           {([
-            ["default", "Default (calm)"],
+            ["default", `Like global (${globalPolicy === "suppress" ? "calm" : "strict"})`],
             ["suppress", "Calm — skip too-soon repeats"],
             ["fixed", "Strict — keep exact grid"],
           ] as const).map(([v, labelText]) => (

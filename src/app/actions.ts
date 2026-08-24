@@ -455,3 +455,19 @@ export async function deleteWaterTest(id: number): Promise<ActionResult> {
     return { ok: false, error: "Could not delete water test" };
   }
 }
+
+
+// ==================== Global settings (issues #39/#40) ====================
+
+export async function saveGlobalSettingsAction(input: unknown): Promise<ActionResult> {
+  try {
+    const { saveGlobalSettings } = await import("@/lib/settings");
+    saveGlobalSettings(input);
+    revalidatePath("/more");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (err) {
+    console.error("[saveGlobalSettingsAction]", err);
+    return { ok: false, error: "Invalid settings" };
+  }
+}

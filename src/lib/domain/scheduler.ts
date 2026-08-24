@@ -29,6 +29,13 @@ export const MISSED_SLOTS_HINT = 3;
  *              (calm after a stress period — PRD "friendly, not nagging")
  */
 export type TightGapPolicy = "fixed" | "suppress";
+/**
+ * FALLBACK defaults only — the real default lives in appSettings
+ * (issue #39, /more → "After catching up") and is read via
+ * getGlobalSettings(). The scheduler stays pure: callers pass the policy
+ * per schedule row; the row is NULL when the user wants "like global",
+ * which resolveTightGap() fills with these fallbacks.
+ */
 export const DEFAULT_TIGHT_GAP_POLICY: TightGapPolicy = "suppress";
 export const DEFAULT_TIGHT_GAP_THRESHOLD_PCT = 50; // % of intervalDays
 

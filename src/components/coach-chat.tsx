@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { applyProposal } from "@/app/actions-ai";
-import { MAX_HISTORY_MESSAGES } from "@/lib/ai/config";
+import { MAX_HISTORY_MESSAGES } from "@/lib/ai/constants";
 import type { Proposal } from "@/lib/ai/proposal";
 
 type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal };

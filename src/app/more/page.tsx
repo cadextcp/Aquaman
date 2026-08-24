@@ -2,6 +2,9 @@ import { headers } from "next/headers";
 import { getOrCreateIcsToken } from "@/lib/ics-token";
 import { IcsSettings } from "@/components/ics-settings";
 import { DataCard } from "@/components/data-card";
+import { TightGapSettings } from "@/components/tightgap-settings";
+import { AiProviderSettings } from "@/components/ai-provider-settings";
+import { getGlobalSettings, getAiSettings } from "@/lib/settings";
 import { isAiConfigured } from "@/lib/ai/config";
 import { usageForSettings } from "@/lib/ai/cost-guard";
 import { monthlyStats, careReliabilityStats, chronicOverload, aiCostStats } from "@/lib/stats";
@@ -24,6 +27,8 @@ export default async function MorePage() {
 
   const aiOn = isAiConfigured();
   const usage = usageForSettings();
+  const globals = getGlobalSettings();
+  const aiSettings = getAiSettings();
 
   const thisMonth = today().slice(0, 7);
   const stats = monthlyStats(thisMonth);
@@ -88,6 +93,16 @@ export default async function MorePage() {
             </ul>
           </div>
         )}
+      </div>
+
+      {/* Scheduling: after catching up (global) */}
+      <div className="mb-4">
+        <TightGapSettings initialPolicy={globals.tightGapPolicy} initialThreshold={globals.tightGapThresholdPct} />
+      </div>
+
+      {/* AI provider settings */}
+      <div className="mb-4">
+        <AiProviderSettings initial={aiSettings} envConfigured={!!process.env.AQUAMAN_AI_API_KEY} />
       </div>
 
       {/* AI status + 30-day cost */}
