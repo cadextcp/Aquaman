@@ -4,7 +4,12 @@ import { CoachChat } from "@/components/coach-chat";
 
 export const dynamic = "force-dynamic";
 
-export default function CoachPage() {
+export default async function CoachPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const configured = isAiConfigured();
   const usage = usageForSettings();
 
@@ -19,7 +24,7 @@ export default function CoachPage() {
         )}
       </div>
 
-      <CoachChat aiConfigured={configured} />
+      <CoachChat aiConfigured={configured} initialQuestion={q} />
     </main>
   );
 }

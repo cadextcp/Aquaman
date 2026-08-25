@@ -15,6 +15,17 @@ import { sql } from "drizzle-orm";
 
 export type Plant = { name: string; qty: number };
 export type Fish = { species: string; qty: number };
+/** issue #42: food types kept at the tank (for the feed plan's structured details) */
+export type Food = { name: string; amount: string; unit: string };
+/**
+ * issue #42: structured per-action details (replaces free-text for standard
+ * types). Shape depends on actionType:
+ * - water_change: { percent: number }
+ * - fertilize:    { nutrients: Record<nutrientKey, string> } (dose per nutrient)
+ * - feed:         { foods: Record<foodName, string> } (amount per food type)
+ * - filter_change / water_test / others: {} (no structured details)
+ */
+export type DetailData = Record<string, unknown>;
 export type WaterValues = Record<string, number | null>;
 export type ParamOverrides = Record<string, { min?: number; max?: number; warnMin?: number; warnMax?: number }>;
 
@@ -26,6 +37,7 @@ export const tanks = sqliteTable("tanks", {
   photoPath: text("photo_path"),
   plants: text("plants", { mode: "json" }).$type<Plant[]>().notNull().default(sql`'[]'`),
   fish: text("fish", { mode: "json" }).$type<Fish[]>().notNull().default(sql`'[]'`),
+  foods: text("foods", { mode: "json" }).$type<Food[]>().notNull().default(sql`'[]'`),
   hasCo2: integer("has_co2", { mode: "boolean" }).notNull().default(false),
   hasHeater: integer("has_heater", { mode: "boolean" }).notNull().default(false),
   hasFilter: integer("has_filter", { mode: "boolean" }).notNull().default(true),
@@ -59,6 +71,9 @@ export const schedules = sqliteTable(
     snoozeSource: text("snooze_source", { enum: ["user"] }),
     // free-text concrete instructions (issue #30): "30 L of 60 L (50 %)", "10 ml iron fertilizer"
     details: text("details"),
+    // issue #42: STRUCTURED details per standard action type (percent, nutrient doses) —
+    // kept in sync with `details` as the human-readable rendering
+    detailData: text("detail_data", { mode: "json" }).$type<DetailData>(),
     // optional end date (issue #31): bounded schedules — after this date the event
     // disappears from dashboard/calendar/ICS; history/logs stay untouched
     endsOn: text("ends_on"), // YYYY-MM-DD date-only string, compared lexically

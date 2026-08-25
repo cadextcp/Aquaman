@@ -54,6 +54,19 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
           skipped.push({ change: describeChange(c), reason: "Tank no longer exists" });
           continue;
         }
+        // issue #42: duplicate guard — one plan per standard type per tank
+        const { isStandardPlanType } = await import("@/lib/domain/plan-structure");
+        if (isStandardPlanType(c.actionType)) {
+          const dupe = db
+            .select({ id: schedules.id })
+            .from(schedules)
+            .where(and(eq(schedules.tankId, c.tankId), eq(schedules.actionType, c.actionType), eq(schedules.active, true)))
+            .get();
+          if (dupe) {
+            skipped.push({ change: describeChange(c), reason: `a ${c.actionType.replace(/_/g, " ")} plan already exists for this tank (one per type)` });
+            continue;
+          }
+        }
         db.insert(schedules)
           .values({
             tankId: c.tankId,
@@ -64,6 +77,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
             tightGapPolicy: null,
             tightGapThresholdPct: null,
             details: c.details ?? null,
+            detailData: (c.detailData as Record<string, unknown> | undefined) ?? null,
           })
           .run();
         applied.push(describeChange(c));
@@ -90,6 +104,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
           .set({
             intervalDays: c.intervalDays,
             ...(c.details !== undefined ? { details: c.details } : {}),
+            ...(c.detailData !== undefined ? { detailData: c.detailData as Record<string, unknown> } : {}),
             scheduleVersion: sql`${schedules.scheduleVersion} + 1`,
             updatedAt: new Date().toISOString(),
             snoozedUntil: null,

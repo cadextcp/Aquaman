@@ -67,6 +67,8 @@ export const tankRowSchema = z.object({
   hasFilter: z.boolean(),
   filterType: z.string().max(60).nullable(),
   tankState: z.enum(["cycling", "established"]),
+  // v0.3 (issue #42) — food types at the tank, optional for older exports
+  foods: z.array(z.object({ name: z.string().min(1).max(60), amount: z.string().max(30), unit: z.string().max(20) })).max(20).nullable().optional(),
   paramOverrides: z.record(
     z.string(),
     z.object({ min: z.number().optional(), max: z.number().optional(), warnMin: z.number().optional(), warnMax: z.number().optional() }),
@@ -91,6 +93,8 @@ export const scheduleRowSchema = z.object({
   // v0.2.0 (issues #30/#31) — optional so v0.1.0 exports stay importable
   details: z.string().max(300).nullable().optional(),
   endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  // v0.3 (issue #42) — structured details, optional for older exports
+  detailData: z.record(z.string(), z.unknown()).nullable().optional(),
   createdAt: isoString,
   updatedAt: isoString,
   active: z.boolean(),
@@ -197,7 +201,7 @@ export function importSnapshot(raw: unknown): ImportResult {
     tx.delete(tanks).run();
     tx.delete(aiCalls).run();
 
-    for (const row of snap.tanks) tx.insert(tanks).values([row]).run();
+    for (const row of snap.tanks) tx.insert(tanks).values([{ ...row, foods: row.foods ?? [] }]).run();
     for (const row of snap.schedules) tx.insert(schedules).values([row]).run();
     for (const row of snap.maintenanceLogs) tx.insert(maintenanceLogs).values([row]).run();
     for (const row of snap.waterTests) tx.insert(waterTests).values([row]).run();

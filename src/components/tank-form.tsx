@@ -12,6 +12,7 @@ const EMPTY: TankInput = {
   waterType: "fresh",
   plants: [],
   fish: [],
+  foods: [],
   hasCo2: false,
   hasHeater: true,
   hasFilter: true,
@@ -30,6 +31,7 @@ export function TankForm({ tank }: { tank?: Tank }) {
           waterType: tank.waterType,
           plants: tank.plants,
           fish: tank.fish,
+          foods: tank.foods ?? [],
           hasCo2: tank.hasCo2,
           hasHeater: tank.hasHeater,
           hasFilter: tank.hasFilter,
@@ -148,6 +150,9 @@ export function TankForm({ tank }: { tank?: Tank }) {
         placeholder="e.g. Neon tetra"
       />
 
+      {/* issue #42: food types at the tank (used by the feed plan's structured details) */}
+      <FoodEditor foods={form.foods} onChange={(foods) => set("foods", foods)} />
+
       <div className="flex gap-3 pt-2">
         <button type="submit" disabled={pending}
           className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
@@ -205,6 +210,48 @@ function ListEditor({
           + add {title.toLowerCase().replace(/s$/, "")}
         </button>
       </div>
+    </fieldset>
+  );
+}
+
+
+function FoodEditor({
+  foods,
+  onChange,
+}: {
+  foods: { name: string; amount: string; unit: string }[];
+  onChange: (foods: { name: string; amount: string; unit: string }[]) => void;
+}) {
+  const input = { background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" };
+  const field = "rounded-lg px-2.5 py-2 text-sm";
+
+  function update(i: number, patch: Partial<{ name: string; amount: string; unit: string }>) {
+    onChange(foods.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
+  }
+
+  return (
+    <fieldset className="rounded-lg p-3" style={{ boxShadow: "inset 0 0 0 1px var(--border)" }}>
+      <legend className="text-xs uppercase tracking-wide px-2">Foods (for the feed plan)</legend>
+      {foods.map((f, i) => (
+        <div key={i} className="flex gap-1.5 mb-1.5">
+          <input className={`${field} flex-1`} style={input} value={f.name} placeholder="e.g. Flakes"
+            onChange={(e) => update(i, { name: e.target.value })} />
+          <input className={`${field} w-24`} style={input} value={f.amount} placeholder="e.g. 1"
+            onChange={(e) => update(i, { amount: e.target.value })} />
+          <input className={`${field} w-28`} style={input} value={f.unit} placeholder="e.g. pinch"
+            onChange={(e) => update(i, { unit: e.target.value })} />
+          <button type="button" onClick={() => onChange(foods.filter((_, idx) => idx !== i))}
+            className="rounded-md px-2 text-sm" style={{ color: "var(--destructive)", cursor: "pointer" }}>✕</button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...foods, { name: "", amount: "", unit: "" }])}
+        className="btn-outline rounded-lg px-3 py-1.5 text-xs"
+        style={{ minHeight: 36 }}
+      >
+        + Add food
+      </button>
     </fieldset>
   );
 }

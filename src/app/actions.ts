@@ -51,6 +51,7 @@ export async function createTank(input: TankInput, photoPath?: string | null): P
         waterType: parsed.data.waterType,
         plants: parsed.data.plants,
         fish: parsed.data.fish,
+        foods: parsed.data.foods,
         hasCo2: parsed.data.hasCo2,
         hasHeater: parsed.data.hasHeater,
         hasFilter: parsed.data.hasFilter,
@@ -80,6 +81,7 @@ export async function updateTank(id: number, input: TankInput, photoPath?: strin
         waterType: parsed.data.waterType,
         plants: parsed.data.plants,
         fish: parsed.data.fish,
+        foods: parsed.data.foods,
         hasCo2: parsed.data.hasCo2,
         hasHeater: parsed.data.hasHeater,
         hasFilter: parsed.data.hasFilter,
@@ -119,6 +121,18 @@ export async function createSchedule(input: ScheduleInput): Promise<ActionResult
   const parsed = scheduleInputSchema.safeParse(input);
   if (!parsed.success) return zodFail(parsed.error);
   if (!assertLiveTank(parsed.data.tankId)) return { ok: false, error: "Tank not found" };
+  // issue #42: one plan per standard type per tank — duplicates would overlap
+  const { isStandardPlanType } = await import("@/lib/domain/plan-structure");
+  if (isStandardPlanType(parsed.data.actionType)) {
+    const existing = db
+      .select({ id: schedules.id })
+      .from(schedules)
+      .where(and(eq(schedules.tankId, parsed.data.tankId), eq(schedules.actionType, parsed.data.actionType), eq(schedules.active, true)))
+      .get();
+    if (existing) {
+      return { ok: false, error: `This tank already has a ${parsed.data.actionType.replace(/_/g, " ")} plan (one per type) — edit it instead` };
+    }
+  }
   try {
     const row = db
       .insert(schedules)
@@ -130,6 +144,9 @@ export async function createSchedule(input: ScheduleInput): Promise<ActionResult
         autoReschedule: parsed.data.autoReschedule,
         tightGapPolicy: parsed.data.tightGapPolicy,
         tightGapThresholdPct: parsed.data.tightGapThresholdPct,
+        details: parsed.data.details ?? null,
+        detailData: (parsed.data.detailData as Record<string, unknown> | null | undefined) ?? null,
+        endsOn: parsed.data.endsOn ?? null,
       })
       .returning()
       .get();
@@ -146,6 +163,18 @@ export async function updateSchedule(id: number, input: ScheduleInput): Promise<
   const parsed = scheduleInputSchema.safeParse(input);
   if (!parsed.success) return zodFail(parsed.error);
   if (!assertLiveTank(parsed.data.tankId)) return { ok: false, error: "Tank not found" };
+  // issue #42: renaming to a standard type another active plan already holds → block
+  const { isStandardPlanType } = await import("@/lib/domain/plan-structure");
+  if (isStandardPlanType(parsed.data.actionType)) {
+    const clash = db
+      .select({ id: schedules.id })
+      .from(schedules)
+      .where(and(eq(schedules.tankId, parsed.data.tankId), eq(schedules.actionType, parsed.data.actionType), eq(schedules.active, true)))
+      .get();
+    if (clash && clash.id !== id) {
+      return { ok: false, error: `This tank already has a ${parsed.data.actionType.replace(/_/g, " ")} plan` };
+    }
+  }
   try {
     db.update(schedules)
       .set({
@@ -157,6 +186,7 @@ export async function updateSchedule(id: number, input: ScheduleInput): Promise<
         tightGapPolicy: parsed.data.tightGapPolicy,
         tightGapThresholdPct: parsed.data.tightGapThresholdPct,
         details: parsed.data.details ?? null,
+        detailData: (parsed.data.detailData as Record<string, unknown> | null | undefined) ?? null,
         endsOn: parsed.data.endsOn ?? null,
         // Issue #27: atomic increment — no read-modify-write, no silent ?? 0
         scheduleVersion: sql`${schedules.scheduleVersion} + 1`,

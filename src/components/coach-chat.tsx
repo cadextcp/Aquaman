@@ -18,7 +18,7 @@ type UsageInfo = { calls: number; totalTokens: number; maxCalls: number; maxToke
 
 type Suggestion = { label: string; prompt: string };
 
-export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
+export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boolean; initialQuestion?: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -53,6 +53,16 @@ export function CoachChat({ aiConfigured }: { aiConfigured: boolean }) {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // issue #42: banner deep-link (?q=…) sends the prepared question once
+  const sentInitial = useRef(false);
+  useEffect(() => {
+    if (initialQuestion && !sentInitial.current) {
+      sentInitial.current = true;
+      askWithQuestion(initialQuestion);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuestion]);
 
   async function ask() {
     const question = input.trim();
@@ -348,6 +358,14 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
                 style={{ width: 26, height: 26, background: "rgba(145,132,217,0.14)", boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.4)", color: "var(--accent-light)", cursor: "pointer" }}>+</button>
               <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>d</span>
             </div>
+            {c.kind === "adjust" && initial.changes[i]?.details && initial.changes[i].details !== (c.details ?? "") && (
+              <div className="flex items-center gap-2 text-xs mb-1.5">
+                <span className="tnum" style={{ color: "rgba(233,233,237,0.4)", textDecoration: "line-through" }}>
+                  {initial.changes[i].details}
+                </span>
+                <i aria-hidden className="ph ph-arrow-right text-[10px]" style={{ color: "rgba(233,233,237,0.35)" }} />
+              </div>
+            )}
             <input
               className="w-full rounded px-2 py-1.5 text-sm"
               style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit" }}

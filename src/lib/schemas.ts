@@ -23,6 +23,7 @@ export const tankInputSchema = z.object({
   waterType: z.enum(["fresh", "salt"]),
   plants: z.array(plantSchema).max(50).default([]),
   fish: z.array(fishSchema).max(50).default([]),
+  foods: z.array(z.object({ name: z.string().trim().min(1).max(60), amount: z.string().trim().max(30), unit: z.string().trim().max(20) })).max(20).default([]),
   hasCo2: z.boolean().default(false),
   hasHeater: z.boolean().default(false),
   hasFilter: z.boolean().default(true),
@@ -45,6 +46,8 @@ export const scheduleInputSchema = z.object({
   tightGapThresholdPct: z.number().int().min(1).max(99).nullable().default(null),
   // issue #30: concrete instructions, e.g. "30 L of 60 L (50 %)" / "10 ml iron fertilizer"
   details: z.string().trim().max(300).optional().nullable(),
+  // issue #42: structured details (percent / nutrient doses / food amounts)
+  detailData: z.record(z.string(), z.unknown()).optional().nullable(),
   // issue #31: optional end date — after it, the event vanishes from calendar/ICS
   endsOn: z
     .string()

@@ -6,6 +6,8 @@ import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/do
 import { EditTankButton } from "@/components/edit-tank-button";
 import { Sparkline } from "@/components/sparkline";
 import { scheduleAdherence } from "@/lib/stats";
+import { STANDARD_PLAN_TYPES } from "@/lib/domain/plan-structure";
+import { PlanRecommendBanner } from "@/components/plan-recommend-banner";
 import { ScheduleForm } from "@/components/schedule-form";
 import { ScheduleCard } from "@/components/schedule-card";
 import { today as todayStrLocal } from "@/lib/domain/dates";
@@ -44,8 +46,12 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
     );
   }
 
+  const existingTypes = new Set(schedules.map((x) => x.actionType));
+  const missingPlans = STANDARD_PLAN_TYPES.filter((t) => !existingTypes.has(t));
+
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
+      <PlanRecommendBanner tankId={tank.id} tankName={tank.name} missingPlans={missingPlans} hasAnyPlans={schedules.length > 0} />
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold">{tank.name}</h1>

@@ -35,7 +35,7 @@ describe("repo + actions integration", () => {
     const { createTank, deleteTank } = await import("../src/app/actions");
     const { listTanks, listSchedules, createScheduleDirect } = await import("./helpers");
     const res = await createTank({
-      name: "IT Tank", volumeL: 100, waterType: "fresh", plants: [], fish: [],
+      name: "IT Tank", volumeL: 100, waterType: "fresh", plants: [], fish: [], foods: [],
       hasCo2: false, hasHeater: true, hasFilter: true, filterType: null, tankState: "established",
     });
     expect(res.ok).toBe(true);

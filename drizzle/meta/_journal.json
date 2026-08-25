@@ -22,6 +22,13 @@
       "when": 1787588823378,
       "tag": "0002_black_trauma",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787632714563,
+      "tag": "0003_curvy_luckman",
+      "breakpoints": true
     }
   ]
 }

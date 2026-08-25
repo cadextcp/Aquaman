@@ -6,6 +6,8 @@ import { createSchedule, markDone, snooze, setScheduleActive } from "@/app/actio
 import { WEEKDAY_LABELS, ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } from "@/lib/schemas";
 import type { ScheduleInput } from "@/lib/schemas";
 import type { Schedule } from "@/lib/db/schema";
+import { StructuredDetailsEditor } from "./structured-details-editor";
+import { formatDetailData, isStandardPlanType } from "@/lib/domain/plan-structure";
 
 const ACTIONS = ["water_change", "fertilize", "filter_change", "filter_clean", "glass_clean", "plant_trim"];
 
@@ -14,12 +16,17 @@ export function ScheduleForm({
   schedule,
   globalPolicy = "suppress",
   globalThreshold = 50,
+  tankVolumeL = 60,
+  tankFoods = [],
 }: {
   tankId: number;
   schedule?: Schedule & { tankName: string };
   /** global default from /more (issue #39) — "default" means "like global" */
   globalPolicy?: "fixed" | "suppress";
   globalThreshold?: number;
+  /** issue #42: for structured detail rendering (% → liters, feed foods) */
+  tankVolumeL?: number;
+  tankFoods?: { name: string; amount: string; unit: string }[];
 }) {
   const router = useRouter();
   const editing = !!schedule;
@@ -32,6 +39,9 @@ export function ScheduleForm({
   );
   const [threshold, setThreshold] = useState(schedule?.tightGapThresholdPct ?? globalThreshold);
   const [details, setDetails] = useState(schedule?.details ?? "");
+  const [detailData, setDetailData] = useState<Record<string, unknown> | null>(
+    (schedule?.detailData as Record<string, unknown> | null) ?? null,
+  );
   const [endsOn, setEndsOn] = useState(schedule?.endsOn ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -52,6 +62,7 @@ export function ScheduleForm({
       tightGapPolicy: policy === "default" ? null : policy,
       tightGapThresholdPct: policy === "suppress" ? threshold : null,
       details: details.trim() === "" ? null : details.trim(),
+      detailData,
       endsOn: endsOn === "" ? null : endsOn,
     };
     const res = editing
@@ -85,12 +96,28 @@ export function ScheduleForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs uppercase tracking-wide mb-1">Details (optional)</label>
-        <input className={field} style={input} value={details}
-          placeholder='e.g. "30 L of 60 L (50 %)" or "10 ml iron fertilizer"'
-          onChange={(e) => setDetails(e.target.value)} maxLength={300} />
-      </div>
+      {isStandardPlanType(actionType) && actionType !== "filter_change" && actionType !== "water_test" ? (
+        <StructuredDetailsEditor
+          actionType={actionType}
+          tankVolumeL={tankVolumeL}
+          tankFoods={tankFoods}
+          value={detailData}
+          onChange={(data, rendered) => {
+            setDetailData(data);
+            setDetails(rendered); // keep the human-readable line in sync
+          }}
+        />
+      ) : (
+        <div>
+          <label className="block text-xs uppercase tracking-wide mb-1">Details (optional)</label>
+          <input className={field} style={input} value={details}
+            placeholder='e.g. "rinse media in tank water"'
+            onChange={(e) => setDetails(e.target.value)} maxLength={300} />
+        </div>
+      )}
+      {details && (
+        <p className="text-xs" style={{ color: "var(--accent-light)" }}>→ {details}</p>
+      )}
 
       <div>
         <label className="block text-xs uppercase tracking-wide mb-1">Ends on (optional)</label>
