@@ -74,6 +74,7 @@ export async function updateTank(id: number, input: TankInput, photoPath?: strin
   const parsed = tankInputSchema.safeParse(input);
   if (!parsed.success) return zodFail(parsed.error);
   try {
+    const before = db.select().from(tanks).where(and(eq(tanks.id, id), isNull(tanks.deletedAt))).get();
     db.update(tanks)
       .set({
         name: parsed.data.name,
@@ -94,6 +95,24 @@ export async function updateTank(id: number, input: TankInput, photoPath?: strin
     revalidatePath(`/tanks/${id}`);
     revalidatePath("/tanks");
     revalidatePath("/");
+    revalidatePath("/coach");
+
+    // plan review trigger: did master data that affects the plan change?
+    if (before) {
+      const masterChanged =
+        before.volumeL !== parsed.data.volumeL ||
+        JSON.stringify(before.fish) !== JSON.stringify(parsed.data.fish) ||
+        JSON.stringify(before.plants) !== JSON.stringify(parsed.data.plants) ||
+        JSON.stringify(before.foods ?? []) !== JSON.stringify(parsed.data.foods ?? []) ||
+        before.hasCo2 !== parsed.data.hasCo2 ||
+        before.hasHeater !== parsed.data.hasHeater ||
+        before.hasFilter !== parsed.data.hasFilter ||
+        before.filterType !== (parsed.data.filterType ?? null);
+      if (masterChanged) {
+        const { requestPlanReview } = await import("@/lib/ai/plan-review");
+        requestPlanReview("tank_change");
+      }
+    }
     return { ok: true };
   } catch (err) {
     console.error("[updateTank]", err);
@@ -311,6 +330,9 @@ export async function logWaterTest(input: unknown): Promise<ActionResult> {
     });
     revalidatePath("/");
     revalidatePath(`/tanks/${parsed.data.tankId}`);
+    revalidatePath("/coach");
+    const { requestPlanReview } = await import("@/lib/ai/plan-review");
+    requestPlanReview("water_test");
     return { ok: true };
   } catch (err) {
     console.error("[logWaterTest]", err);
@@ -465,6 +487,9 @@ export async function updateWaterTest(input: unknown): Promise<ActionResult> {
       .run();
     revalidatePath("/");
     revalidatePath(`/tanks/${parsed.data.tankId}`);
+    revalidatePath("/coach");
+    const { requestPlanReview } = await import("@/lib/ai/plan-review");
+    requestPlanReview("water_test");
     return { ok: true };
   } catch (err) {
     console.error("[updateWaterTest]", err);

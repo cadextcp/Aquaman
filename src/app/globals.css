@@ -125,6 +125,11 @@ body {
   55% { transform: scale(1.12); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+@keyframes coach-pulse {
+  0% { transform: scale(0.7); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.7); opacity: 0.5; }
+}
 @keyframes aqua-tickin {
   0% { transform: translateY(6px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
@@ -146,6 +151,10 @@ body {
   .anim-checkpop,
   .anim-tickin {
     animation: none;
+  }
+  [style*="coach-pulse"] {
+    animation: none !important;
+    opacity: 0.9 !important;
   }
   * {
     transition-duration: 0.01ms !important;

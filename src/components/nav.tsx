@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CoachNavItem } from "./coach-badge";
 
 /** Shared nav config — single source (issue #16 cleanup). Phosphor icons since #43. */
 const NAV_ITEMS = [
@@ -22,7 +23,19 @@ export function BottomNav() {
       }}
     >
       <div className="grid grid-cols-5">
-        {NAV_ITEMS.map((i) => (
+        {NAV_ITEMS.filter((i) => i.href !== "/coach").slice(0, 3).map((i) => (
+          <Link
+            key={i.href}
+            href={i.href}
+            className="flex flex-col items-center justify-center gap-1 py-2 text-xs"
+            style={{ color: "var(--muted-foreground)", minHeight: 56 }}
+          >
+            <i aria-hidden className={`ph ph-${i.icon} text-xl`} />
+            {i.label}
+          </Link>
+        ))}
+        <CoachNavItem variant="bottom" />
+        {NAV_ITEMS.filter((i) => i.href !== "/coach").slice(3).map((i) => (
           <Link
             key={i.href}
             href={i.href}
@@ -49,7 +62,7 @@ export function SideNav() {
         <i aria-hidden className="ph ph-drop text-2xl" />
         Aquaman
       </div>
-      {NAV_ITEMS.map((i) => (
+      {NAV_ITEMS.filter((i) => i.href !== "/coach").map((i) => (
         <Link
           key={i.href}
           href={i.href}
@@ -60,6 +73,7 @@ export function SideNav() {
           {i.label}
         </Link>
       ))}
+      <CoachNavItem variant="side" />
     </aside>
   );
 }

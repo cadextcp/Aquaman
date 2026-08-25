@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { applyProposal } from "@/app/actions-ai";
+import { PlanReviewBanner } from "./plan-review-banner";
 import { MAX_HISTORY_MESSAGES } from "@/lib/ai/constants";
 import type { Proposal } from "@/lib/ai/proposal";
 
@@ -219,6 +220,8 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
           {banner}
         </div>
       )}
+
+      <PlanReviewBanner onUsePrompt={(prompt) => askWithQuestion(prompt)} />
 
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
