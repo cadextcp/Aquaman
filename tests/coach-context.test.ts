@@ -142,3 +142,51 @@ describe("parseProposal", () => {
     ).toBeNull();
   });
 });
+
+describe("fishless tanks must be explicit in the AI context (no phantom feeding)", () => {
+  it("context states fish: NONE for a plants-only tank — never omits livestock", async () => {
+    const { db } = await import("../src/lib/db");
+    const { tanks } = await import("../src/lib/db/schema");
+    db.insert(tanks).values({
+      name: "Plants Only", volumeL: 60, waterType: "fresh",
+      plants: [{ name: "Anubias", qty: 3 }], fish: [], // ← no fish, deliberate
+      tankState: "established",
+    }).run();
+
+    const { buildCoachContext } = await import("../src/lib/ai/context");
+    const ctx = buildCoachContext();
+    expect(ctx).toContain("Plants Only");
+    expect(ctx).toMatch(/fish:\s*NONE/i); // explicit, not omitted
+    expect(ctx).toContain("do NOT suggest feeding");
+    // the plant line still works the other way round
+    expect(ctx).toContain("Anubias");
+  });
+
+  it("tanks WITH fish list them with counts", async () => {
+    const { db } = await import("../src/lib/db");
+    const { tanks } = await import("../src/lib/db/schema");
+    db.insert(tanks).values({
+      name: "Stocked", volumeL: 120, waterType: "fresh",
+      plants: [], fish: [{ species: "Guppy", qty: 8 }],
+      tankState: "established",
+    }).run();
+    const { buildCoachContext } = await import("../src/lib/ai/context");
+    const ctx = buildCoachContext();
+    expect(ctx).toContain("fish: Guppy x8");
+    expect(ctx).toContain("plants: none"); // symmetric fallback
+  });
+
+  it("COACH_SYSTEM_PROMPT forbids feeding suggestions for fishless tanks", async () => {
+    const { COACH_SYSTEM_PROMPT } = await import("../src/lib/ai/context");
+    expect(COACH_SYSTEM_PROMPT).toMatch(/fish:\s*"?NONE"?/);
+    expect(COACH_SYSTEM_PROMPT).toMatch(/do NOT suggest feeding/i);
+  });
+
+  it("plan-review SYSTEM prompt ALSO forbids feeding proposals for fishless tanks", async () => {
+    // read the module source (the prompt is a private const) and pin the rule —
+    // the plan review is the OTHER path that could suggest feeding
+    const src = await import("node:fs").then((fs) => fs.readFileSync("src/lib/ai/plan-review-runner.ts", "utf-8"));
+    expect(src).toMatch(/fish:\s*"?NONE"?/);
+    expect(src).toMatch(/NEVER propose feeding/i);
+  });
+});

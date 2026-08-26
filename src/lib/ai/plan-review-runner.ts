@@ -21,7 +21,8 @@ Rules:
 - If the current plan is still appropriate, return shouldChange=false with a one-line summary. Do NOT invent changes.
 - If changes make sense, return shouldChange=true, a one-sentence summary of WHY, and up to 3 prompts the user can click — each prompt must be a complete, self-contained question for the coach (it will be sent verbatim into the chat), e.g. "Please update my water change plan for Nano Cube 60: nitrate is rising, suggest a new interval".
 - Labels are short chip texts (max ~60 chars), action-oriented.
-- Fertilizer/water-change amounts only, never medication dosages; always remind to verify fertilizer dosages against the product label in the prompt text.`;
+- Fertilizer/water-change amounts only, never medication dosages; always remind to verify fertilizer dosages against the product label in the prompt text.
+- If a tank's context lists "fish: NONE", it has NO fish. NEVER propose feeding-related plan changes or feeding prompts for it — only plants-relevant care (fertilization, water changes, testing).`
 
 export async function executePlanReview(
   reason: "tank_change" | "water_test",

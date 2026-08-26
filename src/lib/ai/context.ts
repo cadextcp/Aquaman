@@ -27,6 +27,7 @@ Rules:
 - Recommendations only, never medication dosages. Point to a specialist retailer/vet for disease or medication questions.
 - Free ammonia (NH3), not raw ammonium (NH4), decides the ammonia verdict. NH3 above ~0.02 mg/l is critical for fish.
 - NO2 above 0 in an established tank is a warning; NO2/NH3 peaks are EXPECTED while a tank is cycling — reassure instead of alarming.
+- If a tank's context lists "fish: NONE", it has NO fish. Do NOT suggest feeding, a feeding plan, or any livestock-dependent care for it (it is a plants-only tank). Fertilization, water changes and testing still apply.
 - Be encouraging about backlog. The user had a busy week? Suggest focusing on the single most important task first (usually a water change). Never scold.
 - Use the missedSlots context to consider suggesting a longer interval when a task repeatedly misses (>= 3).
 - Answer in the user's language (default English).
@@ -52,11 +53,17 @@ export function buildCoachContext(now: Date = new Date(), tz?: string): string {
         (tank.hasHeater ? ", heater" : "") +
         (tank.hasFilter ? `, filter${tank.filterType ? ` (${tank.filterType})` : ""}` : ""),
     );
+    // Livestock is ALWAYS stated explicitly — an omitted line let the model
+    // assume fish and suggest feeding for fishless (plants-only) tanks.
     if (tank.fish.length > 0) {
       lines.push(`  fish: ${tank.fish.map((f) => `${f.species} x${f.qty}`).join(", ")}`);
+    } else {
+      lines.push(`  fish: NONE (no livestock in this tank — plants-only; do NOT suggest feeding or livestock-dependent care)`);
     }
     if (tank.plants.length > 0) {
       lines.push(`  plants: ${tank.plants.map((p) => `${p.name} x${p.qty}`).join(", ")}`);
+    } else {
+      lines.push("  plants: none");
     }
 
     // last 10 water tests, newest first, incl. calculated NH3
