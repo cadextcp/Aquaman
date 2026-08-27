@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import { getOrCreateIcsToken } from "@/lib/ics-token";
+import { getOrCreateMcpToken } from "@/lib/mcp-token";
 import { IcsSettings } from "@/components/ics-settings";
+import { McpSettings } from "@/components/mcp-settings";
 import { DataCard } from "@/components/data-card";
 import { TightGapSettings } from "@/components/tightgap-settings";
 import { AiProviderSettings } from "@/components/ai-provider-settings";
@@ -47,6 +49,11 @@ export default async function MorePage() {
 
       <div className="mb-4">
         <IcsSettings initialUrl={icsUrl} />
+      </div>
+
+      {/* MCP endpoint (product v1.1) */}
+      <div className="mb-4">
+        <McpSettings endpointUrl={`${proto}://${host}/api/mcp`} token={getOrCreateMcpToken()} />
       </div>
 
       {/* Statistics */}

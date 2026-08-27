@@ -8,12 +8,10 @@ import { tanks, schedules, maintenanceLogs, waterTests, feedLogs } from "@/lib/d
 import {
   tankInputSchema,
   scheduleInputSchema,
-  snoozeInputSchema,
   waterTestInputSchema,
   type TankInput,
   type ScheduleInput,
 } from "@/lib/schemas";
-import { addMaintenanceLog, addWaterTest } from "@/lib/repo";
 import { today as todayStr } from "@/lib/domain/dates";
 
 export type ActionResult<T = undefined> =
@@ -257,22 +255,11 @@ export async function setScheduleActive(id: number, active: boolean): Promise<Ac
 
 export async function markDone(scheduleId: number, note?: string): Promise<ActionResult> {
   try {
-    const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
-    if (!s) return { ok: false, error: "Schedule not found" };
-    addMaintenanceLog({ tankId: s.tankId, actionType: s.actionType, note });
-    // lastDoneAt = now (local day), clear snooze; scheduleVersion++ → ICS SEQUENCE
-    db.update(schedules)
-      .set({
-        lastDoneAt: new Date().toISOString(),
-        snoozedUntil: null,
-        snoozeSource: null,
-        scheduleVersion: s.scheduleVersion + 1,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(schedules.id, scheduleId))
-      .run();
+    const { markScheduleDoneCore } = await import("@/lib/repo");
+    const res = markScheduleDoneCore(scheduleId, note);
+    if (!res.ok) return res;
     revalidatePath("/");
-    revalidatePath(`/tanks/${s.tankId}`);
+    revalidatePath(`/tanks/${res.tankId}`);
     return { ok: true };
   } catch (err) {
     console.error("[markDone]", err);
@@ -281,28 +268,12 @@ export async function markDone(scheduleId: number, note?: string): Promise<Actio
 }
 
 export async function snooze(scheduleId: number, until: string): Promise<ActionResult> {
-  const parsed = snoozeInputSchema.safeParse({ scheduleId, until });
-  if (!parsed.success) return zodFail(parsed.error);
-  // Issue #27: a past snooze is meaningless (nextDue ignores it) — reject it
-  const todayLocal = todayStr();
-  if (until < todayLocal) {
-    return { ok: false, error: "Cannot snooze to a past date", fieldErrors: { until: "must be today or later" } };
-  }
   try {
-    const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
-    if (!s) return { ok: false, error: "Schedule not found" };
-    // User snooze date is taken LITERALLY — no weekday gridding (issue #6)
-    db.update(schedules)
-      .set({
-        snoozedUntil: `${until}T00:00:00.000Z`,
-        snoozeSource: "user",
-        scheduleVersion: s.scheduleVersion + 1,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(schedules.id, scheduleId))
-      .run();
+    const { snoozeScheduleCore } = await import("@/lib/repo");
+    const res = snoozeScheduleCore(scheduleId, until);
+    if (!res.ok) return res;
     revalidatePath("/");
-    revalidatePath(`/tanks/${s.tankId}`);
+    revalidatePath(`/tanks/${res.tankId}`);
     return { ok: true };
   } catch (err) {
     console.error("[snooze]", err);
@@ -313,23 +284,12 @@ export async function snooze(scheduleId: number, until: string): Promise<ActionR
 // ==================== Water tests ====================
 
 export async function logWaterTest(input: unknown): Promise<ActionResult> {
-  const parsed = waterTestInputSchema.safeParse(input);
-  if (!parsed.success) return zodFail(parsed.error);
-  const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
-  if (!tank) return { ok: false, error: "Tank not found" };
-  // Issue #24: whitelist keys + plausibility bounds per water type
-  const { validateWaterValues } = await import("@/lib/schemas");
-  const [clean, vErr] = validateWaterValues(parsed.data.values, tank.waterType);
-  if (vErr || !clean) return { ok: false, error: vErr ?? "Invalid values" };
   try {
-    addWaterTest({
-      tankId: parsed.data.tankId,
-      measuredAt: parsed.data.measuredAt,
-      values: clean,
-      note: parsed.data.note ?? undefined,
-    });
+    const { logWaterTestCore } = await import("@/lib/repo");
+    const res = logWaterTestCore(input);
+    if (!res.ok) return res;
     revalidatePath("/");
-    revalidatePath(`/tanks/${parsed.data.tankId}`);
+    revalidatePath(`/tanks/${res.tankId}`);
     revalidatePath("/coach");
     const { requestPlanReview } = await import("@/lib/ai/plan-review");
     requestPlanReview("water_test");
@@ -367,6 +327,21 @@ export async function rotateIcsTokenAction(): Promise<ActionResult<{ token: stri
     return { ok: true, data: { token } };
   } catch (err) {
     console.error("[rotateIcsTokenAction]", err);
+    return { ok: false, error: "Could not rotate token" };
+  }
+}
+
+// ==================== MCP token (product v1.1) ====================
+
+/** Rotates the MCP bearer token — every configured agent loses access immediately. */
+export async function rotateMcpTokenAction(): Promise<ActionResult<{ token: string }>> {
+  try {
+    const { rotateMcpToken } = await import("@/lib/mcp-token");
+    const token = rotateMcpToken();
+    revalidatePath("/more");
+    return { ok: true, data: { token } };
+  } catch (err) {
+    console.error("[rotateMcpTokenAction]", err);
     return { ok: false, error: "Could not rotate token" };
   }
 }
