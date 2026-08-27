@@ -29,6 +29,7 @@ export function FeedControl({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const bubbleId = useRef(0);
 
   function spawnBubbles() {
@@ -48,13 +49,17 @@ export function FeedControl({
 
   async function adjust(delta: 1 | -1) {
     if (delta === 1) spawnBubbles();
-    await adjustFeedOn(tankId, day, delta);
+    // A rejected day (stale tab past midnight, hand-edited ?day=) must not fail
+    // silently — the refresh would just re-render the unchanged count.
+    const res = await adjustFeedOn(tankId, day, delta);
+    setError(res.ok ? null : res.error);
     startTransition(() => router.refresh());
   }
 
   const fed = timesFed > 0;
 
   return (
+    <>
     <div
       className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 w-full"
       style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.07)", minHeight: 52 }}
@@ -149,5 +154,11 @@ export function FeedControl({
         </div>
       </div>
     </div>
+    {error && (
+      <p role="alert" className="text-xs px-3" style={{ color: "var(--destructive)" }}>
+        {error}
+      </p>
+    )}
+    </>
   );
 }

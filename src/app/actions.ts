@@ -12,7 +12,8 @@ import {
   type TankInput,
   type ScheduleInput,
 } from "@/lib/schemas";
-import { today as todayStr, addDays } from "@/lib/domain/dates";
+import { today as todayStr } from "@/lib/domain/dates";
+import { feedDayError } from "@/lib/domain/feed-window";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -397,24 +398,10 @@ export async function undoLastDone(scheduleId: number): Promise<ActionResult> {
 }
 
 // ==================== Feed adjust ± (issue #32, day backfill owner request) ====================
-
-/** Backfill window: feeding can be edited for the last 30 days, never the future. */
-const FEED_BACKFILL_DAYS = 30;
-/** Real calendar-date validation (2026-13-99 is shape-valid but not a date). */
-const feedDaySchema = z.string().date();
-
-/**
- * Validate a feed day for the dashboard's day navigation: a real YYYY-MM-DD
- * calendar date, today or earlier, at most 30 days back (typo guard, same
- * spirit as the water-value plausibility bounds). Returns error message or null.
- */
-function feedDayError(day: string): string | null {
-  if (!feedDaySchema.safeParse(day).success) return "Invalid date";
-  const t = todayStr();
-  if (day > t) return "Cannot log feeding for a future date";
-  if (day < addDays(t, -FEED_BACKFILL_DAYS)) return `Feeding can only be backfilled ${FEED_BACKFILL_DAYS} days back`;
-  return null;
-}
+//
+// The backfill window itself lives in @/lib/domain/feed-window so the dashboard's
+// day navigation and this validation can never disagree about which days are
+// editable.
 
 export async function adjustFeedToday(tankId: number, delta: 1 | -1): Promise<ActionResult<{ timesFed: number }>> {
   // Issue #25: NO caller-supplied timezone — AQUAMAN_TIMEZONE governs "today".

@@ -142,22 +142,22 @@ export function adjustFeedCore(
   tankId: number,
   localDay: string,
   delta: 1 | -1,
-): { ok: true; timesFed: number } {
+): { timesFed: number } {
   const current = todayFeed(tankId, localDay);
   const nowCount = current?.timesFed ?? 0;
 
   if (delta === -1) {
-    if (!current || nowCount <= 0) return { ok: true, timesFed: 0 };
+    if (!current || nowCount <= 0) return { timesFed: 0 };
     if (nowCount === 1) {
       db.delete(feedLogs).where(eq(feedLogs.id, current.id)).run();
-      return { ok: true, timesFed: 0 };
+      return { timesFed: 0 };
     }
     db.update(feedLogs).set({ timesFed: nowCount - 1 }).where(eq(feedLogs.id, current.id)).run();
-    return { ok: true, timesFed: nowCount - 1 };
+    return { timesFed: nowCount - 1 };
   }
 
   // +1, capped at 5
-  if (nowCount >= 5) return { ok: true, timesFed: nowCount };
+  if (nowCount >= 5) return { timesFed: nowCount };
   if (current) {
     db.update(feedLogs)
       .set({ timesFed: nowCount + 1, fedAt: new Date().toISOString() })
@@ -168,7 +168,7 @@ export function adjustFeedCore(
       .values({ tankId, day: localDay, fedAt: new Date().toISOString(), timesFed: 1 })
       .run();
   }
-  return { ok: true, timesFed: nowCount + 1 };
+  return { timesFed: nowCount + 1 };
 }
 
 // ==================== Shared write cores (Server Actions + MCP tools) ====================

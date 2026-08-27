@@ -4,13 +4,11 @@ import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/do
 import { careStreak } from "@/lib/domain/streak";
 import { scheduleAdherence, crossTankStats, weeklySummary } from "@/lib/stats";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
+import { feedMinDay, resolveFeedDay } from "@/lib/domain/feed-window";
 import { ScheduleCard } from "@/components/schedule-card";
 import { FeedControl } from "@/components/feed-checkbox";
 
 export const dynamic = "force-dynamic";
-
-/** Owner request: feeding can be backfilled for this many past days. */
-const FEED_BACKFILL_DAYS = 30;
 
 /** "Monday 24 August" (design header label) — date-only string, UTC-safe. */
 function fullDateLabel(dateStr: string): string {
@@ -52,11 +50,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     adherences.length > 0 ? Math.round(adherences.reduce((acc, a) => acc + (a.pct ?? 0), 0) / adherences.length) : null;
   const t = todayStr();
   const weekEnd = addDays(t, 7);
-  // feeding day navigation (?day=YYYY-MM-DD): anything invalid/out of the
-  // 30-day backfill window silently falls back to today — the nav can only
-  // produce valid values, this is just the backstop
-  const minDay = addDays(t, -FEED_BACKFILL_DAYS);
-  const day = dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) && dayParam <= t && dayParam >= minDay ? dayParam : t;
+  // feeding day navigation (?day=YYYY-MM-DD): anything the feed action would
+  // reject — non-dates, the future, beyond the backfill window — falls back to
+  // today, so the arrows never render a day whose stepper would fail
+  const minDay = feedMinDay(t);
+  const day = resolveFeedDay(dayParam, t);
   const prevDay = day > minDay ? addDays(day, -1) : null;
   const nextDay = day < t ? addDays(day, 1) : null;
   const feeds = feedAllToday(day);

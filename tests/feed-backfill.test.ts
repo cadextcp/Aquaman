@@ -97,6 +97,25 @@ describe("adjustFeedOn (day backfill)", () => {
   });
 });
 
+describe("resolveFeedDay (dashboard ?day= backstop)", () => {
+  it("accepts editable days and falls back to today for anything the action would reject", async () => {
+    const { resolveFeedDay } = await import("../src/lib/domain/feed-window");
+    const { addDays } = await import("../src/lib/domain/dates");
+    const t = "2026-08-27";
+
+    expect(resolveFeedDay(addDays(t, -1), t)).toBe(addDays(t, -1));
+    expect(resolveFeedDay(addDays(t, -30), t)).toBe(addDays(t, -30)); // window edge
+    expect(resolveFeedDay(undefined, t)).toBe(t);
+    expect(resolveFeedDay(addDays(t, 1), t)).toBe(t); // future
+    expect(resolveFeedDay(addDays(t, -31), t)).toBe(t); // beyond the window
+    // shape-valid but not real calendar dates — these used to pass the page's
+    // regex backstop and then be rejected by the action, so the stepper silently did nothing
+    expect(resolveFeedDay("2026-08-00", t)).toBe(t);
+    expect(resolveFeedDay("2026-07-32", t)).toBe(t);
+    expect(resolveFeedDay("hacker", t)).toBe(t);
+  });
+});
+
 describe("adjustFeedToday (today wrapper over the same core)", () => {
   it("keeps the ActionResult data contract and today-keyed writes", async () => {
     const { createTankDirect } = await import("./helpers");
