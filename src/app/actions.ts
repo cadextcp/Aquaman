@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { tanks, schedules, maintenanceLogs, waterTests, feedLogs } from "@/lib/db/schema";
+import { tanks, schedules, maintenanceLogs, waterTests } from "@/lib/db/schema";
 import {
   tankInputSchema,
   scheduleInputSchema,
@@ -12,7 +12,7 @@ import {
   type TankInput,
   type ScheduleInput,
 } from "@/lib/schemas";
-import { today as todayStr } from "@/lib/domain/dates";
+import { today as todayStr, addDays } from "@/lib/domain/dates";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -396,47 +396,54 @@ export async function undoLastDone(scheduleId: number): Promise<ActionResult> {
   }
 }
 
-// ==================== Feed adjust ± (issue #32) ====================
+// ==================== Feed adjust ± (issue #32, day backfill owner request) ====================
+
+/** Backfill window: feeding can be edited for the last 30 days, never the future. */
+const FEED_BACKFILL_DAYS = 30;
+/** Real calendar-date validation (2026-13-99 is shape-valid but not a date). */
+const feedDaySchema = z.string().date();
 
 /**
- * Increment/decrement today's feeding count (bounds 0..5). Decrement below 0
- * is a no-op; a count reaching 0 deletes today's row ("not fed today").
+ * Validate a feed day for the dashboard's day navigation: a real YYYY-MM-DD
+ * calendar date, today or earlier, at most 30 days back (typo guard, same
+ * spirit as the water-value plausibility bounds). Returns error message or null.
  */
+function feedDayError(day: string): string | null {
+  if (!feedDaySchema.safeParse(day).success) return "Invalid date";
+  const t = todayStr();
+  if (day > t) return "Cannot log feeding for a future date";
+  if (day < addDays(t, -FEED_BACKFILL_DAYS)) return `Feeding can only be backfilled ${FEED_BACKFILL_DAYS} days back`;
+  return null;
+}
+
 export async function adjustFeedToday(tankId: number, delta: 1 | -1): Promise<ActionResult<{ timesFed: number }>> {
+  // Issue #25: NO caller-supplied timezone — AQUAMAN_TIMEZONE governs "today".
   try {
-    const { markFed, todayFeed } = await import("@/lib/repo");
-    const day = todayStr();
-    const current = todayFeed(tankId, day);
-    const nowCount = current?.timesFed ?? 0;
-
-    if (delta === -1) {
-      if (!current || nowCount <= 0) return { ok: true, data: { timesFed: 0 } };
-      if (nowCount === 1) {
-        db.delete(feedLogs).where(eq(feedLogs.id, current.id)).run();
-        revalidatePath("/");
-        return { ok: true, data: { timesFed: 0 } };
-      }
-      db.update(feedLogs).set({ timesFed: nowCount - 1 }).where(eq(feedLogs.id, current.id)).run();
-      revalidatePath("/");
-      return { ok: true, data: { timesFed: nowCount - 1 } };
-    }
-
-    // +1, capped at 5
-    if (nowCount >= 5) return { ok: true, data: { timesFed: nowCount } };
-    if (current) {
-      db.update(feedLogs)
-        .set({ timesFed: nowCount + 1, fedAt: new Date().toISOString() })
-        .where(eq(feedLogs.id, current.id))
-        .run();
-    } else {
-      db.insert(feedLogs)
-        .values({ tankId, day, fedAt: new Date().toISOString(), timesFed: 1 })
-        .run();
-    }
+    const { adjustFeedCore } = await import("@/lib/repo");
+    const res = adjustFeedCore(tankId, todayStr(), delta);
     revalidatePath("/");
-    return { ok: true, data: { timesFed: nowCount + 1 } };
+    return { ok: true, data: { timesFed: res.timesFed } };
   } catch (err) {
     console.error("[adjustFeedToday]", err);
+    return { ok: false, error: "Could not adjust feeding" };
+  }
+}
+
+/** Same stepper, but on a PAST day within the 30-day backfill window. */
+export async function adjustFeedOn(
+  tankId: number,
+  day: string,
+  delta: 1 | -1,
+): Promise<ActionResult<{ timesFed: number }>> {
+  const dayErr = feedDayError(day);
+  if (dayErr) return { ok: false, error: dayErr };
+  try {
+    const { adjustFeedCore } = await import("@/lib/repo");
+    const res = adjustFeedCore(tankId, day, delta);
+    revalidatePath("/");
+    return { ok: true, data: { timesFed: res.timesFed } };
+  } catch (err) {
+    console.error("[adjustFeedOn]", err);
     return { ok: false, error: "Could not adjust feeding" };
   }
 }

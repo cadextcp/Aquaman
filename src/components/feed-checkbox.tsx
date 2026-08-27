@@ -3,13 +3,15 @@
 /**
  * Nocturne feeding control (issue #43): 5 pips (0–5), −/+ stepper, bubble
  * animation on feed, tank name links to the tank. Bounds 0..5 enforced
- * server-side too (adjustFeedToday).
+ * server-side too (adjustFeedOn). `day` comes from the dashboard's day
+ * navigation — today, or a past day within the 30-day backfill window
+ * (owner request: "edit past days if I forget to add feeding").
  */
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { adjustFeedToday } from "@/app/actions";
+import { adjustFeedOn } from "@/app/actions";
 
 type Bubble = { id: number; left: string; size: string; dx: string; dur: string; delay: string };
 
@@ -17,10 +19,12 @@ export function FeedControl({
   tankId,
   tankName,
   timesFed,
+  day,
 }: {
   tankId: number;
   tankName: string;
   timesFed: number;
+  day: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -44,7 +48,7 @@ export function FeedControl({
 
   async function adjust(delta: 1 | -1) {
     if (delta === 1) spawnBubbles();
-    await adjustFeedToday(tankId, delta);
+    await adjustFeedOn(tankId, day, delta);
     startTransition(() => router.refresh());
   }
 
@@ -82,9 +86,9 @@ export function FeedControl({
         <span
           className="text-xs tnum"
           style={{ color: fed ? "var(--due)" : "var(--faint)", minWidth: 62 }}
-          aria-label={fed ? `${tankName}: fed ${timesFed} times today` : `${tankName}: not fed yet today`}
+          aria-label={fed ? `${tankName}: fed ${timesFed} times` : `${tankName}: not fed`}
         >
-          {fed ? `fed ${timesFed}×` : "not fed yet"}
+          {fed ? `fed ${timesFed}×` : "not fed"}
         </span>
 
         {/* stepper */}

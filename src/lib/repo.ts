@@ -132,6 +132,45 @@ export function markFed(tankId: number, localDay: string): FeedLog {
     .get();
 }
 
+/**
+ * Feed ± core for ANY local day (dashboard day navigation, owner request):
+ * bounds 0..5, decrement below 0 is a no-op, a count reaching 0 deletes the
+ * row ("not fed that day"). Validation of the DAY itself (not future, not
+ * older than the backfill window) lives in the action layer.
+ */
+export function adjustFeedCore(
+  tankId: number,
+  localDay: string,
+  delta: 1 | -1,
+): { ok: true; timesFed: number } {
+  const current = todayFeed(tankId, localDay);
+  const nowCount = current?.timesFed ?? 0;
+
+  if (delta === -1) {
+    if (!current || nowCount <= 0) return { ok: true, timesFed: 0 };
+    if (nowCount === 1) {
+      db.delete(feedLogs).where(eq(feedLogs.id, current.id)).run();
+      return { ok: true, timesFed: 0 };
+    }
+    db.update(feedLogs).set({ timesFed: nowCount - 1 }).where(eq(feedLogs.id, current.id)).run();
+    return { ok: true, timesFed: nowCount - 1 };
+  }
+
+  // +1, capped at 5
+  if (nowCount >= 5) return { ok: true, timesFed: nowCount };
+  if (current) {
+    db.update(feedLogs)
+      .set({ timesFed: nowCount + 1, fedAt: new Date().toISOString() })
+      .where(eq(feedLogs.id, current.id))
+      .run();
+  } else {
+    db.insert(feedLogs)
+      .values({ tankId, day: localDay, fedAt: new Date().toISOString(), timesFed: 1 })
+      .run();
+  }
+  return { ok: true, timesFed: nowCount + 1 };
+}
+
 // ==================== Shared write cores (Server Actions + MCP tools) ====================
 //
 // The v1.1 MCP write tools must behave EXACTLY like their in-app Server Action
