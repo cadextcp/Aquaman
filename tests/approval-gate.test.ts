@@ -6,10 +6,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import { vi } from "vitest";
 import { eq } from "drizzle-orm";
 
-const TMP = path.join("/tmp", `aquaman-approval-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-approval-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 // revalidatePath throws outside a Next request context — stub before imports
@@ -22,7 +23,11 @@ beforeAll(async () => {
   migrate(db, { migrationsFolder: "./drizzle" });
 });
 
-afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 describe("applyProposal (approval gate)", () => {
   it("invalid proposal input → ok:false, nothing written", async () => {

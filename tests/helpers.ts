@@ -42,4 +42,14 @@ export function getScheduleDirect(id: number): Schedule | undefined {
 export { listTanks, listSchedules, recentLogs, markFed, todayFeed } from "../src/lib/repo";
 export { today as todayStrLocal } from "../src/lib/domain/dates";
 
+/**
+ * Close the SQLite handle and drop the dev singleton cache, so an `afterAll`
+ * can rmSync the temp data dir — on Windows, open WAL handles make unlink
+ * fail with EPERM.
+ */
+export function closeDb(): void {
+  (db as unknown as { $client?: { close(): void } }).$client?.close();
+  (globalThis as { __aquamanDb?: unknown }).__aquamanDb = undefined;
+}
+
 export type { Tank };

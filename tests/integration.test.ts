@@ -12,8 +12,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 
-const TMP = path.join("/tmp", `aquaman-it-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-it-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 // revalidatePath throws outside a Next request context — stub before imports
@@ -26,7 +27,9 @@ beforeAll(async () => {
   migrate(db, { migrationsFolder: "./drizzle" });
 });
 
-afterAll(() => {
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
   rmSync(TMP, { recursive: true, force: true });
 });
 
