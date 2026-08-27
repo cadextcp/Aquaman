@@ -6,8 +6,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 
-const TMP = path.join("/tmp", `aquaman-ics-token-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-ics-token-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 beforeAll(async () => {
@@ -17,7 +18,11 @@ beforeAll(async () => {
   migrate(db, { migrationsFolder: "./drizzle" });
 });
 
-afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 describe("getOrCreateIcsToken / rotateIcsToken / safeTokenEqual", () => {
   it("creates a token on first call and returns the SAME one afterward", async () => {

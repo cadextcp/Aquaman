@@ -5,8 +5,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 
-const TMP = path.join("/tmp", `aquaman-costguard-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-costguard-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 beforeAll(async () => {
@@ -16,7 +17,11 @@ beforeAll(async () => {
   migrate(db, { migrationsFolder: "./drizzle" });
 });
 
-afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 function cfg(over: Partial<{ maxCallsPerDay: number; maxTokensPerDay: number }> = {}) {
   return {

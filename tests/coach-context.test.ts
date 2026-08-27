@@ -6,8 +6,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 
-const TMP = path.join("/tmp", `aquaman-context-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-context-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 beforeAll(async () => {
@@ -37,7 +38,11 @@ beforeAll(async () => {
     .run();
 });
 
-afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 describe("buildCoachContext", () => {
   it("includes tanks, fish, NH3 calculation, backlog terms", async () => {

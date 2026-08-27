@@ -5,9 +5,9 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Current State
 
-- Current task: v0.2.0 owner-feedback build implemented on main — awaiting owner NAS test, then tag v0.2.0 — AI client (Anthropic-compatible), /coach chat with NDJSON streaming, propose_schedule approval gate, two-tier cost guard
-- Current phase: MVP complete (Phases 1–5), tag v0.1.0 next
-- Next step: tag v0.1.0 → owner deploys on TrueNAS → real usage; v1.1 MCP after launch
+- Current task: v1.1 (MCP + OpenClaw) IMPLEMENTED on main — commit pending push/tag; owner wires OpenClaw against the deployed instance (README "MCP / OpenClaw" section)
+- Current phase: MVP complete through v0.3.0; v0.4.0 = MCP endpoint + post-v0.3.0 coach work (not yet tagged)
+- Next step: push main, tag v0.4.0, owner deploys on TrueNAS + wires OpenClaw
 - Blocked by: none
 
 ## Decisions
@@ -42,6 +42,11 @@ manages its own memory automatically — this file serves other agents and human
 - 2026-08-24 Coach route `/api/coach`: POST-only NDJSON stream, not token-gated (sits behind reverse proxy like every page). Input caps (question 2000 chars, history 12×4000), failure-only rate limit (30/h per IP, same limiter as ICS, key prefix coach:), guards BEFORE any provider call: no config → 503, budget → 429 with reason.
 - 2026-08-04 Cost guard: aggregates via count()/sum() over aiCalls rows of the local day — one row per finished call, INSERT-only audit trail; no cron, reset is implicit (next day's check reads a different day).
 
+- 2026-08-27 MCP (v0.4.0): `@modelcontextprotocol/server` 2.0 (SDK renamed from sdk@1.x) via its **WebStandardStreamableHTTPServerTransport in stateless JSON mode** (`sessionIdGenerator: undefined`, `enableJsonResponse: true`, per-request server instance) — fetch-native, no Node-req/res adapter needed; TechDesign's `AQUAMAN_MCP_TOKEN` env idea replaced by appSettings `mcpToken` (Settings UI can show/rotate, same as ICS)
+- 2026-08-27 MCP security: entire endpoint bearer-gated — missing/wrong token → 404 (never 401), SHA-256+timingSafeEqual, failure-only rate limit `mcp:<ip>` 30/h; GET/DELETE → 405 (stateless has no SSE/session)
+- 2026-08-27 MCP write tools (`add_water_test`, `log_maintenance`, `snooze_task`) reuse shared cores extracted into repo.ts (`logWaterTestCore`/`markScheduleDoneCore`/`snoozeScheduleCore`) — Server Actions are now thin wrappers; maintenance-log `source` enum widened to include `'mcp'` (TS-level only, column is plain TEXT — no migration); `ask_coach` shares the coach's two-tier budget + `purpose: 'coach'` and deliberately DROPS proposals (approval stays in-app)
+- 2026-08-27 Windows dev: tests must `closeDb()` (close `db.$client`, clear `globalThis.__aquamanDb`) before `rmSync` of the temp data dir — open WAL handles → EPERM on Windows; use `os.tmpdir()`, never `/tmp`
+
 ## Known Issues
 
 - docs/research-Aquaman.md contains ~15 editorial artifacts (marked historical, non-authoritative); PRD v1.2 + TechDesign v1.1 supersede it
@@ -67,4 +72,10 @@ manages its own memory automatically — this file serves other agents and human
   - `route.ts`: `send()`/`controller.close()` now swallow enqueue-after-disconnect errors instead of risking an unhandled exception when a client goes away mid-stream.
 - [x] Phase 5: Launch v0.1.0 (export/import with roundtrip tests, statistics incl. metric 1a/1b, /api/export, /more overhaul, LICENSE/CONTRIBUTING/SECURITY, README launch guide, version.ts) — 2026-08-24
 - [x] v0.2.0 — owner feedback round 1 (issues #30–#36): schedule details + endsOn, clickable/editable schedules everywhere (dashboard cards, tank page, calendar chips → edit dialog), feeding ± stepper with tank link, state-dependent Done/Later (never "Done" as default for future tasks), undoLastDone, water test preset chips + edit/delete, AI dosage proposals with verify-against-label warning + editable approval card — 2026-08-24
-- [ ] v1.1: MCP + OpenClaw
+- [x] v0.2.1 + owner feedback round 2 (issues #37–#40) — 2026-08-25
+- [x] v0.3.0 — Nocturne redesign (#43, rounds 1–5), proactive coach daily suggestions (#41), structured care plans (#42) — 2026-08-25
+- [x] Post-v0.3.0 on main: proactive plan review (tank/water-test changes trigger coach plan check, 876cf38) + fishless-tank "no phantom feeding" coach fix (63c1b30) — 2026-08-25, 198 tests green
+- [x] Windows dev fix: tests use os.tmpdir() + closeDb() before rmSync (open WAL handles → EPERM on Windows); suite green on Windows — 2026-08-27
+- [x] v1.1: MCP + OpenClaw wiring — v0.4.0 (`/api/mcp` bearer-gated stateless Streamable HTTP; 7 tools per TechDesign §4.6 incl. ask_coach behind the shared AI budget; Settings UI with token copy/rotate; README OpenClaw config example; 21 new tests, 219 total green; live smoke-tested against `next start`) — 2026-08-27
+- [ ] v0.4.0 tag + push after owner review
+- [ ] v2+: sensors, multi-user/OIDC, web push

@@ -5,9 +5,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import { vi } from "vitest";
 
-const TMP = path.join("/tmp", `aquaman-v02-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-v02-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
@@ -19,7 +20,11 @@ beforeAll(async () => {
   migrate(db, { migrationsFolder: "./drizzle" });
 });
 
-afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 const T0 = "2026-08-24";
 

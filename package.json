@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@phosphor-icons/web": "^2.1.2",
     "better-sqlite3": "^12.2.0",
     "drizzle-orm": "^0.45.2",

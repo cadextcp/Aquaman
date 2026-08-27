@@ -3,9 +3,9 @@
 Self-hosted aquarium care & water tracking with an AI coach, flexible scheduling
 and an ICS calendar feed for Google Calendar.
 
-> **Status:** v0.2.0 — MVP complete incl. owner feedback round 1
-> (schedule details & endsOn, editing everywhere, feeding stepper, undo,
-> water-test presets, AI dosage proposals with label warning).
+> **Status:** v0.4.0 — MVP + owner feedback rounds + Nocturne redesign +
+> proactive AI coach (suggestions & plan review) + **MCP endpoint** for
+> remote agents (OpenClaw).
 > Planning docs: [`docs/PRD-Aquaman-MVP.md`](docs/PRD-Aquaman-MVP.md) ·
 > [`docs/TechDesign-Aquaman-MVP.md`](docs/TechDesign-Aquaman-MVP.md)
 
@@ -19,6 +19,7 @@ and an ICS calendar feed for Google Calendar.
 - **Daily habits** — feeding as a one-tap checkbox (no calendar spam)
 - **Statistics** — monthly care activity, median care delay, "interval too tight?" indicators, AI usage/cost retrospective
 - **Export / import** — all data as JSON, secrets never included. Your data is yours.
+- **MCP endpoint** — remote agents (e.g. OpenClaw) read tank state and record care via the Model Context Protocol at `/api/mcp`; fully bearer-token gated (token shown/rotated under *More*), write tools can log care but **nothing can be deleted or rewritten remotely**, `ask_coach` shares the in-app AI budget
 - **Docker** — one container, one SQLite file, zero cloud
 
 ## Quick start (Docker)
@@ -80,9 +81,36 @@ Verify after start: `http://<host>:3000/api/health` → `{"status":"ok","db":"up
 **Backup:** snapshot/mount the `data` directory — that's the entire state
 (SQLite + uploads). Or use the in-app JSON export.
 
+## MCP / OpenClaw (v1.1)
+
+Remote agents can talk to AquaMon over the Model Context Protocol:
+
+- **Endpoint:** `http(s)://<your-host>/api/mcp` (Streamable HTTP, JSON responses, stateless)
+- **Auth:** `Authorization: Bearer <token>` — get/copy/rotate the token under **More → MCP endpoint**
+- **Missing/wrong token → 404**, 30 bad attempts/hour → 429 (same rules as the calendar feed)
+
+Tools: `get_tanks`, `get_water_values`, `get_pending_maintenance`, `add_water_test`,
+`log_maintenance`, `snooze_task`, `ask_coach`. Writes go through the exact same
+validation as the app; there are **no delete/update tools** — an agent can record
+care, never destroy or rewrite history. Coach-proposed plan changes still require
+approval in the AquaMon UI.
+
+OpenClaw-style client config:
+
+```json
+{
+  "mcpServers": {
+    "aquaman": {
+      "url": "https://aquaman.example.com/api/mcp",
+      "headers": { "Authorization": "Bearer <token from More → MCP endpoint>" }
+    }
+  }
+}
+```
+
 ## Roadmap
 
-- **v1.1** — MCP server (bearer-token gated) for OpenClaw/agent remote access
+- ~~v1.1 — MCP server (bearer-token gated) for OpenClaw/agent remote access~~ → shipped in v0.4.0
 - **v2+** — sensors (Home Assistant), multi-user/OIDC, web push
 
 Full plan: [TechDesign §12](docs/TechDesign-Aquaman-MVP.md).

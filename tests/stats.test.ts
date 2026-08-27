@@ -5,8 +5,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 
-const TMP = path.join("/tmp", `aquaman-stats-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-stats-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 beforeAll(async () => {
@@ -52,7 +53,11 @@ beforeAll(async () => {
   ]).run();
 });
 
-afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 describe("monthlyStats", () => {
   it("counts water changes, feedings, tests, other care for the month", async () => {

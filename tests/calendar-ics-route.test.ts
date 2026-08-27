@@ -6,9 +6,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import { NextRequest } from "next/server";
 
-const TMP = path.join("/tmp", `aquaman-ics-route-${Date.now()}`);
+const TMP = path.join(tmpdir(), `aquaman-ics-route-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
 function reqWithToken(token: string | null, ip = "203.0.113.7"): NextRequest {
@@ -34,7 +35,11 @@ beforeAll(async () => {
     .run();
 });
 
-afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 beforeEach(async () => {
   const { __resetRateLimiter } = await import("../src/lib/rate-limit");

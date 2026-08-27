@@ -9,7 +9,7 @@ Last verified: 2026-08
 | Frontend | Next.js 15 (App Router) + React 19 + TypeScript | One artifact for UI + API; Server Components keep client JS small; best AI-codegen support for Level-A owner |
 | Backend | Next.js API Routes + Server Actions (Node.js runtime) | Domain logic in `src/lib/domain/*` shared by routes, actions, and (v1.1) MCP tools — API-first for future sensors |
 | Database | SQLite + Drizzle ORM (better-sqlite3) | Local == production; DB at `data/aquaman.db` in volume `/app/data`; WAL mode; JSON fields as `text({mode:'json'})`, weekdays as 7-bit int mask (SQLite has no arrays/jsonb) |
-| Auth | None in v1 (reverse-proxy auth documented; ICS token-gated; MCP in v1.1 fully bearer-gated) | Single-user behind reverse proxy; token endpoints use timingSafeEqual, 404-on-invalid, rate limit 30/h |
+| Auth | None in v1 (reverse-proxy auth documented; ICS token-gated; MCP bearer-gated since v0.4.0) | Single-user behind reverse proxy; token endpoints use timingSafeEqual, 404-on-invalid, rate limit 30/h |
 | Styling | Tailwind CSS + shadcn/ui (dark aqua theme, mobile-first) | Bottom-nav mobile, sidebar ≥ lg; touch targets ≥ 44px; all strings via next-intl keys (en first, de from end of Phase 2) |
 | Deployment | Docker (multi-stage, standalone) on TrueNAS SCALE via ghcr.io | Ports `127.0.0.1:3000:3000` only; CI: lint → typecheck → test → build → push; vertical slice deployed in Phase 1 |
 | Timezone | `AQUAMAN_TIMEZONE` (default Europe/Berlin) via Intl-based helpers in `src/lib/domain/dates.ts` | Governs "today", ICS day bucketing, aiCalls.day, AI limit reset; weekday mask is Bit 0 = Mon while `getDay()` is 0 = Sun — always via `localWeekdayIndex()` |
