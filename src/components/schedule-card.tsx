@@ -41,12 +41,30 @@ function daysUntil(dateStr: string, today: string): number {
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
 }
 
-export function ScheduleCard({ schedule, adherence = null }: { schedule: ScheduleCardData; adherence?: number | null }) {
+export function ScheduleCard({
+  schedule,
+  adherence = null,
+  doneToday = false,
+}: {
+  schedule: ScheduleCardData;
+  adherence?: number | null;
+  /**
+   * The schedule was closed today (derived from lastDoneAt by the page).
+   * This — not the local flag below — is what keeps the Undo control on
+   * screen: markDone revalidates "/", which re-renders the page and moves the
+   * card to a different section, unmounting this component and discarding any
+   * local state with it.
+   */
+  doneToday?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  // optimistic flag, only bridging the gap until the revalidation lands
   const [justDone, setJustDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const showDone = doneToday || justDone;
 
   const { due, today } = schedule;
   const dueTodayOrOverdue = due.plannedFor <= today;
@@ -54,14 +72,17 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
   const ended = schedule.endsOn && schedule.endsOn < today;
 
   async function done() {
-    await markDone(schedule.id);
-    setJustDone(true);
+    // a rejected write must not leave the card claiming it is done
+    const res = await markDone(schedule.id);
+    setError(res.ok ? null : res.error);
+    setJustDone(res.ok);
     startTransition(() => router.refresh());
   }
 
   async function undo() {
-    await undoLastDone(schedule.id);
-    setJustDone(false);
+    const res = await undoLastDone(schedule.id);
+    setError(res.ok ? null : res.error);
+    if (res.ok) setJustDone(false);
     startTransition(() => router.refresh());
   }
 
@@ -91,9 +112,9 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditOpen(true)}
         className="rounded-xl p-3.5 cursor-pointer flex gap-3 items-stretch anim-tickin"
         style={{
-          background: justDone ? "var(--success-soft)" : "var(--surface)",
-          boxShadow: `inset 0 0 0 1px ${justDone ? "var(--success-edge)" : "var(--surface-edge)"}`,
-          opacity: justDone ? 0.85 : 1,
+          background: showDone ? "var(--success-soft)" : "var(--surface)",
+          boxShadow: `inset 0 0 0 1px ${showDone ? "var(--success-edge)" : "var(--surface-edge)"}`,
+          opacity: showDone ? 0.85 : 1,
         }}
         title="Click to view & edit this schedule"
       >
@@ -101,11 +122,11 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
         <span
           aria-hidden
           className={`ph ph-${actionVisual(schedule.actionType).icon} text-xl shrink-0 self-start mt-0.5 sm:mt-0 sm:self-center`}
-          style={{ color: justDone ? "var(--success)" : actionVisual(schedule.actionType).color }}
+          style={{ color: showDone ? "var(--success)" : actionVisual(schedule.actionType).color }}
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="min-w-0 flex-1">
-            <div className="font-medium" style={{ textDecoration: justDone ? "line-through" : "none" }}>
+            <div className="font-medium" style={{ textDecoration: showDone ? "line-through" : "none" }}>
               {schedule.actionType.replace(/_/g, " ")}
               <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}>
                 {" "}· every {schedule.intervalDays}d
@@ -127,15 +148,25 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
               </div>
             )}
             <div className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
-              {due.overdueDays > 0 ? (
+              {showDone ? (
+                <>
+                  <span style={{ color: "var(--success)" }}>done today</span> · next{" "}
+                  <strong>{due.plannedFor}</strong>
+                </>
+              ) : due.overdueDays > 0 ? (
                 <span style={{ color: "var(--warning)" }}>behind {due.overdueDays}d</span>
               ) : dueTodayOrOverdue ? (
                 <span style={{ color: "var(--accent)" }}>due today</span>
               ) : (
                 <>due in {daysIn} {daysIn === 1 ? "day" : "days"} · <strong>{due.plannedFor}</strong></>
               )}
-              {due.overdueDays > 0 && <> · planned <strong>{due.plannedFor}</strong></>}
+              {!showDone && due.overdueDays > 0 && <> · planned <strong>{due.plannedFor}</strong></>}
             </div>
+            {error && (
+              <p role="alert" className="text-sm mt-1" style={{ color: "var(--destructive)" }}>
+                {error}
+              </p>
+            )}
           </div>
 
           {/* state-dependent controls, all on ONE row — click must NOT open the editor */}
@@ -153,7 +184,7 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
             >
               <i aria-hidden className="ph ph-trash text-base" />
             </button>
-            {justDone ? (
+            {showDone ? (
               <button
                 onClick={undo}
                 disabled={pending}

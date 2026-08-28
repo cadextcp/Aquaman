@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTank, listSchedules, recentLogs, waterTestsForTank } from "@/lib/repo";
-import { nextDue, missedSlots, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
+import { nextDue, missedSlots, doneOn, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { EditTankButton } from "@/components/edit-tank-button";
 import { Sparkline } from "@/components/sparkline";
@@ -152,6 +152,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                   <ScheduleCard
                     schedule={{ ...s, due, today: todayStrLocal() }}
                     adherence={adherenceBySchedule.get(s.id) ?? null}
+                    doneToday={doneOn(s, todayStrLocal())}
                   />
                   {missed >= MISSED_SLOTS_HINT && (
                     <p className="text-xs mt-1 mb-2" style={{ color: "var(--warning)" }}>

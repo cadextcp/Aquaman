@@ -7,6 +7,7 @@ import {
   occurrenceDetailsInRange,
   nextPreferredDay,
   catchUpWeight,
+  doneOn,
   ALL_DAYS_MASK,
   type ScheduleLike,
 } from "../src/lib/domain/scheduler";
@@ -296,5 +297,43 @@ describe("catchUpWeight", () => {
   });
   it("older backlog weighs more", () => {
     expect(catchUpWeight("water_change", 5)).toBeGreaterThan(catchUpWeight("water_change", 1));
+  });
+});
+
+describe("doneOn — the dashboard's \"done today\" group", () => {
+  it("is false when the schedule was never done", () => {
+    expect(doneOn(sched({ lastDoneAt: null }), "2026-08-28", TZ)).toBe(false);
+  });
+
+  it("is true on the local day of the completion", () => {
+    expect(doneOn(sched({ lastDoneAt: "2026-08-28T09:15:00.000Z" }), "2026-08-28", TZ)).toBe(true);
+  });
+
+  it("is false for a completion on any other day", () => {
+    const s = sched({ lastDoneAt: "2026-08-27T09:15:00.000Z" });
+    expect(doneOn(s, "2026-08-28", TZ)).toBe(false);
+    expect(doneOn(s, "2026-08-26", TZ)).toBe(false);
+  });
+
+  // bug hotspot #1: a UTC `iso.slice(0, 10)` would put both of these on the
+  // wrong Berlin day, so a task closed late in the evening would vanish from
+  // the queue instead of offering Undo
+  it("counts 23:30 Berlin as that Berlin day, not the next UTC one", () => {
+    // 2026-08-28T23:30 Berlin (CEST, +02:00) === 2026-08-28T21:30Z
+    expect(doneOn(sched({ lastDoneAt: "2026-08-28T21:30:00.000Z" }), "2026-08-28", TZ)).toBe(true);
+  });
+
+  it("counts 00:30 Berlin as that Berlin day, not the previous UTC one", () => {
+    // 2026-08-29T00:30 Berlin (CEST, +02:00) === 2026-08-28T22:30Z
+    const s = sched({ lastDoneAt: "2026-08-28T22:30:00.000Z" });
+    expect(doneOn(s, "2026-08-29", TZ)).toBe(true);
+    expect(doneOn(s, "2026-08-28", TZ)).toBe(false);
+  });
+
+  it("holds across the DST transition (CET, +01:00)", () => {
+    // 2026-01-15T00:30 Berlin === 2026-01-14T23:30Z
+    const s = sched({ lastDoneAt: "2026-01-14T23:30:00.000Z" });
+    expect(doneOn(s, "2026-01-15", TZ)).toBe(true);
+    expect(doneOn(s, "2026-01-14", TZ)).toBe(false);
   });
 });

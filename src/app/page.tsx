@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listTanks, listSchedules, feedAllToday } from "@/lib/repo";
-import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
+import { nextDue, missedSlots, catchUpWeight, doneOn } from "@/lib/domain/scheduler";
 import { careStreak } from "@/lib/domain/streak";
 import { scheduleAdherence, crossTankStats, weeklySummary } from "@/lib/stats";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
@@ -61,6 +61,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const nextDay = day < t ? addDays(day, 1) : null;
   const feeds = feedAllToday(day);
 
+  // Closed today: these keep their place in the care queue with an Undo
+  // control instead of silently reappearing under "coming up this week".
+  // Derived from lastDoneAt, so the Undo survives the revalidation markDone
+  // triggers — and a reload. Computed over ALL schedules, not `tasks`: a task
+  // on a long interval is pushed past the one-week window the moment it is
+  // closed, and would otherwise vanish outright.
+  const doneTodayIds = new Set(schedules.filter((s) => doneOn(s, t)).map((s) => s.id));
+
   // projection for every schedule
   const tasks = schedules
     .map((s) => {
@@ -68,11 +76,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       const missed = missedSlots(s);
       return { s, due, missed, weight: catchUpWeight(s.actionType, due.overdueDays) };
     })
-    .filter(({ due }) => due.plannedFor <= weekEnd); // today + this week
+    .filter(({ due, s }) => due.plannedFor <= weekEnd || doneTodayIds.has(s.id));
 
-  const dueToday = tasks.filter(({ due }) => due.plannedFor <= t);
-  const behind = tasks.filter(({ due }) => due.plannedFor > t && due.overdueDays > 0);
-  const upcoming = tasks.filter(({ due }) => due.plannedFor > t && due.overdueDays === 0);
+  const closedToday = tasks.filter(({ s }) => doneTodayIds.has(s.id));
+  const open = tasks.filter(({ s }) => !doneTodayIds.has(s.id));
+  const dueToday = open.filter(({ due }) => due.plannedFor <= t);
+  const behind = open.filter(({ due }) => due.plannedFor > t && due.overdueDays > 0);
+  const upcoming = open.filter(({ due }) => due.plannedFor > t && due.overdueDays === 0);
   const catchUpCandidate = behind.length > 5 ? behind.sort((a, b) => b.weight - a.weight)[0] : null;
 
   const kpi = (label: string, value: number | string, color?: string) => (
@@ -84,7 +94,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   const card = (item: (typeof tasks)[number]) => {
     const { s, due } = item;
-    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} />;
+    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} doneToday={doneTodayIds.has(s.id)} />;
   };
 
   return (
@@ -214,6 +224,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           </div>
         )}
         {dueToday.length > 0 && <div className="space-y-3">{dueToday.map(card)}</div>}
+        {closedToday.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
+              Done today ({closedToday.length})
+            </div>
+            <div className="space-y-3">{closedToday.map(card)}</div>
+          </div>
+        )}
       </section>
 
       {/* Behind */}
