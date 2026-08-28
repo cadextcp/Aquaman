@@ -4,6 +4,7 @@ import { occurrencesInRange } from "@/lib/domain/scheduler";
 import { CalendarChip } from "@/components/calendar-chip";
 import { today as todayStr, monthGridRange, shiftMonth } from "@/lib/domain/dates";
 import { PageHeader } from "@/components/ui/page-header";
+import { CalendarLegend } from "@/components/calendar-legend";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,8 @@ export default async function CalendarPage({
         }
       />
 
+      <CalendarLegend />
+
       <div className="grid grid-cols-7 gap-1.5 mb-1.5">
         {WEEKDAY_LABELS.map((w) => (
           <div key={w} className="text-xs text-center py-1" style={{ color: "var(--muted-foreground)" }}>
@@ -121,7 +124,13 @@ export default async function CalendarPage({
 
       {schedules.length === 0 && (
         <div className="rounded-xl p-8 text-center mt-6 edge-card">
-          <p style={{ color: "var(--muted-foreground)" }}>No schedules yet — add care schedules on a tank&apos;s page.</p>
+          <i aria-hidden className="ph ph-calendar-blank text-4xl" style={{ color: "var(--faint)" }} />
+          <p className="mt-3" style={{ color: "var(--muted-foreground)" }}>
+            No schedules yet — add care plans on a tank&apos;s page and their dates appear here.
+          </p>
+          <p className="text-xs mt-2" style={{ color: "var(--faint)" }}>
+            You can subscribe to this plan from any calendar app.
+          </p>
         </div>
       )}
 

@@ -12,6 +12,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { logWaterTest, updateWaterTest } from "@/app/actions";
 import { StatusNote } from "./ui/status-note";
+import { HelpNote } from "./ui/help";
 
 /** Preset quick-picks per parameter (from the design's PARAMS list). */
 const PRESETS: Record<string, number[]> = {
@@ -143,6 +144,7 @@ export function WaterTestForm({
           {filled}/{ranges.length} values
         </span>
       </div>
+      <HelpNote id="waterRanges" className="mt-0" />
       <div className="h-[3px] rounded-full overflow-hidden" style={{ background: "var(--surface-edge)" }}>
         <div
           className="h-full rounded-full"

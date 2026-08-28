@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { getOrCreateIcsToken } from "@/lib/ics-token";
 import { getOrCreateMcpToken } from "@/lib/mcp-token";
@@ -13,6 +14,7 @@ import { monthlyStats, careReliabilityStats, chronicOverload, aiCostStats } from
 import { today, shiftMonth } from "@/lib/domain/dates";
 import { APP_VERSION } from "@/lib/version";
 import { PageHeader } from "@/components/ui/page-header";
+import { HelpDot, HelpNote } from "@/components/ui/help";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,20 @@ export default async function MorePage() {
         }
       />
 
+      <Link
+        href="/more/concepts"
+        className="rounded-xl p-4 mb-4 flex items-center gap-3 edge-card transition-colors hover:bg-white/[0.07]"
+      >
+        <i aria-hidden className="ph ph-compass text-xl" style={{ color: "var(--accent)" }} />
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-medium">How Aquaman plans</span>
+          <span className="block text-xs" style={{ color: "var(--muted-foreground)" }}>
+            Target dates, re-planning and why your backlog stays honest
+          </span>
+        </span>
+        <i aria-hidden className="ph ph-caret-right" style={{ color: "var(--faint)" }} />
+      </Link>
+
       <div className="mb-4">
         <IcsSettings initialUrl={icsUrl} />
       </div>
@@ -61,9 +77,10 @@ export default async function MorePage() {
 
       {/* Statistics */}
       <div className="rounded-xl p-5 mb-4 edge-card">
-        <div className="text-xs uppercase tracking-wide mb-3" style={{ color: "var(--muted-foreground)" }}>
+        <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
           This month ({thisMonth})
         </div>
+        <HelpNote id="timezone" className="mb-3 mt-0.5" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
           <Stat label="Water changes" value={stats.waterChanges} />
           <Stat label="Feedings" value={stats.feedings} />
@@ -71,8 +88,9 @@ export default async function MorePage() {
           <Stat label="Other care" value={stats.otherMaintenance} />
         </div>
 
-        <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
+        <div className="text-xs uppercase tracking-wide mb-2 flex items-center gap-0.5" style={{ color: "var(--muted-foreground)" }}>
           Median delay by plan
+          <HelpDot id="medianDelay" />
         </div>
         <p className="text-xs mb-2" style={{ color: "var(--faint)" }}>
           target &lt; 2 d water change · &lt; 1 d fertilize
@@ -138,6 +156,7 @@ export default async function MorePage() {
           {fmtMicros(aiCost.costMicros)} cost units
           {aiCost.byModel.length > 1 && ` (${aiCost.byModel.map((m) => `${m.model}: ${m.calls}`).join(", ")})`}
         </p>
+        <HelpNote id="costUnits" />
       </div>
 
       {/* Data export/import */}

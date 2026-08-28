@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { HelpNote } from "./ui/help";
 import { useRouter } from "next/navigation";
 import { createSchedule, markDone, snooze, setScheduleActive } from "@/app/actions";
 import { WEEKDAY_LABELS, ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } from "@/lib/schemas";
@@ -123,9 +124,7 @@ export function ScheduleForm({
         <label className="block text-xs uppercase tracking-wide mb-1">Ends on (optional)</label>
         <input type="date" className={field} style={input} value={endsOn}
           onChange={(e) => setEndsOn(e.target.value)} />
-        <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
-          After this date the task disappears from dashboard, calendar and ICS feed — history stays.
-        </p>
+        <HelpNote id="endsOn" />
       </div>
 
       <div>
@@ -149,6 +148,7 @@ export function ScheduleForm({
           <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(WEEKEND))}>weekends</button>
           <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(WEEKDAYS))}>weekdays</button>
         </div>
+        <HelpNote id="preferredDays" />
       </div>
 
       <label className="flex items-center gap-3 text-sm py-1">

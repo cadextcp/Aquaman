@@ -239,6 +239,34 @@ main :where(h1, h2, h3, p, li, span, div) {
   height: 5px;
 }
 
+/* The "?" that opens an explanation. Quiet at rest, a real 24px tap target —
+   it replaces `title=` tooltips, which do not exist on touch. */
+.help-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--faint);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s, color 0.15s;
+}
+.help-dot:hover {
+  background: var(--surface);
+  color: var(--accent-light);
+}
+.help-dot:active {
+  transform: scale(0.9);
+}
+
 /* status pill. Colour comes from a --chip-fg/--chip-bg pair set inline, so
    one class covers due/behind/ok/warn instead of four style objects. */
 .chip {

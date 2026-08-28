@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePlanReviewBadge } from "./coach-badge";
+import { HelpDot } from "./ui/help";
 
 type PlanReviewResponse = {
   state?: string;
@@ -88,7 +89,10 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
-            <div className="text-sm font-medium">Plan review finished</div>
+            <div className="text-sm font-medium flex items-center gap-1">
+              Plan review finished
+              <HelpDot id="planReview" />
+            </div>
             {data.summary && (
               <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                 {data.summary}

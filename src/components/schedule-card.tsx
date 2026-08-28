@@ -12,6 +12,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markDone, snooze, undoLastDone, deleteSchedule } from "@/app/actions";
 import { Modal, ModalDeleteButton } from "./ui/modal";
+import { HelpDot } from "./ui/help";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 
@@ -136,11 +137,11 @@ export function ScheduleCard({
                 <span
                   className="text-xs tnum ml-1.5"
                   style={{ color: adherence >= 80 ? "var(--success)" : "var(--warning)" }}
-                  title="share of planned occurrences closed on time (30 d)"
                 >
                   · {adherence}% on time
                 </span>
               )}
+              {adherence !== null && <HelpDot id="onTime" />}
             </div>
             {schedule.details && (
               <div className="text-sm mt-0.5" style={{ color: "var(--accent)" }}>
@@ -160,7 +161,12 @@ export function ScheduleCard({
               ) : (
                 <>due in {daysIn} {daysIn === 1 ? "day" : "days"} · <strong>{due.plannedFor}</strong></>
               )}
-              {!showDone && due.overdueDays > 0 && <> · planned <strong>{due.plannedFor}</strong></>}
+              {!showDone && due.overdueDays > 0 && (
+                <>
+                  {" "}· planned <strong>{due.plannedFor}</strong>
+                  <HelpDot id="plannedDate" />
+                </>
+              )}
             </div>
             {error && (
               <p role="alert" className="text-sm mt-1" style={{ color: "var(--destructive)" }}>
@@ -207,12 +213,12 @@ export function ScheduleCard({
             ) : (
               /* future: neutral status, secondary actions */
               <div className="flex items-center gap-1.5">
+                <HelpDot id="earlyLater" />
                 <button
                   onClick={done}
                   disabled={pending}
                   className="btn-ghost rounded-lg px-2.5 py-1.5 text-xs"
                   style={{ minHeight: 32 }}
-                  title="Mark as done early"
                 >
                   done early
                 </button>

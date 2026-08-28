@@ -14,6 +14,7 @@ import { today as todayStrLocal } from "@/lib/domain/dates";
 import { WaterTestForm } from "@/components/water-test-form";
 import { WaterTestHistory } from "@/components/water-test-history";
 import { StatusNote } from "@/components/ui/status-note";
+import { HelpDot, HelpNote } from "@/components/ui/help";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
@@ -80,15 +81,17 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
           <span className="text-sm tnum" style={{ color: "var(--foreground)" }}>
             {p.message ?? `Free NH₃ ${p.value} mg/l — above 0.020 toxic threshold`}
           </span>
+          <HelpDot id="nh3" />
         </div>
       ))}
 
       {/* Last water test verdict */}
       {lastTest && (
         <div className="rounded-xl p-4 mb-6 edge-card">
-          <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
+          <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
             Last water test · {lastTest.measuredAt.slice(0, 10)}
           </div>
+          <HelpNote id="valuesOff" className="mb-2 mt-0.5" />
           {problems.length === 0 ? (
             <StatusNote tone="success">All measured values in range</StatusNote>
           ) : (
@@ -111,9 +114,10 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
       {/* Sparklines: last 6 tests per parameter */}
       {tests.length >= 2 && (
         <div className="rounded-xl p-4 mb-6 edge-card">
-          <div className="text-xs uppercase tracking-widest mb-3" style={{ color: "var(--muted-foreground)" }}>
+          <div className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
             Water · last {Math.min(6, tests.length)} tests
           </div>
+          <HelpNote id="sparkline" className="mb-3 mt-0.5" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-3">
             {Object.keys(tests[0].values).filter((k) => tests.some((t) => typeof t.values[k] === "number")).slice(0, 9).map((key) => {
               const series = tests.slice(0, 6).reverse().map((t) => t.values[key]).filter((v): v is number => typeof v === "number");
@@ -140,9 +144,12 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
       <section className="mb-6">
         <h2 className="text-lg font-semibold mb-3">Care schedule</h2>
         {schedules.length === 0 ? (
-          <p className="text-sm mb-3" style={{ color: "var(--muted-foreground)" }}>
-            No schedules yet — add your first care routine below.
-          </p>
+          <div className="rounded-xl p-5 mb-3 edge-card">
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+              No care plans yet — add your first routine below. Each plan gets a target date,
+              lands only on the weekdays you pick, and shows up in the calendar and the feed.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3 mb-4">
             {schedules.map((s) => {
@@ -156,8 +163,9 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                     doneToday={doneOn(s, todayStrLocal())}
                   />
                   {missed >= MISSED_SLOTS_HINT && (
-                    <p className="text-xs mt-1 mb-2" style={{ color: "var(--warning)" }}>
+                    <p className="text-xs mt-1 mb-2 flex items-center gap-1" style={{ color: "var(--warning)" }}>
                       interval too tight? ({missed} missed slots)
+                      <HelpDot id="tightInterval" />
                     </p>
                   )}
                 </div>
