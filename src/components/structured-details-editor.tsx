@@ -70,7 +70,7 @@ export function StructuredDetailsEditor({
               </span>
               <input
                 className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs"
-                style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
+                style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
                 placeholder={n.group === "macro" ? "—" : "—"}
                 value={nutrients[n.key] ?? ""}
                 onChange={(e) => setNutrient(n.key, e.target.value)}
@@ -110,7 +110,7 @@ export function StructuredDetailsEditor({
               <span className="w-28 shrink-0 truncate" title={f.name}>{f.name}</span>
               <input
                 className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs"
-                style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
+                style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
                 placeholder={f.amount ? `e.g. ${f.amount} ${f.unit}` : "e.g. 1 pinch"}
                 value={foods[f.name] ?? ""}
                 onChange={(e) => setFood(f.name, e.target.value)}

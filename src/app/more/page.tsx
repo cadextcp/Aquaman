@@ -12,6 +12,7 @@ import { usageForSettings } from "@/lib/ai/cost-guard";
 import { monthlyStats, careReliabilityStats, chronicOverload, aiCostStats } from "@/lib/stats";
 import { today, shiftMonth } from "@/lib/domain/dates";
 import { APP_VERSION } from "@/lib/version";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -40,12 +41,14 @@ export default async function MorePage() {
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
-      <div className="flex items-baseline justify-between mb-6">
-        <h1 className="text-2xl font-bold">More</h1>
-        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-          v{APP_VERSION}
-        </span>
-      </div>
+      <PageHeader
+        title="More"
+        action={
+          <span className="text-xs tnum" style={{ color: "var(--muted-foreground)" }}>
+            v{APP_VERSION}
+          </span>
+        }
+      />
 
       <div className="mb-4">
         <IcsSettings initialUrl={icsUrl} />
@@ -122,12 +125,12 @@ export default async function MorePage() {
         </div>
         {aiOn ? (
           <p className="text-sm mb-2">
-            <span style={{ color: "var(--success)" }}>● Online</span> — today: {usage.calls} calls ·{" "}
+            <span className="inline-flex items-center gap-1.5" style={{ color: "var(--success)" }}><i aria-hidden className="ph-fill ph-circle text-[8px]" /> Online</span> — today: {usage.calls} calls ·{" "}
             {usage.totalTokens.toLocaleString()} tokens. Daily limits reset at local midnight.
           </p>
         ) : (
           <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
-            <span>○ Offline</span> — no <code>AQUAMAN_AI_API_KEY</code> configured. The app works fully without it.
+            <span className="inline-flex items-center gap-1.5"><i aria-hidden className="ph ph-circle text-[8px]" /> Offline</span> — no <code>AQUAMAN_AI_API_KEY</code> configured. The app works fully without it.
           </p>
         )}
         <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
@@ -145,7 +148,7 @@ export default async function MorePage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg p-3" style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.07)" }}>
+    <div className="edge-card rounded-lg p-3">
       <div className="text-2xl font-medium tnum">{value}</div>
       <div className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: "var(--muted-foreground)" }}>
         {label}

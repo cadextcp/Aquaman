@@ -61,20 +61,21 @@ export function FeedControl({
   return (
     <>
     <div
-      className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 w-full"
-      style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.07)", minHeight: 52 }}
+      className="edge-card flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 w-full"
+      style={{ minHeight: 52 }}
     >
       <Link
         href={`/tanks/${tankId}`}
-        className="text-sm font-medium underline decoration-dotted underline-offset-4"
+        className="flex min-w-0 flex-1 items-center gap-1 text-sm font-medium"
         style={{ color: "var(--foreground)", cursor: "pointer" }}
       >
-        {tankName} <i aria-hidden className="ph ph-arrow-right text-[10px] align-middle" />
+        <span className="truncate underline decoration-dotted underline-offset-4">{tankName}</span>
+        <i aria-hidden className="ph ph-arrow-right text-[10px] shrink-0" />
       </Link>
 
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         {/* pips */}
-        <div className="flex items-center gap-1" aria-hidden>
+        <div className="hidden min-[420px]:flex items-center gap-1" aria-hidden>
           {Array.from({ length: 5 }).map((_, i) => (
             <span
               key={i}
@@ -82,7 +83,7 @@ export function FeedControl({
               style={{
                 width: 7,
                 height: 7,
-                background: i < timesFed ? "var(--due)" : "rgba(233,233,237,0.12)",
+                background: i < timesFed ? "var(--due)" : "var(--control-edge)",
                 transition: "background 0.2s",
               }}
             />
@@ -103,34 +104,23 @@ export function FeedControl({
             onClick={() => adjust(-1)}
             disabled={pending || timesFed === 0}
             aria-label={`Undo feeding for ${tankName}`}
-            className="rounded-[10px] font-medium text-lg leading-none"
-            style={{
-              width: 40,
-              height: 34,
-              background: "rgba(233,233,237,0.05)",
-              boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)",
-              color: timesFed === 0 ? "rgba(233,233,237,0.2)" : "rgba(233,233,237,0.65)",
-              cursor: timesFed === 0 ? "not-allowed" : "pointer",
-            }}
+            className="icon-btn icon-btn-sm"
           >
-            −
+            <i aria-hidden className="ph ph-minus text-base" />
           </button>
           <button
             type="button"
             onClick={() => adjust(1)}
             disabled={pending || timesFed >= 5}
             aria-label={`Feed ${tankName} once more`}
-            className="relative rounded-[10px] text-lg leading-none font-medium overflow-visible"
-            style={{
-              width: 44,
-              height: 34,
-              background: timesFed >= 5 ? "rgba(233,233,237,0.05)" : "var(--due-soft)",
-              boxShadow: timesFed >= 5 ? "none" : "inset 0 0 0 1px var(--due-edge)",
-              color: timesFed >= 5 ? "var(--faint)" : "var(--due)",
-              cursor: timesFed >= 5 ? "not-allowed" : "pointer",
-            }}
+            className="icon-btn icon-btn-sm relative overflow-visible"
+            style={
+              timesFed >= 5
+                ? undefined
+                : { background: "var(--due-soft)", boxShadow: "inset 0 0 0 1px var(--due-edge)", color: "var(--due)" }
+            }
           >
-            +
+            <i aria-hidden className="ph ph-plus text-base" />
             {/* bubbles rise from the + button on feed */}
             {bubbles.map((b) => (
               <span

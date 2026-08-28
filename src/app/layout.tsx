@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex">
         <div aria-hidden className="aqua-glow" />
         {/* Issue #21: nav lives HERE (root layout) so no page can lose it again */}
-        <div className="flex min-h-dvh flex-1">
+        <div className="flex min-h-dvh flex-1 min-w-0">
           <SideNav />
           {children}
         </div>

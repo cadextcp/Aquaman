@@ -10,8 +10,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createPortal } from "react-dom";
 import { markDone, snooze, undoLastDone, deleteSchedule } from "@/app/actions";
+import { Modal, ModalDeleteButton } from "./ui/modal";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 
@@ -91,8 +91,8 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditOpen(true)}
         className="rounded-xl p-3.5 cursor-pointer flex gap-3 items-stretch anim-tickin"
         style={{
-          background: justDone ? "var(--success-soft)" : "rgba(233,233,237,0.05)",
-          boxShadow: `inset 0 0 0 1px ${justDone ? "rgba(74,222,128,0.22)" : "rgba(233,233,237,0.08)"}`,
+          background: justDone ? "var(--success-soft)" : "var(--surface)",
+          boxShadow: `inset 0 0 0 1px ${justDone ? "var(--success-edge)" : "var(--surface-edge)"}`,
           opacity: justDone ? 0.85 : 1,
         }}
         title="Click to view & edit this schedule"
@@ -145,19 +145,18 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
               disabled={pending}
               aria-label="Delete schedule"
               title="Delete schedule"
-              className="rounded-md text-sm"
-              style={{ width: 30, height: 28, color: "var(--destructive)", border: "1px solid var(--border)", background: "transparent", cursor: "pointer" }}
+              className="icon-btn icon-btn-sm icon-btn-danger"
             >
-              🗑
+              <i aria-hidden className="ph ph-trash text-base" />
             </button>
             {justDone ? (
               <button
                 onClick={undo}
                 disabled={pending}
-                className="rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap"
-                style={{ border: "1px solid var(--border)", minHeight: 36, cursor: "pointer" }}
+                className="btn-ghost inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap"
+                style={{ minHeight: 36 }}
               >
-                ↩ Undo done
+                <i aria-hidden className="ph ph-arrow-counter-clockwise text-sm" /> Undo done
               </button>
             ) : dueTodayOrOverdue ? (
               /* primary checkbox-style control for due/overdue */
@@ -168,7 +167,7 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
                 className="btn-outline flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
                 style={{ minHeight: 40 }}
               >
-                <span aria-hidden className="text-base">☐</span> Done
+                <i aria-hidden className="ph ph-square text-base" /> Done
               </button>
             ) : (
               /* future: neutral status, secondary actions */
@@ -176,8 +175,8 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
                 <button
                   onClick={done}
                   disabled={pending}
-                  className="rounded-lg px-2.5 py-1.5 text-xs"
-                  style={{ border: "1px solid var(--border)", color: "var(--muted-foreground)", minHeight: 32, cursor: "pointer" }}
+                  className="btn-ghost rounded-lg px-2.5 py-1.5 text-xs"
+                  style={{ minHeight: 32 }}
                   title="Mark as done early"
                 >
                   done early
@@ -186,15 +185,14 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
                   <button
                     onClick={() => setSnoozeOpen((o) => !o)}
                     disabled={pending}
-                    className="rounded-lg px-2.5 py-1.5 text-xs"
-                    style={{ border: "1px solid var(--border)", color: "var(--muted-foreground)", minHeight: 32, cursor: "pointer" }}
+                    className="btn-ghost rounded-lg px-2.5 py-1.5 text-xs"
+                    style={{ minHeight: 32 }}
                   >
                     later
                   </button>
                   {snoozeOpen && (
                     <div
-                      className="absolute right-0 top-full mt-1 rounded-lg z-10 py-1 shadow-lg"
-                      style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+                      className="panel-card absolute right-0 top-full mt-1 rounded-lg z-10 py-1 shadow-lg"
                     >
                       {[1, 3, 7].map((d) => (
                         <button
@@ -214,41 +212,14 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
         </div>
       </div>
 
-      {/* edit dialog — PORTAL: the calendar grid fades padding days via
-          opacity, and opacity creates a stacking context that a plain
-          position:fixed child cannot escape → the dialog inherited the
-          translucency. Rendering into document.body fixes it. */}
-      {editOpen &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            style={{ background: "rgba(0,0,0,0.55)" }}
-            onClick={() => setEditOpen(false)}
-          >
-            <div
-              className="rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5"
-              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Edit schedule</h2>
-                <div className="flex items-center gap-1">
-                  <button onClick={remove} disabled={pending} aria-label="Delete schedule" title="Delete schedule"
-                    className="rounded-lg px-2.5 py-1.5"
-                    style={{ color: "var(--destructive)", cursor: "pointer", border: "1px solid var(--border)" }}>
-                    🗑
-                  </button>
-                  <button onClick={() => setEditOpen(false)} aria-label="Close"
-                    className="rounded-lg px-2 py-1 text-lg" style={{ cursor: "pointer" }}>
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <ScheduleForm tankId={schedule.tankId} schedule={schedule} />
-            </div>
-          </div>,
-          document.body,
-        )}
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit schedule"
+        actions={<ModalDeleteButton onClick={remove} disabled={pending} />}
+      >
+        <ScheduleForm tankId={schedule.tankId} schedule={schedule} />
+      </Modal>
     </>
   );
 }

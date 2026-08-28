@@ -34,7 +34,7 @@ export function PlanRecommendBanner({
   return (
     <div
       className="rounded-xl p-4 mb-4 flex items-start gap-3"
-      style={{ background: "rgba(145,132,217,0.1)", boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.35)" }}
+      style={{ background: "var(--accent-soft)", boxShadow: "inset 0 0 0 1px var(--accent-edge)" }}
     >
       <i aria-hidden className="ph ph-seal-check mt-0.5" style={{ color: "var(--accent)" }} />
       <div className="flex-1 min-w-0">
@@ -68,10 +68,9 @@ export function PlanRecommendBanner({
         type="button"
         onClick={() => setDismissed(true)}
         aria-label="Dismiss"
-        className="px-1.5 text-sm"
-        style={{ color: "var(--muted-foreground)", cursor: "pointer" }}
+        className="icon-btn icon-btn-sm icon-btn-bare"
       >
-        ✕
+        <i aria-hidden className="ph ph-x text-sm" />
       </button>
     </div>
   );

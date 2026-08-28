@@ -8,6 +8,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveGlobalSettingsAction } from "@/app/actions";
+import { StatusNote } from "./ui/status-note";
 
 export function TightGapSettings({
   initialPolicy,
@@ -81,7 +82,7 @@ export function TightGapSettings({
         >
           Save
         </button>
-        {saved && <span className="text-sm" style={{ color: "var(--success)" }}>✓ Saved</span>}
+        {saved && <StatusNote tone="success">Saved</StatusNote>}
       </div>
       <p className="text-xs mt-3" style={{ color: "var(--muted-foreground)" }}>
         Applies to all plans. Individual plans can still override this in their edit dialog.
@@ -113,7 +114,7 @@ function PolicyOption({
       }}
     >
       <div className="flex items-center gap-2 mb-1">
-        <span aria-hidden>{selected ? "●" : "○"}</span>
+        <i aria-hidden className={`ph${selected ? "-fill" : ""} ph-${selected ? "radio-button" : "circle"} text-base`} style={{ color: selected ? "var(--accent)" : "var(--faint)" }} />
         <span className="font-medium text-sm">{title}</span>
       </div>
       <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{desc}</p>

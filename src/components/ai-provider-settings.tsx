@@ -9,6 +9,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PROVIDER_PRESETS, type AiProviderSettingsData } from "@/lib/ai/provider-presets";
+import { StatusNote } from "./ui/status-note";
 
 type Draft = {
   provider: AiProviderSettingsData["provider"];
@@ -87,7 +88,7 @@ export function AiProviderSettings({
             onClick={() => pickProvider(p)}
             className="rounded-lg px-3 py-2 text-sm"
             style={{
-              background: draft.provider === p ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+              background: draft.provider === p ? "var(--accent-soft)" : "var(--secondary)",
               boxShadow: draft.provider === p ? "inset 0 0 0 1px var(--accent)" : "none",
               color: draft.provider === p ? "var(--accent-light)" : "var(--secondary-foreground)",
               cursor: "pointer",
@@ -101,7 +102,7 @@ export function AiProviderSettings({
           onClick={() => pickProvider("custom")}
           className="rounded-lg px-3 py-2 text-sm"
           style={{
-            background: draft.provider === "custom" ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+            background: draft.provider === "custom" ? "var(--accent-soft)" : "var(--secondary)",
             boxShadow: draft.provider === "custom" ? "inset 0 0 0 1px var(--accent)" : "none",
             color: draft.provider === "custom" ? "var(--accent-light)" : "var(--secondary-foreground)",
             cursor: "pointer",
@@ -181,7 +182,7 @@ export function AiProviderSettings({
         </div>
       </div>
 
-      {error && <p className="text-sm mb-2" style={{ color: "var(--destructive)" }}>✗ {error}</p>}
+      {error && <p className="mb-2"><StatusNote tone="error">{error}</StatusNote></p>}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -192,7 +193,7 @@ export function AiProviderSettings({
         >
           Save AI settings
         </button>
-        {saved && <span className="text-sm" style={{ color: "var(--success)" }}>✓ Saved</span>}
+        {saved && <StatusNote tone="success">Saved</StatusNote>}
       </div>
       <p className="text-xs mt-3" style={{ color: "var(--muted-foreground)" }}>
         These settings override the environment variables. The API key itself stays in <code>AQUAMAN_AI_API_KEY</code> —
