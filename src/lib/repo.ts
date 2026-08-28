@@ -60,6 +60,20 @@ export function recentLogs(tankId: number, limit = 20): MaintenanceLog[] {
     .all();
 }
 
+/**
+ * Untruncated completion history for one tank — scheduleAdherence reconstructs
+ * the occurrence timeline from it, so a windowed "recent" list would corrupt
+ * the grid walk. Oldest first, matching the walk's direction.
+ */
+export function allLogsForTank(tankId: number): MaintenanceLog[] {
+  return db
+    .select()
+    .from(maintenanceLogs)
+    .where(eq(maintenanceLogs.tankId, tankId))
+    .orderBy(maintenanceLogs.doneAt)
+    .all();
+}
+
 // ==================== Water tests ====================
 
 export function addWaterTest(entry: {

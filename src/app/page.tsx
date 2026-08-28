@@ -41,7 +41,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     .map((sch) => ({
       s: sch,
       pct: scheduleAdherence(
-        { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active },
+        { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active, endsOn: sch.endsOn },
         allLogs.filter((l) => l.tankId === sch.tankId && l.actionType === sch.actionType),
       ),
     }))
