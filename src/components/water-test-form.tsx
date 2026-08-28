@@ -11,6 +11,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { logWaterTest, updateWaterTest } from "@/app/actions";
+import { StatusNote } from "./ui/status-note";
 
 /** Preset quick-picks per parameter (from the design's PARAMS list). */
 const PRESETS: Record<string, number[]> = {
@@ -142,7 +143,7 @@ export function WaterTestForm({
           {filled}/{ranges.length} values
         </span>
       </div>
-      <div className="h-[3px] rounded-full overflow-hidden" style={{ background: "rgba(233,233,237,0.08)" }}>
+      <div className="h-[3px] rounded-full overflow-hidden" style={{ background: "var(--surface-edge)" }}>
         <div
           className="h-full rounded-full"
           style={{ width: `${Math.round((filled / ranges.length) * 100)}%`, background: "linear-gradient(90deg, var(--due), var(--accent))" }}
@@ -174,13 +175,13 @@ export function WaterTestForm({
               key={r.key}
               className="relative rounded-lg px-2.5 py-2"
               style={{
-                background: st === "critical" ? "var(--destructive-soft)" : st === "warn" ? "var(--warning-soft)" : "rgba(233,233,237,0.04)",
-                boxShadow: `inset 0 0 0 1px ${st === "critical" ? "var(--destructive-edge)" : st === "warn" ? "var(--warning-edge)" : "rgba(233,233,237,0.07)"}`,
+                background: st === "critical" ? "var(--destructive-soft)" : st === "warn" ? "var(--warning-soft)" : "var(--surface)",
+                boxShadow: `inset 0 0 0 1px ${st === "critical" ? "var(--destructive-edge)" : st === "warn" ? "var(--warning-edge)" : "var(--surface-edge)"}`,
               }}
             >
               <div className="flex items-baseline justify-between gap-1">
-                <span className="text-[11px] font-medium" style={{ color: "rgba(233,233,237,0.68)" }}>{r.label}</span>
-                <span className="text-[9px]" style={{ color: "rgba(233,233,237,0.32)" }}>{r.unit}</span>
+                <span className="text-[11px] font-medium" style={{ color: "var(--control-foreground)" }}>{r.label}</span>
+                <span className="text-[9px]" style={{ color: "var(--faint)" }}>{r.unit}</span>
               </div>
 
               {/* value display / dropdown toggle */}
@@ -193,7 +194,7 @@ export function WaterTestForm({
                 className="flex items-center justify-between w-full mt-1.5 rounded-md px-2 py-1.5"
                 style={{
                   background: "rgba(15,17,28,0.5)",
-                  boxShadow: `inset 0 0 0 1px ${isOpen ? "var(--accent)" : "rgba(233,233,237,0.12)"}`,
+                  boxShadow: `inset 0 0 0 1px ${isOpen ? "var(--accent)" : "var(--control-edge)"}`,
                   cursor: "pointer",
                   textAlign: "left",
                 }}
@@ -206,7 +207,7 @@ export function WaterTestForm({
               </button>
 
               {/* band mini-scale */}
-              <div className="relative h-1 rounded-full mt-2" style={{ background: "rgba(233,233,237,0.08)" }} aria-hidden>
+              <div className="relative h-1 rounded-full mt-2" style={{ background: "var(--surface-edge)" }} aria-hidden>
                 <span
                   className="absolute inset-y-0 rounded-full"
                   style={{ left: `${bandLeft}%`, width: `${bandW}%`, background: "rgba(34,211,238,0.28)" }}
@@ -223,11 +224,11 @@ export function WaterTestForm({
 
               {/* footer: band label + delta */}
               <div className="flex items-center justify-between mt-0.5 text-[9px] tnum">
-                <span style={{ color: "rgba(233,233,237,0.3)" }}>
+                <span style={{ color: "var(--faint)" }}>
                   {r.min === r.max ? String(r.min) : `${r.min}–${r.max}`}
                 </span>
-                <span style={{ color: delta === null ? "rgba(233,233,237,0.3)" : st === "ok" ? "rgba(233,233,237,0.45)" : COL[st] }}>
-                  {delta === null ? (num !== null ? "new" : "not measured") : delta === 0 ? "= 0" : `${delta > 0 ? "▲ +" : "▼"}${Math.abs(delta)}`}
+                <span style={{ color: delta === null ? "var(--faint)" : st === "ok" ? "var(--faint)" : COL[st] }}>
+                  {delta === null ? (num !== null ? "new" : "not measured") : delta === 0 ? "= 0" : `${delta > 0 ? "+" : "\u2212"}${Math.abs(delta)}`}
                 </span>
               </div>
 
@@ -238,11 +239,11 @@ export function WaterTestForm({
                   style={{
                     background: "rgba(26,29,45,0.97)",
                     backdropFilter: "blur(16px)",
-                    boxShadow: "0 0 0 1px rgba(145,132,217,0.45), 0 16px 34px rgba(0,0,0,0.6)",
+                    boxShadow: "0 0 0 1px var(--accent-edge), 0 16px 34px rgba(0,0,0,0.6)",
                   }}
                 >
                   <div className="flex items-center gap-1.5 rounded-md px-2 py-1.5" style={{ background: "rgba(15,17,28,0.7)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.1)" }}>
-                    <i aria-hidden className="ph ph-pencil-simple text-[11px]" style={{ color: "rgba(233,233,237,0.4)" }} />
+                    <i aria-hidden className="ph ph-pencil-simple text-[11px]" style={{ color: "var(--faint)" }} />
                     <input
                       className="flex-1 min-w-0 text-sm tnum bg-transparent border-0 outline-none"
                       style={{ color: "inherit" }}
@@ -263,7 +264,7 @@ export function WaterTestForm({
                           onClick={() => pick(r.key, o)}
                           className="flex items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium tnum"
                           style={{
-                            background: selected ? "rgba(145,132,217,0.2)" : "transparent",
+                            background: selected ? "var(--accent-soft)" : "transparent",
                             color: selected ? "var(--foreground)" : "rgba(233,233,237,0.8)",
                             cursor: "pointer",
                           }}
@@ -281,7 +282,7 @@ export function WaterTestForm({
                     type="button"
                     onClick={() => clear(r.key)}
                     className="w-full mt-1.5 rounded-md px-2 py-1.5 text-[10px]"
-                    style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)", color: "var(--muted-foreground)", cursor: "pointer" }}
+                    style={{ background: "transparent", boxShadow: "inset 0 0 0 1px var(--control-edge)", color: "var(--muted-foreground)", cursor: "pointer" }}
                   >
                     not measured
                   </button>
@@ -294,7 +295,7 @@ export function WaterTestForm({
 
       <input
         className="w-full rounded-lg px-3 py-2.5 text-sm"
-        style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
+        style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
         placeholder="Note (optional)"
         value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -309,7 +310,7 @@ export function WaterTestForm({
         >
           {edit ? "Save changes" : "Save test"}
         </button>
-        {saved && <span className="text-sm" style={{ color: "var(--success)" }}>✓ saved</span>}
+        {saved && <StatusNote tone="success">saved</StatusNote>}
         {edit && onDone && (
           <button type="button" onClick={onDone} className="btn-outline rounded-lg px-4 py-2.5 text-sm" style={{ minHeight: 44 }}>
             Cancel

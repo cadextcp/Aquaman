@@ -55,10 +55,10 @@ export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token
         <button
           onClick={() => copy("url")}
           type="button"
-          className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
+          className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied === "url" ? "✓ Copied" : "Copy URL"}
+          {copied === "url" ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy URL"}
         </button>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
@@ -72,10 +72,10 @@ export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token
         <button
           onClick={() => copy("token")}
           type="button"
-          className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
+          className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied === "token" ? "✓ Copied" : "Copy token"}
+          {copied === "token" ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy token"}
         </button>
       </div>
       <button

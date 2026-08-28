@@ -3,6 +3,7 @@ import { listSchedules } from "@/lib/repo";
 import { occurrencesInRange } from "@/lib/domain/scheduler";
 import { CalendarChip } from "@/components/calendar-chip";
 import { today as todayStr, monthGridRange, shiftMonth } from "@/lib/domain/dates";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -55,30 +56,29 @@ export default async function CalendarPage({
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-4xl">
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-bold">{monthLabel(month).split(" ")[0]}</h1>
-          <span className="text-sm tnum" style={{ color: "var(--muted-foreground)" }}>
+      <PageHeader
+        title={monthLabel(month)}
+        subtitle={
+          <span className="tnum">
             {monthPlanned} planned{monthBehind > 0 ? ` · ${monthBehind} behind` : ""}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/calendar?m=${prevMonth}`}
-            className="rounded-lg px-3 py-2 text-sm"
-            style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "var(--muted-foreground)", minHeight: 44 }}
-          >
-            ←
-          </Link>
-          <Link
-            href={`/calendar?m=${nextMonth}`}
-            className="rounded-lg px-3 py-2 text-sm"
-            style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "var(--muted-foreground)", minHeight: 44 }}
-          >
-            →
-          </Link>
-        </div>
-      </div>
+        }
+        action={
+          <>
+            {month !== t.slice(0, 7) && (
+              <Link href="/calendar" className="btn-ghost rounded-lg px-3 text-xs inline-flex items-center" style={{ minHeight: 44 }}>
+                Today
+              </Link>
+            )}
+            <Link href={`/calendar?m=${prevMonth}`} aria-label="Previous month" className="icon-btn">
+              <i aria-hidden className="ph ph-caret-left text-base" />
+            </Link>
+            <Link href={`/calendar?m=${nextMonth}`} aria-label="Next month" className="icon-btn">
+              <i aria-hidden className="ph ph-caret-right text-base" />
+            </Link>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-7 gap-1.5 mb-1.5">
         {WEEKDAY_LABELS.map((w) => (
@@ -98,15 +98,15 @@ export default async function CalendarPage({
               key={d}
               className="rounded-lg p-1.5 min-h-[72px] sm:min-h-[92px] text-xs"
               style={{
-                background: isToday ? "rgba(145,132,217,0.14)" : "rgba(15,17,28,0.4)",
-                boxShadow: isToday ? "inset 0 0 0 1px var(--accent)" : "inset 0 0 0 1px rgba(233,233,237,0.05)",
+                background: isToday ? "var(--accent-soft)" : "rgba(15,17,28,0.4)",
+                boxShadow: isToday ? "inset 0 0 0 1px var(--accent)" : "inset 0 0 0 1px var(--surface)",
                 opacity: inMonth ? 1 : 0.32,
               }}
             >
-              <div className="font-medium tnum mb-1.5 text-center" style={{ color: isToday ? "var(--accent-light)" : "rgba(233,233,237,0.65)" }}>
+              <div className="font-medium tnum mb-1.5 text-center" style={{ color: isToday ? "var(--accent-light)" : "var(--control-foreground)" }}>
                 {Number(d.slice(8, 10))}
               </div>
-              <div className="flex flex-col gap-[3px] items-center">
+              <div className="flex flex-col gap-[9px] items-center">
                 {tasks.slice(0, 3).map((task, i) => (
                   <CalendarChip key={i} schedule={task.schedule} label={task.label} variant={task.variant} />
                 ))}

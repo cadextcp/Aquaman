@@ -4,14 +4,16 @@
  * Calendar event stripe → opens the schedule editor (issue #31). Renders as
  * a thin full-width colored bar (design: `d.dots`), not a text pill — the
  * day cell is small, so the label lives in the tooltip/aria-label instead.
+ * The bar stays 3px; `.day-stripe` pads the button around it so the tap
+ * target is ~17px rather than 3px.
  * Receives the plain schedule row (server component) and manages the edit
  * dialog client-side.
  */
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createPortal } from "react-dom";
 import { deleteSchedule } from "@/app/actions";
+import { Modal, ModalDeleteButton } from "./ui/modal";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 
@@ -48,40 +50,20 @@ export function CalendarChip({
         onClick={() => setOpen(true)}
         title={`${label} — click to edit`}
         aria-label={`${label} — click to edit`}
-        className="block w-full rounded-full"
-        style={{ height: 3, padding: 0, border: "none", background: STRIPE_COLOR[variant], cursor: "pointer" }}
-      />
+        className="day-stripe"
+        style={{ "--stripe": STRIPE_COLOR[variant] } as React.CSSProperties}
+      >
+        <span />
+      </button>
 
-      {open &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            style={{ background: "rgba(0,0,0,0.55)" }}
-            onClick={() => setOpen(false)}
-          >
-            <div
-              className="rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5"
-              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Edit schedule</h2>
-                <div className="flex items-center gap-1">
-                  <button onClick={remove} disabled={pending} aria-label="Delete schedule" title="Delete schedule"
-                    className="rounded-lg px-2.5 py-1.5"
-                    style={{ color: "var(--destructive)", cursor: "pointer", border: "1px solid var(--border)" }}>
-                    🗑
-                  </button>
-                  <button onClick={() => setOpen(false)} aria-label="Close" className="px-2 py-1 text-lg" style={{ cursor: "pointer" }}>
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <ScheduleForm tankId={schedule.tankId} schedule={schedule} />
-            </div>
-          </div>,
-          document.body,
-        )}
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Edit schedule"
+        actions={<ModalDeleteButton onClick={remove} disabled={pending} />}
+      >
+        <ScheduleForm tankId={schedule.tankId} schedule={schedule} />
+      </Modal>
     </>
   );
 }

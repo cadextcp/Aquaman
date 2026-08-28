@@ -53,10 +53,10 @@ export function IcsSettings({ initialUrl }: { initialUrl: string }) {
         <button
           onClick={copy}
           type="button"
-          className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
+          className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied ? "✓ Copied" : "Copy"}
+          {copied ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy"}
         </button>
       </div>
       <button

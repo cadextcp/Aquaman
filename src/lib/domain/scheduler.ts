@@ -15,7 +15,7 @@
  *   infinite search loops
  */
 
-import { addDays, dayMatchesMask, today as todayStr } from "./dates";
+import { addDays, dayMatchesMask, isoToLocalDate, today as todayStr } from "./dates";
 
 export const ALL_DAYS_MASK = 0b1111111; // 127
 export const MISSED_SLOTS_HINT = 3;
@@ -56,6 +56,23 @@ export type ScheduleLike = {
 
 function isoToDateStr(iso: string): string {
   return iso.slice(0, 10);
+}
+
+/**
+ * True when this schedule's last completion falls on the local day `dayStr`.
+ *
+ * Drives the dashboard's "done today" group: a task ticked off keeps its place
+ * in the care queue with an Undo control instead of jumping straight to
+ * "coming up this week". Deriving that from `lastDoneAt` rather than from React
+ * state is what makes the Undo survive the revalidation `markDone` triggers —
+ * and a page reload.
+ *
+ * Uses the Intl-based `isoToLocalDate`, never `iso.slice(0, 10)`: it is compared
+ * against `today()`, which is itself AQUAMAN_TIMEZONE-local, and a task closed
+ * at 23:30 in Berlin must count for the Berlin day, not the UTC one.
+ */
+export function doneOn(schedule: ScheduleLike, dayStr: string, tz?: string): boolean {
+  return schedule.lastDoneAt !== null && isoToLocalDate(schedule.lastDoneAt, tz) === dayStr;
 }
 
 /**

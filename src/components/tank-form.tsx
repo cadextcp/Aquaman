@@ -222,7 +222,7 @@ function FoodEditor({
   foods: { name: string; amount: string; unit: string }[];
   onChange: (foods: { name: string; amount: string; unit: string }[]) => void;
 }) {
-  const input = { background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" };
+  const input = { background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" };
   const field = "rounded-lg px-2.5 py-2 text-sm";
 
   function update(i: number, patch: Partial<{ name: string; amount: string; unit: string }>) {
@@ -241,7 +241,7 @@ function FoodEditor({
           <input className={`${field} w-28`} style={input} value={f.unit} placeholder="e.g. pinch"
             onChange={(e) => update(i, { unit: e.target.value })} />
           <button type="button" onClick={() => onChange(foods.filter((_, idx) => idx !== i))}
-            className="rounded-md px-2 text-sm" style={{ color: "var(--destructive)", cursor: "pointer" }}>✕</button>
+            className="icon-btn icon-btn-sm icon-btn-danger"><i aria-hidden className="ph ph-x text-sm" /></button>
         </div>
       ))}
       <button

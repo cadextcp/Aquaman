@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTank, listSchedules, recentLogs, allLogsForTank, waterTestsForTank } from "@/lib/repo";
-import { nextDue, missedSlots, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
+import { nextDue, missedSlots, doneOn, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { EditTankButton } from "@/components/edit-tank-button";
 import { Sparkline } from "@/components/sparkline";
@@ -13,6 +13,8 @@ import { ScheduleCard } from "@/components/schedule-card";
 import { today as todayStrLocal } from "@/lib/domain/dates";
 import { WaterTestForm } from "@/components/water-test-form";
 import { WaterTestHistory } from "@/components/water-test-history";
+import { StatusNote } from "@/components/ui/status-note";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -53,19 +55,23 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       <PlanRecommendBanner tankId={tank.id} tankName={tank.name} missingPlans={missingPlans} hasAnyPlans={schedules.length > 0} />
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold">{tank.name}</h1>
-          <EditTankButton tank={tank} />
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+      <PageHeader
+        title={tank.name}
+        adornment={<EditTankButton tank={tank} />}
+        subtitle={
+          <>
             {tank.volumeL} L · {tank.waterType === "fresh" ? "Freshwater" : "Saltwater"} ·{" "}
             {tank.tankState === "cycling" ? "cycling" : "established"}
             {tank.hasCo2 ? " · CO₂" : ""}{tank.hasHeater ? " · heater" : ""}
             {tank.hasFilter ? (tank.filterType ? ` · ${tank.filterType}` : " · filter") : ""}
-          </p>
-        </div>
-        <Link href="/tanks" className="text-sm underline" style={{ color: "var(--accent)" }}>← Tanks</Link>
-      </div>
+          </>
+        }
+        action={
+          <Link href="/tanks" className="btn-ghost inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm" style={{ minHeight: 44 }}>
+            <i aria-hidden className="ph ph-caret-left" /> Tanks
+          </Link>
+        }
+      />
 
       {/* NH₃ alert banner (Nocturne style) */}
       {problems.filter((p) => p.key === "nh3").map((p) => (
@@ -84,13 +90,14 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
             Last water test · {lastTest.measuredAt.slice(0, 10)}
           </div>
           {problems.length === 0 ? (
-            <div style={{ color: "var(--success)" }}>✓ All measured values in range</div>
+            <StatusNote tone="success">All measured values in range</StatusNote>
           ) : (
             <ul className="space-y-1.5 text-sm">
               {problems.map((p) => (
                 <li key={p.key}>
-                  <span style={{ color: p.status === "critical" ? "var(--destructive)" : "var(--warning)" }}>
-                    ● {p.key.toUpperCase()}
+                  <span className="inline-flex items-center gap-1.5" style={{ color: p.status === "critical" ? "var(--destructive)" : "var(--warning)" }}>
+                    <i aria-hidden className="ph-fill ph-circle text-[8px]" />
+                    {p.key.toUpperCase()}
                   </span>{" "}
                   {p.value} — {p.status}
                   {p.message ? ` (${p.message})` : ""}
@@ -146,6 +153,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                   <ScheduleCard
                     schedule={{ ...s, due, today: todayStrLocal() }}
                     adherence={adherenceBySchedule.get(s.id) ?? null}
+                    doneToday={doneOn(s, todayStrLocal())}
                   />
                   {missed >= MISSED_SLOTS_HINT && (
                     <p className="text-xs mt-1 mb-2" style={{ color: "var(--warning)" }}>
@@ -229,7 +237,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                 <div
                   key={row.key}
                   className="flex items-center justify-between gap-3 rounded-lg px-3.5 py-2.5"
-                  style={{ background: "rgba(233,233,237,0.04)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.07)" }}
+                  style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--surface-edge)" }}
                 >
                   <span className="text-sm">
                     <strong className="font-medium">{row.title}</strong>

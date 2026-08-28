@@ -5,7 +5,7 @@
  * - thinking → "The coach is reviewing your plan… (changed parameters)" info line
  * - ready    → summary + clickable recommendation chips; click sends the prompt into
  *   the chat and marks the review as seen (idle)
- * - dismissed via ✕ → marks reviewed
+ * - dismissed via the close button → marks reviewed
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -60,7 +60,7 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
     return (
       <div
         className="rounded-xl px-4 py-3 mb-3 flex items-center gap-3 text-sm"
-        style={{ background: "rgba(145,132,217,0.1)", boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.35)" }}
+        style={{ background: "var(--accent-soft)", boxShadow: "inset 0 0 0 1px var(--accent-edge)" }}
       >
         <span
           aria-hidden
@@ -84,7 +84,7 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
     return (
       <div
         className="rounded-xl p-4 mb-4"
-        style={{ background: "rgba(34,211,238,0.08)", boxShadow: "inset 0 0 0 1px var(--due-edge)" }}
+        style={{ background: "var(--due-soft)", boxShadow: "inset 0 0 0 1px var(--due-edge)" }}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
@@ -99,10 +99,9 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
             type="button"
             onClick={markReviewed}
             aria-label="Dismiss"
-            className="px-1.5 text-sm"
-            style={{ color: "var(--muted-foreground)", cursor: "pointer" }}
+            className="icon-btn icon-btn-sm icon-btn-bare"
           >
-            ✕
+            <i aria-hidden className="ph ph-x text-sm" />
           </button>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -116,7 +115,7 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
               }}
               className="rounded-full px-3 py-1.5 text-xs"
               style={{
-                background: "rgba(34,211,238,0.12)",
+                background: "var(--due-soft)",
                 boxShadow: "inset 0 0 0 1px var(--due-edge)",
                 color: "var(--due)",
                 cursor: "pointer",

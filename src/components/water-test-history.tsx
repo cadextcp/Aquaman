@@ -65,19 +65,19 @@ export function WaterTestHistory({
                   type="button"
                   onClick={() => setEditingId(t.id)}
                   aria-label="Edit measurement"
-                  className="rounded-md px-2 py-1 text-xs"
-                  style={{ border: "1px solid var(--border)", cursor: "pointer" }}
+                  title="Edit measurement"
+                  className="icon-btn icon-btn-sm"
                 >
-                  ✎
+                  <i aria-hidden className="ph ph-pencil-simple text-sm" />
                 </button>
                 <button
                   type="button"
                   onClick={() => remove(t)}
                   aria-label="Delete measurement"
-                  className="rounded-md px-2 py-1 text-xs"
-                  style={{ border: "1px solid var(--border)", color: "var(--destructive)", cursor: "pointer" }}
+                  title="Delete measurement"
+                  className="icon-btn icon-btn-sm icon-btn-danger"
                 >
-                  🗑
+                  <i aria-hidden className="ph ph-trash text-sm" />
                 </button>
               </span>
             </li>

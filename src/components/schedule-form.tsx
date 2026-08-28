@@ -136,7 +136,7 @@ export function ScheduleForm({
               className="rounded-lg px-3 py-2 text-xs font-medium"
               style={{
                 minHeight: 44,
-                background: days.includes(i) ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+                background: days.includes(i) ? "var(--accent-soft)" : "var(--secondary)",
                 boxShadow: days.includes(i) ? "inset 0 0 0 1px var(--accent)" : "none",
                 color: days.includes(i) ? "var(--accent-light)" : "var(--secondary-foreground)",
               }}>
@@ -168,7 +168,7 @@ export function ScheduleForm({
             <button key={v} type="button" onClick={() => setPolicy(v)}
               className="rounded-lg px-3 py-2 text-xs"
               style={{
-                background: policy === v ? "rgba(145,132,217,0.14)" : "var(--secondary)",
+                background: policy === v ? "var(--accent-soft)" : "var(--secondary)",
                 boxShadow: policy === v ? "inset 0 0 0 1px var(--accent)" : "none",
                 color: policy === v ? "var(--accent-light)" : "var(--secondary-foreground)",
               }}>
@@ -230,12 +230,12 @@ export function TaskActions({ scheduleId, compact = false }: { scheduleId: numbe
     <div className="flex items-center gap-1.5">
       <button onClick={done} disabled={pending} className={`btn-outline ${btn} ${pad}`}
         style={{ minHeight: 36 }}>
-        ✓ Done
+        <i aria-hidden className="ph ph-check" /> Done
       </button>
       <div className="relative">
         <button onClick={() => setSnoozeOpen((o) => !o)} disabled={pending} className={`${btn} ${pad}`}
           style={{ border: "1px solid var(--border)", minHeight: 36 }}>
-          ⏱ Later
+          <i aria-hidden className="ph ph-clock" /> Later
         </button>
         {snoozeOpen && (
           <div className="absolute right-0 top-full mt-1 rounded-lg z-10 py-1 shadow-lg"

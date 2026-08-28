@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { NavItem, type NavVariant } from "./ui/nav-item";
 
 export type PlanReviewBadgeState =
   | { state: "idle" | "pending" | "thinking" }
@@ -63,8 +64,8 @@ export function CoachBadge({ state }: { state: PlanReviewBadgeState }) {
         aria-hidden
         className="absolute"
         style={{
-          top: 2,
-          right: 8,
+          top: -1,
+          right: -2,
           width: 8,
           height: 8,
           borderRadius: "50%",
@@ -80,14 +81,14 @@ export function CoachBadge({ state }: { state: PlanReviewBadgeState }) {
         aria-label={`${state.count} plan recommendations`}
         className="absolute tnum"
         style={{
-          top: 0,
-          right: 4,
+          top: -5,
+          right: -8,
           minWidth: 16,
           height: 16,
           borderRadius: 8,
           padding: "0 4px",
           background: "var(--due)",
-          color: "#0f111c",
+          color: "var(--on-accent)",
           fontSize: 10,
           fontWeight: 700,
           lineHeight: "16px",
@@ -102,39 +103,10 @@ export function CoachBadge({ state }: { state: PlanReviewBadgeState }) {
 }
 
 
-import Link from "next/link";
-
 const COACH = { href: "/coach", label: "Coach", icon: "sparkle" } as const;
 
 /** Coach nav item with badge — must live in a client file (uses the hook). */
-export function CoachNavItem({ variant }: { variant: "bottom" | "side" }) {
+export function CoachNavItem({ variant }: { variant: NavVariant }) {
   const badge = usePlanReviewBadge();
-  if (variant === "bottom") {
-    return (
-      <Link
-        href={COACH.href}
-        className="relative flex flex-col items-center justify-center gap-1 py-2 text-xs"
-        style={{ color: "var(--muted-foreground)", minHeight: 56 }}
-      >
-        <span className="relative">
-          <i aria-hidden className={`ph ph-${COACH.icon} text-xl`} />
-          <CoachBadge state={badge} />
-        </span>
-        {COACH.label}
-      </Link>
-    );
-  }
-  return (
-    <Link
-      href={COACH.href}
-      className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-white/5"
-      style={{ color: "var(--secondary-foreground)" }}
-    >
-      <span className="relative">
-        <i aria-hidden className={`ph ph-${COACH.icon} text-lg`} />
-        <CoachBadge state={badge} />
-      </span>
-      {COACH.label}
-    </Link>
-  );
+  return <NavItem {...COACH} variant={variant} badge={<CoachBadge state={badge} />} />;
 }

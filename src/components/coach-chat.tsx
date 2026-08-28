@@ -12,6 +12,7 @@ import { applyProposal } from "@/app/actions-ai";
 import { PlanReviewBanner } from "./plan-review-banner";
 import { MAX_HISTORY_MESSAGES } from "@/lib/ai/constants";
 import type { Proposal } from "@/lib/ai/proposal";
+import { StatusNote } from "./ui/status-note";
 
 type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal };
 
@@ -204,8 +205,8 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
             className="rounded-xl px-4 py-3 max-w-[85%] text-sm whitespace-pre-wrap"
             style={
               m.role === "user"
-                ? { background: "rgba(145,132,217,0.16)", boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.35)", borderRadius: "13px 13px 4px 13px" }
-                : { background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 1px 0 rgba(233,233,237,0.06)", borderRadius: "13px 13px 13px 4px" }
+                ? { background: "var(--accent-soft)", boxShadow: "inset 0 0 0 1px var(--accent-edge)", borderRadius: "13px 13px 4px 13px" }
+                : { background: "var(--surface)", boxShadow: "inset 0 1px 0 var(--surface)", borderRadius: "13px 13px 13px 4px" }
             }
           >
             {m.content}
@@ -236,8 +237,8 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
               }}
               className="rounded-full px-3 py-1.5 text-xs"
               style={{
-                background: "rgba(145,132,217,0.1)",
-                boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.35)",
+                background: "var(--accent-soft)",
+                boxShadow: "inset 0 0 0 1px var(--accent-edge)",
                 color: "var(--accent-light)",
                 cursor: "pointer",
               }}
@@ -343,30 +344,30 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
               {c.kind === "create" ? `+ ${c.actionType.replace(/_/g, " ")}` : `~ schedule #${c.scheduleId}`}
             </div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="flex-1 text-xs" style={{ color: "rgba(233,233,237,0.7)" }}>
+              <span className="flex-1 text-xs" style={{ color: "var(--secondary-foreground)" }}>
                 {c.kind === "adjust" ? "interval" : "every"}
               </span>
               {c.kind === "adjust" && (
-                <span className="text-xs tnum" style={{ color: "rgba(233,233,237,0.4)", textDecoration: "line-through" }}>
+                <span className="text-xs tnum" style={{ color: "var(--faint)", textDecoration: "line-through" }}>
                   {initial.changes[i]?.intervalDays ?? c.intervalDays} d
                 </span>
               )}
-              <i aria-hidden className="ph ph-arrow-right text-[11px]" style={{ color: "rgba(233,233,237,0.35)" }} />
+              <i aria-hidden className="ph ph-arrow-right text-[11px]" style={{ color: "var(--faint)" }} />
               <button type="button" onClick={() => updateChange(i, { intervalDays: Math.max(1, c.intervalDays - 1) })}
                 className="rounded-[7px] text-sm font-medium"
-                style={{ width: 26, height: 26, background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "rgba(233,233,237,0.6)", cursor: "pointer" }}>−</button>
+                style={{ width: 26, height: 26, background: "transparent", boxShadow: "inset 0 0 0 1px var(--control-edge)", color: "var(--muted-foreground)", cursor: "pointer" }}>−</button>
               <span className="text-sm font-medium tnum w-7 text-center">{c.intervalDays}</span>
               <button type="button" onClick={() => updateChange(i, { intervalDays: Math.min(365, c.intervalDays + 1) })}
                 className="rounded-[7px] text-sm font-medium"
-                style={{ width: 26, height: 26, background: "rgba(145,132,217,0.14)", boxShadow: "inset 0 0 0 1px rgba(145,132,217,0.4)", color: "var(--accent-light)", cursor: "pointer" }}>+</button>
+                style={{ width: 26, height: 26, background: "var(--accent-soft)", boxShadow: "inset 0 0 0 1px var(--accent-edge)", color: "var(--accent-light)", cursor: "pointer" }}>+</button>
               <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>d</span>
             </div>
             {c.kind === "adjust" && initial.changes[i]?.details && initial.changes[i].details !== (c.details ?? "") && (
               <div className="flex items-center gap-2 text-xs mb-1.5">
-                <span className="tnum" style={{ color: "rgba(233,233,237,0.4)", textDecoration: "line-through" }}>
+                <span className="tnum" style={{ color: "var(--faint)", textDecoration: "line-through" }}>
                   {initial.changes[i].details}
                 </span>
-                <i aria-hidden className="ph ph-arrow-right text-[10px]" style={{ color: "rgba(233,233,237,0.35)" }} />
+                <i aria-hidden className="ph ph-arrow-right text-[10px]" style={{ color: "var(--faint)" }} />
               </div>
             )}
             <input
@@ -390,9 +391,9 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
         </button>
       ) : (
         <div className="text-sm">
-          {state === "applied" && <span style={{ color: "var(--success)" }}>✓ {result || "Applied"}</span>}
-          {state === "partial" && <span style={{ color: "var(--warning)" }}>◐ {result}</span>}
-          {state === "failed" && <span style={{ color: "var(--destructive)" }}>✗ {result || "Failed — nothing was written"}</span>}
+          {state === "applied" && <StatusNote tone="success">{result || "Applied"}</StatusNote>}
+          {state === "partial" && <StatusNote tone="warning">{result}</StatusNote>}
+          {state === "failed" && <StatusNote tone="error">{result || "Failed — nothing was written"}</StatusNote>}
         </div>
       )}
     </div>

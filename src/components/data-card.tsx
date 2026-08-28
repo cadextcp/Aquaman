@@ -9,6 +9,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { importDataAction } from "@/app/actions-data";
+import { StatusNote } from "./ui/status-note";
 
 export function DataCard() {
   const router = useRouter();
@@ -69,23 +70,22 @@ export function DataCard() {
         <a
           href="/api/export"
           download
-          className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium text-center"
+          className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
           style={{ minHeight: 44 }}
         >
-          ⬇ Download JSON export
+          <i aria-hidden className="ph ph-download-simple" /> Download JSON export
         </a>
         <label
-          className="rounded-lg px-4 py-2.5 text-sm font-medium text-center cursor-pointer"
-          style={{ background: "transparent", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.14)", color: "var(--muted-foreground)", minHeight: 44, opacity: busy ? 0.6 : 1 }}
+          className="btn-ghost inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
+          style={{ minHeight: 44, opacity: busy ? 0.6 : 1 }}
         >
-          {busy ? "Importing…" : "⬆ Import snapshot…"}
+          {busy ? "Importing…" : <><i aria-hidden className="ph ph-upload-simple" /> Import snapshot…</>}
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFile} disabled={busy} />
         </label>
       </div>
       {result && (
-        <p className="text-sm mt-3" style={{ color: isError ? "var(--destructive)" : "var(--success)" }}>
-          {isError ? "✗ " : "✓ "}
-          {result}
+        <p className="mt-3">
+          <StatusNote tone={isError ? "error" : "success"}>{result}</StatusNote>
         </p>
       )}
     </div>

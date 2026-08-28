@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { CoachNavItem } from "./coach-badge";
+import { NavItem, type NavVariant } from "./ui/nav-item";
 
 /** Shared nav config — single source (issue #16 cleanup). Phosphor icons since #43. */
 const NAV_ITEMS = [
@@ -9,6 +9,21 @@ const NAV_ITEMS = [
   { href: "/coach", label: "Coach", icon: "sparkle" },
   { href: "/more", label: "More", icon: "sliders-horizontal" },
 ] as const;
+
+/**
+ * Renders the config in order. Coach is the one item with a badge, so it gets
+ * its own client component — but it sits in its natural position instead of
+ * being spliced in around two `slice()` calls.
+ */
+function items(variant: NavVariant) {
+  return NAV_ITEMS.map((i) =>
+    i.href === "/coach" ? (
+      <CoachNavItem key={i.href} variant={variant} />
+    ) : (
+      <NavItem key={i.href} {...i} variant={variant} />
+    ),
+  );
+}
 
 /** Bottom navigation (mobile-first). Desktop gets a sidebar. */
 export function BottomNav() {
@@ -22,31 +37,7 @@ export function BottomNav() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <div className="grid grid-cols-5">
-        {NAV_ITEMS.filter((i) => i.href !== "/coach").slice(0, 3).map((i) => (
-          <Link
-            key={i.href}
-            href={i.href}
-            className="flex flex-col items-center justify-center gap-1 py-2 text-xs"
-            style={{ color: "var(--muted-foreground)", minHeight: 56 }}
-          >
-            <i aria-hidden className={`ph ph-${i.icon} text-xl`} />
-            {i.label}
-          </Link>
-        ))}
-        <CoachNavItem variant="bottom" />
-        {NAV_ITEMS.filter((i) => i.href !== "/coach").slice(3).map((i) => (
-          <Link
-            key={i.href}
-            href={i.href}
-            className="flex flex-col items-center justify-center gap-1 py-2 text-xs"
-            style={{ color: "var(--muted-foreground)", minHeight: 56 }}
-          >
-            <i aria-hidden className={`ph ph-${i.icon} text-xl`} />
-            {i.label}
-          </Link>
-        ))}
-      </div>
+      <div className="grid grid-cols-5">{items("bottom")}</div>
     </nav>
   );
 }
@@ -58,22 +49,14 @@ export function SideNav() {
       className="hidden lg:flex lg:flex-col lg:w-60 lg:border-r p-4 gap-1"
       style={{ borderColor: "var(--border)", background: "var(--card)" }}
     >
-      <div className="text-lg font-bold mb-4 px-2 flex items-center gap-2" style={{ color: "var(--accent-light)" }}>
+      <div
+        className="text-lg font-bold mb-4 px-2 flex items-center gap-2"
+        style={{ color: "var(--accent-light)" }}
+      >
         <i aria-hidden className="ph ph-drop text-2xl" />
         Aquaman
       </div>
-      {NAV_ITEMS.filter((i) => i.href !== "/coach").map((i) => (
-        <Link
-          key={i.href}
-          href={i.href}
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-white/5"
-          style={{ color: "var(--secondary-foreground)" }}
-        >
-          <i aria-hidden className={`ph ph-${i.icon} text-lg`} />
-          {i.label}
-        </Link>
-      ))}
-      <CoachNavItem variant="side" />
+      {items("side")}
     </aside>
   );
 }

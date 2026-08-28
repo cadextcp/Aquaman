@@ -6,6 +6,7 @@ import { today as todayStr, addDays } from "@/lib/domain/dates";
 import { scheduleAdherence, crossTankStats, cyclingInfo, dailyActivity } from "@/lib/stats";
 import { db } from "@/lib/db";
 import { maintenanceLogs } from "@/lib/db/schema";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -21,19 +22,30 @@ export default async function TanksPage() {
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-5xl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Tanks</h1>
-        <Link href="/tanks/new" className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium"
-          style={{ minHeight: 44 }}>
-          + New tank
-        </Link>
-      </div>
+      <PageHeader
+        title="Tanks"
+        subtitle={tanks.length > 0 ? `${tanks.length} tank${tanks.length === 1 ? "" : "s"} · ${cross.actions} care actions logged` : undefined}
+        action={
+          <Link
+            href="/tanks/new"
+            className="btn-outline inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
+            style={{ minHeight: 44 }}
+          >
+            <i aria-hidden className="ph ph-plus" /> New tank
+          </Link>
+        }
+      />
 
       {tanks.length === 0 ? (
         <div className="rounded-xl p-8 text-center edge-card">
-          <p className="mb-4" style={{ color: "var(--muted-foreground)" }}>No tanks yet — create your first tank.</p>
-          <Link href="/tanks/new" className="underline" style={{ color: "var(--accent)" }}>
-            Create tank →
+          <i aria-hidden className="ph ph-fish text-4xl" style={{ color: "var(--faint)" }} />
+          <p className="mb-4 mt-3" style={{ color: "var(--muted-foreground)" }}>No tanks yet — create your first tank.</p>
+          <Link
+            href="/tanks/new"
+            className="btn-outline inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium"
+            style={{ minHeight: 44 }}
+          >
+            <i aria-hidden className="ph ph-plus" /> Create tank
           </Link>
         </div>
       ) : (
@@ -76,22 +88,25 @@ export default async function TanksPage() {
             const cycling = cyclingInfo(tank);
 
             return (
-              <Link key={tank.id} href={`/tanks/${tank.id}`}
-                className="rounded-xl p-5 block edge-card">
+              <Link
+                key={tank.id}
+                href={`/tanks/${tank.id}`}
+                className="edge-card rounded-xl p-5 block transition-colors hover:bg-white/[0.07]"
+              >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-lg font-semibold">{tank.name}</div>
                     <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>
                       {tank.volumeL} L · {tank.waterType === "fresh" ? "Freshwater" : "Saltwater"} ·{" "}
                       {tank.tankState === "cycling" ? "cycling" : "established"}
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap justify-end gap-1 min-w-0">
                     {cycling && (
                       <Badge>
                         <span className="tnum">cycling day {cycling.day}</span>
-                        {cycling.no2trend === "falling" && <span style={{ color: "var(--success)" }}> · NO₂ ▼</span>}
-                        {cycling.no2trend === "rising" && <span style={{ color: "var(--warning)" }}> · NO₂ ▲</span>}
+                        {cycling.no2trend === "falling" && <span style={{ color: "var(--success)" }}> · NO₂ <i aria-hidden className="ph-fill ph-caret-down text-[9px]" /></span>}
+                        {cycling.no2trend === "rising" && <span style={{ color: "var(--warning)" }}> · NO₂ <i aria-hidden className="ph-fill ph-caret-up text-[9px]" /></span>}
                       </Badge>
                     )}
                     {tank.hasCo2 && <Badge>CO₂</Badge>}
@@ -102,8 +117,8 @@ export default async function TanksPage() {
 
                 {(fishSummary || plantSummary) && (
                   <div className="text-sm mb-3" style={{ color: "var(--muted-foreground)" }}>
-                    {fishSummary && <div>🐟 {fishSummary}</div>}
-                    {plantSummary && <div>🌿 {plantSummary}</div>}
+                    {fishSummary && <div className="flex items-start gap-1.5"><i aria-hidden className="ph ph-fish mt-0.5 shrink-0" />{fishSummary}</div>}
+                    {plantSummary && <div className="flex items-start gap-1.5"><i aria-hidden className="ph ph-plant mt-0.5 shrink-0" />{plantSummary}</div>}
                   </div>
                 )}
 
@@ -127,8 +142,9 @@ export default async function TanksPage() {
                     )}
                   </span>
                   {lastTest ? (
-                    <span style={{ color: problems.length > 0 ? "var(--warning)" : "var(--success)" }}>
-                      ● {problems.length > 0 ? `${problems.length} value${problems.length > 1 ? "s" : ""} off` : "values ok"} ({lastTest.measuredAt.slice(0, 10)})
+                    <span className="inline-flex items-center gap-1.5" style={{ color: problems.length > 0 ? "var(--warning)" : "var(--success)" }}>
+                      <i aria-hidden className="ph-fill ph-circle text-[8px]" />
+                      {problems.length > 0 ? `${problems.length} value${problems.length > 1 ? "s" : ""} off` : "values ok"} ({lastTest.measuredAt.slice(0, 10)})
                     </span>
                   ) : (
                     <span>no water test yet</span>
@@ -153,13 +169,13 @@ export default async function TanksPage() {
                 className="flex-1 rounded-sm"
                 style={{
                   height: `${Math.max(6, Math.round((a.count / maxCount) * 100))}%`,
-                  background: i >= activity.length - 4 ? "var(--accent)" : "rgba(34,211,238,0.45)",
+                  background: i >= activity.length - 4 ? "var(--accent)" : "var(--due-edge)",
                 }}
                 title={`${a.date}: ${a.count}`}
               />
             ))}
           </div>
-          <div className="flex items-center justify-between mt-2 text-[9px] tnum" style={{ color: "rgba(233,233,237,0.35)" }}>
+          <div className="flex items-center justify-between mt-2 text-[9px] tnum" style={{ color: "var(--faint)" }}>
             <span>{activity[0]?.date.slice(5)}</span>
             <span>{cross.actions} care actions</span>
             <span>{activity[activity.length - 1]?.date.slice(5)}</span>
@@ -171,17 +187,12 @@ export default async function TanksPage() {
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full px-2 py-0.5 text-xs whitespace-nowrap"
-      style={{ background: "var(--secondary)", color: "var(--secondary-foreground)" }}>
-      {children}
-    </span>
-  );
+  return <span className="chip">{children}</span>;
 }
 
 function Stat({ label, value, accent, warn }: { label: string; value: number; accent?: boolean; warn?: boolean }) {
   return (
-    <div className="rounded-lg p-2 text-center" style={{ background: "var(--secondary)" }}>
+    <div className="edge-card rounded-lg p-2 text-center">
       <div className="text-lg font-medium tnum" style={{ color: warn ? "var(--warning)" : accent ? "var(--due)" : undefined }}>
         {value}
       </div>

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { listTanks, listSchedules, feedAllToday } from "@/lib/repo";
-import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
+import { nextDue, missedSlots, catchUpWeight, doneOn } from "@/lib/domain/scheduler";
 import { careStreak } from "@/lib/domain/streak";
 import { scheduleAdherence, crossTankStats, weeklySummary } from "@/lib/stats";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
 import { feedMinDay, resolveFeedDay } from "@/lib/domain/feed-window";
 import { ScheduleCard } from "@/components/schedule-card";
 import { FeedControl } from "@/components/feed-checkbox";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusNote } from "@/components/ui/status-note";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +61,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const nextDay = day < t ? addDays(day, 1) : null;
   const feeds = feedAllToday(day);
 
+  // Closed today: these keep their place in the care queue with an Undo
+  // control instead of silently reappearing under "coming up this week".
+  // Derived from lastDoneAt, so the Undo survives the revalidation markDone
+  // triggers — and a reload. Computed over ALL schedules, not `tasks`: a task
+  // on a long interval is pushed past the one-week window the moment it is
+  // closed, and would otherwise vanish outright.
+  const doneTodayIds = new Set(schedules.filter((s) => doneOn(s, t)).map((s) => s.id));
+
   // projection for every schedule
   const tasks = schedules
     .map((s) => {
@@ -66,11 +76,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       const missed = missedSlots(s);
       return { s, due, missed, weight: catchUpWeight(s.actionType, due.overdueDays) };
     })
-    .filter(({ due }) => due.plannedFor <= weekEnd); // today + this week
+    .filter(({ due, s }) => due.plannedFor <= weekEnd || doneTodayIds.has(s.id));
 
-  const dueToday = tasks.filter(({ due }) => due.plannedFor <= t);
-  const behind = tasks.filter(({ due }) => due.plannedFor > t && due.overdueDays > 0);
-  const upcoming = tasks.filter(({ due }) => due.plannedFor > t && due.overdueDays === 0);
+  const closedToday = tasks.filter(({ s }) => doneTodayIds.has(s.id));
+  const open = tasks.filter(({ s }) => !doneTodayIds.has(s.id));
+  const dueToday = open.filter(({ due }) => due.plannedFor <= t);
+  const behind = open.filter(({ due }) => due.plannedFor > t && due.overdueDays > 0);
+  const upcoming = open.filter(({ due }) => due.plannedFor > t && due.overdueDays === 0);
   const catchUpCandidate = behind.length > 5 ? behind.sort((a, b) => b.weight - a.weight)[0] : null;
 
   const kpi = (label: string, value: number | string, color?: string) => (
@@ -82,30 +94,28 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   const card = (item: (typeof tasks)[number]) => {
     const { s, due } = item;
-    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} />;
+    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} doneToday={doneTodayIds.has(s.id)} />;
   };
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       {/* Page header (design): date label + "Today" + streak badge */}
-      <div className="flex items-end justify-between mb-5">
-        <div>
-          <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-            {fullDateLabel(t)}
-          </div>
-          <h1 className="text-2xl font-bold mt-1">Today</h1>
-        </div>
-        {tanks.length > 0 && (
-          <div
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
-            style={{ background: "var(--due-soft)", boxShadow: "inset 0 0 0 1px var(--due-edge)" }}
-          >
-            <i aria-hidden className="ph-fill ph-drop text-sm" style={{ color: "var(--due)" }} />
-            <span className="text-sm font-medium tnum">{streak}</span>
-            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>day streak</span>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        eyebrow={fullDateLabel(t)}
+        title="Today"
+        action={
+          tanks.length > 0 && (
+            <span
+              className="chip py-1.5"
+              style={{ "--chip-bg": "var(--due-soft)", boxShadow: "inset 0 0 0 1px var(--due-edge)" } as React.CSSProperties}
+            >
+              <i aria-hidden className="ph-fill ph-drop text-sm" style={{ color: "var(--due)" }} />
+              <span className="text-sm font-medium tnum" style={{ color: "var(--foreground)" }}>{streak}</span>
+              <span style={{ color: "var(--muted-foreground)" }}>day streak</span>
+            </span>
+          )
+        }
+      />
 
       {/* Feeding (daily habit) — day navigation lets you backfill past days */}
       {tanks.length > 0 && (
@@ -117,27 +127,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </div>
               <div className="flex items-center gap-1">
                 {prevDay ? (
-                  <Link
-                    href={`/?day=${prevDay}`}
-                    aria-label="Previous day"
-                    className="flex items-center justify-center rounded-[10px]"
-                    style={{
-                      width: 40,
-                      height: 34,
-                      background: "rgba(233,233,237,0.05)",
-                      boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)",
-                      color: "rgba(233,233,237,0.65)",
-                    }}
-                  >
-                    <i aria-hidden className="ph ph-arrow-left text-sm" />
+                  <Link href={`/?day=${prevDay}`} aria-label="Previous day" className="icon-btn icon-btn-sm">
+                    <i aria-hidden className="ph ph-caret-left text-sm" />
                   </Link>
                 ) : (
-                  <span
-                    aria-hidden
-                    className="flex items-center justify-center rounded-[10px]"
-                    style={{ width: 40, height: 34, color: "rgba(233,233,237,0.15)" }}
-                  >
-                    <i className="ph ph-arrow-left text-sm" />
+                  <span aria-hidden className="icon-btn icon-btn-sm icon-btn-bare" style={{ color: "var(--control-disabled)" }}>
+                    <i className="ph ph-caret-left text-sm" />
                   </span>
                 )}
                 <span
@@ -148,27 +143,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   {day === t ? "Today" : shortDateLabel(day)}
                 </span>
                 {nextDay ? (
-                  <Link
-                    href={nextDay === t ? "/" : `/?day=${nextDay}`}
-                    aria-label="Next day"
-                    className="flex items-center justify-center rounded-[10px]"
-                    style={{
-                      width: 40,
-                      height: 34,
-                      background: "rgba(233,233,237,0.05)",
-                      boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)",
-                      color: "rgba(233,233,237,0.65)",
-                    }}
-                  >
-                    <i aria-hidden className="ph ph-arrow-right text-sm" />
+                  <Link href={nextDay === t ? "/" : `/?day=${nextDay}`} aria-label="Next day" className="icon-btn icon-btn-sm">
+                    <i aria-hidden className="ph ph-caret-right text-sm" />
                   </Link>
                 ) : (
-                  <span
-                    aria-hidden
-                    className="flex items-center justify-center rounded-[10px]"
-                    style={{ width: 40, height: 34, color: "rgba(233,233,237,0.15)" }}
-                  >
-                    <i className="ph ph-arrow-right text-sm" />
+                  <span aria-hidden className="icon-btn icon-btn-sm icon-btn-bare" style={{ color: "var(--control-disabled)" }}>
+                    <i className="ph ph-caret-right text-sm" />
                   </span>
                 )}
               </div>
@@ -185,7 +165,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
       {/* Adherence · 30 d (design) */}
       {tanks.length > 0 && avgAdherence !== null && (
-        <div className="rounded-xl p-4 mb-4 flex items-center justify-between" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)" }}>
+        <div className="panel-card rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>
               Adherence · 30 d
@@ -199,11 +179,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
           </div>
           <span
-            className="rounded-full px-2.5 py-1 text-xs tnum"
+            className="chip tnum"
             style={{
-              background: avgAdherence >= 80 ? "var(--success-soft)" : "var(--warning-soft)",
-              color: avgAdherence >= 80 ? "var(--success)" : "var(--warning)",
-            }}
+              "--chip-bg": avgAdherence >= 80 ? "var(--success-soft)" : "var(--warning-soft)",
+              "--chip-fg": avgAdherence >= 80 ? "var(--success)" : "var(--warning)",
+            } as React.CSSProperties}
           >
             {avgAdherence >= 80 ? "on track" : "catching up"}
           </span>
@@ -219,7 +199,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
       {/* Catch-up */}
       {catchUpCandidate && (
-        <div className="rounded-xl p-5 mb-6" style={{ background: "var(--secondary)", border: "1px solid var(--warning)" }}>
+        <div className="rounded-xl p-5 mb-6" style={{ background: "var(--warning-soft)", boxShadow: "inset 0 0 0 1px var(--warning-edge)" }}>
           <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
             If you only do one thing today
           </div>
@@ -236,19 +216,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <h2 className="text-lg font-semibold">Care queue</h2>
           <span className="text-xs" style={{ color: "var(--faint)" }}>tap a card to edit</span>
         </div>
-        {tasks.length === 0 ? (
-          <div className="rounded-xl p-5 text-sm" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)", color: "var(--muted-foreground)" }}>
-            Queue clear — {week.closed} task{week.closed === 1 ? "" : "s"} closed this week, zero behind.
+        {dueToday.length === 0 && (
+          <div className="panel-card rounded-xl p-4 mb-3">
+            <StatusNote tone="success">
+              Queue clear — {week.closed} task{week.closed === 1 ? "" : "s"} closed this week, zero behind.
+            </StatusNote>
           </div>
-        ) : (
-          <>
-            {dueToday.length === 0 && (
-              <div className="rounded-xl p-4 mb-3 text-sm" style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--border)", color: "var(--success)" }}>
-                Queue clear — {week.closed} task{week.closed === 1 ? "" : "s"} closed this week, zero behind.
-              </div>
-            )}
-            <div className="space-y-3">{dueToday.map(card)}</div>
-          </>
+        )}
+        {dueToday.length > 0 && <div className="space-y-3">{dueToday.map(card)}</div>}
+        {closedToday.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
+              Done today ({closedToday.length})
+            </div>
+            <div className="space-y-3">{closedToday.map(card)}</div>
+          </div>
         )}
       </section>
 
@@ -271,12 +253,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {/* Empty state */}
       {tanks.length === 0 && (
         <div className="rounded-xl p-8 text-center edge-card">
-          <p className="mb-4" style={{ color: "var(--muted-foreground)" }}>
+          <i aria-hidden className="ph ph-fish text-4xl" style={{ color: "var(--faint)" }} />
+          <p className="mb-4 mt-3" style={{ color: "var(--muted-foreground)" }}>
             No tanks yet — create your first tank to get started.
           </p>
-          <Link href="/tanks/new" className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium inline-block"
-            style={{ minHeight: 44 }}>
-            Create tank
+          <Link
+            href="/tanks/new"
+            className="btn-outline inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium"
+            style={{ minHeight: 44 }}
+          >
+            <i aria-hidden className="ph ph-plus" /> Create tank
           </Link>
         </div>
       )}
