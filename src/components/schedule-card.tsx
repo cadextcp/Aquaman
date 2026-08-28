@@ -100,12 +100,12 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
         {/* icon rail */}
         <span
           aria-hidden
-          className={`ph ph-${actionVisual(schedule.actionType).icon} text-xl shrink-0 self-center`}
+          className={`ph ph-${actionVisual(schedule.actionType).icon} text-xl shrink-0 self-start mt-0.5 sm:mt-0 sm:self-center`}
           style={{ color: justDone ? "var(--success)" : actionVisual(schedule.actionType).color }}
         />
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="min-w-0 flex-1">
-            <div className="font-medium truncate" style={{ textDecoration: justDone ? "line-through" : "none" }}>
+            <div className="font-medium" style={{ textDecoration: justDone ? "line-through" : "none" }}>
               {schedule.actionType.replace(/_/g, " ")}
               <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}>
                 {" "}· every {schedule.intervalDays}d
@@ -138,14 +138,18 @@ export function ScheduleCard({ schedule, adherence = null }: { schedule: Schedul
             </div>
           </div>
 
-          {/* state-dependent controls — click must NOT open the editor */}
-          <div className="flex flex-col items-end gap-1" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          {/* state-dependent controls, all on ONE row — click must NOT open the editor */}
+          <div
+            className="flex shrink-0 items-center justify-end gap-1.5"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <button
               onClick={remove}
               disabled={pending}
               aria-label="Delete schedule"
               title="Delete schedule"
-              className="icon-btn icon-btn-sm icon-btn-danger"
+              className="icon-btn icon-btn-sm icon-btn-danger mr-0.5"
             >
               <i aria-hidden className="ph ph-trash text-base" />
             </button>
