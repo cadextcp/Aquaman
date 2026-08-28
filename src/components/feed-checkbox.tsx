@@ -3,13 +3,15 @@
 /**
  * Nocturne feeding control (issue #43): 5 pips (0–5), −/+ stepper, bubble
  * animation on feed, tank name links to the tank. Bounds 0..5 enforced
- * server-side too (adjustFeedToday).
+ * server-side too (adjustFeedOn). `day` comes from the dashboard's day
+ * navigation — today, or a past day within the 30-day backfill window
+ * (owner request: "edit past days if I forget to add feeding").
  */
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { adjustFeedToday } from "@/app/actions";
+import { adjustFeedOn } from "@/app/actions";
 
 type Bubble = { id: number; left: string; size: string; dx: string; dur: string; delay: string };
 
@@ -17,14 +19,17 @@ export function FeedControl({
   tankId,
   tankName,
   timesFed,
+  day,
 }: {
   tankId: number;
   tankName: string;
   timesFed: number;
+  day: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const bubbleId = useRef(0);
 
   function spawnBubbles() {
@@ -44,13 +49,17 @@ export function FeedControl({
 
   async function adjust(delta: 1 | -1) {
     if (delta === 1) spawnBubbles();
-    await adjustFeedToday(tankId, delta);
+    // A rejected day (stale tab past midnight, hand-edited ?day=) must not fail
+    // silently — the refresh would just re-render the unchanged count.
+    const res = await adjustFeedOn(tankId, day, delta);
+    setError(res.ok ? null : res.error);
     startTransition(() => router.refresh());
   }
 
   const fed = timesFed > 0;
 
   return (
+    <>
     <div
       className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 w-full"
       style={{ background: "rgba(233,233,237,0.05)", boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.07)", minHeight: 52 }}
@@ -82,9 +91,9 @@ export function FeedControl({
         <span
           className="text-xs tnum"
           style={{ color: fed ? "var(--due)" : "var(--faint)", minWidth: 62 }}
-          aria-label={fed ? `${tankName}: fed ${timesFed} times today` : `${tankName}: not fed yet today`}
+          aria-label={fed ? `${tankName}: fed ${timesFed} times` : `${tankName}: not fed`}
         >
-          {fed ? `fed ${timesFed}×` : "not fed yet"}
+          {fed ? `fed ${timesFed}×` : "not fed"}
         </span>
 
         {/* stepper */}
@@ -145,5 +154,11 @@ export function FeedControl({
         </div>
       </div>
     </div>
+    {error && (
+      <p role="alert" className="text-xs px-3" style={{ color: "var(--destructive)" }}>
+        {error}
+      </p>
+    )}
+    </>
   );
 }

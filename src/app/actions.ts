@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { tanks, schedules, maintenanceLogs, waterTests, feedLogs } from "@/lib/db/schema";
+import { tanks, schedules, maintenanceLogs, waterTests } from "@/lib/db/schema";
 import {
   tankInputSchema,
   scheduleInputSchema,
@@ -13,6 +13,7 @@ import {
   type ScheduleInput,
 } from "@/lib/schemas";
 import { today as todayStr } from "@/lib/domain/dates";
+import { feedDayError } from "@/lib/domain/feed-window";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -396,47 +397,40 @@ export async function undoLastDone(scheduleId: number): Promise<ActionResult> {
   }
 }
 
-// ==================== Feed adjust ± (issue #32) ====================
+// ==================== Feed adjust ± (issue #32, day backfill owner request) ====================
+//
+// The backfill window itself lives in @/lib/domain/feed-window so the dashboard's
+// day navigation and this validation can never disagree about which days are
+// editable.
 
-/**
- * Increment/decrement today's feeding count (bounds 0..5). Decrement below 0
- * is a no-op; a count reaching 0 deletes today's row ("not fed today").
- */
 export async function adjustFeedToday(tankId: number, delta: 1 | -1): Promise<ActionResult<{ timesFed: number }>> {
+  // Issue #25: NO caller-supplied timezone — AQUAMAN_TIMEZONE governs "today".
   try {
-    const { markFed, todayFeed } = await import("@/lib/repo");
-    const day = todayStr();
-    const current = todayFeed(tankId, day);
-    const nowCount = current?.timesFed ?? 0;
-
-    if (delta === -1) {
-      if (!current || nowCount <= 0) return { ok: true, data: { timesFed: 0 } };
-      if (nowCount === 1) {
-        db.delete(feedLogs).where(eq(feedLogs.id, current.id)).run();
-        revalidatePath("/");
-        return { ok: true, data: { timesFed: 0 } };
-      }
-      db.update(feedLogs).set({ timesFed: nowCount - 1 }).where(eq(feedLogs.id, current.id)).run();
-      revalidatePath("/");
-      return { ok: true, data: { timesFed: nowCount - 1 } };
-    }
-
-    // +1, capped at 5
-    if (nowCount >= 5) return { ok: true, data: { timesFed: nowCount } };
-    if (current) {
-      db.update(feedLogs)
-        .set({ timesFed: nowCount + 1, fedAt: new Date().toISOString() })
-        .where(eq(feedLogs.id, current.id))
-        .run();
-    } else {
-      db.insert(feedLogs)
-        .values({ tankId, day, fedAt: new Date().toISOString(), timesFed: 1 })
-        .run();
-    }
+    const { adjustFeedCore } = await import("@/lib/repo");
+    const res = adjustFeedCore(tankId, todayStr(), delta);
     revalidatePath("/");
-    return { ok: true, data: { timesFed: nowCount + 1 } };
+    return { ok: true, data: { timesFed: res.timesFed } };
   } catch (err) {
     console.error("[adjustFeedToday]", err);
+    return { ok: false, error: "Could not adjust feeding" };
+  }
+}
+
+/** Same stepper, but on a PAST day within the 30-day backfill window. */
+export async function adjustFeedOn(
+  tankId: number,
+  day: string,
+  delta: 1 | -1,
+): Promise<ActionResult<{ timesFed: number }>> {
+  const dayErr = feedDayError(day);
+  if (dayErr) return { ok: false, error: dayErr };
+  try {
+    const { adjustFeedCore } = await import("@/lib/repo");
+    const res = adjustFeedCore(tankId, day, delta);
+    revalidatePath("/");
+    return { ok: true, data: { timesFed: res.timesFed } };
+  } catch (err) {
+    console.error("[adjustFeedOn]", err);
     return { ok: false, error: "Could not adjust feeding" };
   }
 }

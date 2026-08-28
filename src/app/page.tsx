@@ -4,6 +4,7 @@ import { nextDue, missedSlots, catchUpWeight, MISSED_SLOTS_HINT } from "@/lib/do
 import { careStreak } from "@/lib/domain/streak";
 import { scheduleAdherence, crossTankStats, weeklySummary } from "@/lib/stats";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
+import { feedMinDay, resolveFeedDay } from "@/lib/domain/feed-window";
 import { ScheduleCard } from "@/components/schedule-card";
 import { FeedControl } from "@/components/feed-checkbox";
 
@@ -18,7 +19,15 @@ function fullDateLabel(dateStr: string): string {
   return `${weekday} ${d} ${month}`;
 }
 
-export default async function Dashboard() {
+/** "Mon, Aug 25" for the feeding day navigation pill. */
+function shortDateLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ day?: string }> }) {
+  const { day: dayParam } = await searchParams;
   const tanks = listTanks();
   const schedules = listSchedules();
   const { db } = await import("@/lib/db");
@@ -41,7 +50,14 @@ export default async function Dashboard() {
     adherences.length > 0 ? Math.round(adherences.reduce((acc, a) => acc + (a.pct ?? 0), 0) / adherences.length) : null;
   const t = todayStr();
   const weekEnd = addDays(t, 7);
-  const feeds = feedAllToday(t);
+  // feeding day navigation (?day=YYYY-MM-DD): anything the feed action would
+  // reject — non-dates, the future, beyond the backfill window — falls back to
+  // today, so the arrows never render a day whose stepper would fail
+  const minDay = feedMinDay(t);
+  const day = resolveFeedDay(dayParam, t);
+  const prevDay = day > minDay ? addDays(day, -1) : null;
+  const nextDay = day < t ? addDays(day, 1) : null;
+  const feeds = feedAllToday(day);
 
   // projection for every schedule
   const tasks = schedules
@@ -91,16 +107,75 @@ export default async function Dashboard() {
         )}
       </div>
 
-      {/* Feeding (daily habit) */}
+      {/* Feeding (daily habit) — day navigation lets you backfill past days */}
       {tanks.length > 0 && (
         <section className="mb-6">
           <div className="rounded-xl p-4 edge-card">
-            <div className="text-xs uppercase tracking-wide mb-3" style={{ color: "var(--muted-foreground)" }}>
-              Feeding today
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+                Feeding{day === t ? " today" : " · backfill"}
+              </div>
+              <div className="flex items-center gap-1">
+                {prevDay ? (
+                  <Link
+                    href={`/?day=${prevDay}`}
+                    aria-label="Previous day"
+                    className="flex items-center justify-center rounded-[10px]"
+                    style={{
+                      width: 40,
+                      height: 34,
+                      background: "rgba(233,233,237,0.05)",
+                      boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)",
+                      color: "rgba(233,233,237,0.65)",
+                    }}
+                  >
+                    <i aria-hidden className="ph ph-arrow-left text-sm" />
+                  </Link>
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex items-center justify-center rounded-[10px]"
+                    style={{ width: 40, height: 34, color: "rgba(233,233,237,0.15)" }}
+                  >
+                    <i className="ph ph-arrow-left text-sm" />
+                  </span>
+                )}
+                <span
+                  className="text-xs tnum text-center"
+                  style={{ minWidth: 92, color: day === t ? "var(--muted-foreground)" : "var(--due)" }}
+                  aria-label={day === t ? "Showing today" : `Showing ${day}`}
+                >
+                  {day === t ? "Today" : shortDateLabel(day)}
+                </span>
+                {nextDay ? (
+                  <Link
+                    href={nextDay === t ? "/" : `/?day=${nextDay}`}
+                    aria-label="Next day"
+                    className="flex items-center justify-center rounded-[10px]"
+                    style={{
+                      width: 40,
+                      height: 34,
+                      background: "rgba(233,233,237,0.05)",
+                      boxShadow: "inset 0 0 0 1px rgba(233,233,237,0.12)",
+                      color: "rgba(233,233,237,0.65)",
+                    }}
+                  >
+                    <i aria-hidden className="ph ph-arrow-right text-sm" />
+                  </Link>
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex items-center justify-center rounded-[10px]"
+                    style={{ width: 40, height: 34, color: "rgba(233,233,237,0.15)" }}
+                  >
+                    <i className="ph ph-arrow-right text-sm" />
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex flex-col gap-2">
               {tanks.map((tank) => (
-                <FeedControl key={tank.id} tankId={tank.id} tankName={tank.name}
+                <FeedControl key={tank.id} tankId={tank.id} tankName={tank.name} day={day}
                   timesFed={feeds.find((f) => f.tankId === tank.id)?.timesFed ?? 0} />
               ))}
             </div>
