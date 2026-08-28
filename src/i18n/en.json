@@ -92,5 +92,182 @@
   "calendarPage": {
     "title": "Calendar",
     "phase3": "In-app calendar view and the ICS feed for Google Calendar arrive in Phase 3."
+  },
+  "help": {
+    "topics": {
+      "streak": {
+        "title": "Day streak",
+        "body": [
+          "Days in a row without neglected care. A day counts when nothing was left behind by more than one full interval — so days with nothing due count too.",
+          "Feeding never breaks it, and neither does a task the app re-planned to your next preferred day.",
+          "Today only counts once everything due today is done. Until then you are looking at yesterday's number."
+        ]
+      },
+      "behindKpi": {
+        "title": "What counts as behind",
+        "body": [
+          "A task is behind once its target date has passed — the date it was originally due, not the date shown on its card.",
+          "The target date never moves. That is what keeps your backlog honest while the app keeps re-planning the visible date for you."
+        ],
+        "more": "scheduling"
+      },
+      "adherence": {
+        "title": "Adherence over 30 days",
+        "body": [
+          "Across all your plans: the share of planned occurrences you closed on time in the last 30 days.",
+          "On time means on the target day or within one day of it. From 80 % it reads as on track."
+        ]
+      },
+      "onTime": {
+        "title": "% on time",
+        "body": [
+          "For this plan alone: how many of its occurrences you closed on the target day or within one day of it, over the last 30 days.",
+          "It appears once the plan has at least one completed occurrence in that window."
+        ]
+      },
+      "plannedDate": {
+        "title": "Behind, but planned for a later date?",
+        "body": [
+          "Those are two different dates, and both are true.",
+          "The target date is when the task was due. It never moves, so your backlog stays honest.",
+          "The date on the card is where the app has re-planned it: your next preferred weekday. It is recalculated every day and never written down.",
+          "So “behind 2d · planned Saturday” means it was due two days ago, and Saturday is the next day you would actually do it."
+        ],
+        "more": "scheduling"
+      },
+      "earlyLater": {
+        "title": "Done early and Later",
+        "body": [
+          "Done early logs the task now and starts the next interval from today.",
+          "Later moves only this one occurrence. The target date stays put, so a task that was behind still counts as behind — and a calendar you subscribed to moves the event instead of adding a second one."
+        ]
+      },
+      "cyclingState": {
+        "title": "Cycling or established",
+        "body": [
+          "While a tank is cycling, nitrite and ammonia peaks are part of the process. Aquaman judges them more leniently and the coach reads them in that light.",
+          "Switch to established once the tank has settled. From then on any nitrite above zero is treated as a real warning again."
+        ]
+      },
+      "cyclingDay": {
+        "title": "Cycling day and the NO₂ trend",
+        "body": [
+          "The day is counted from when you created this tank in Aquaman, not from when you filled it.",
+          "The arrow compares your newest nitrite reading with the oldest of the last three. Falling is what you want to see."
+        ]
+      },
+      "nh3": {
+        "title": "Free ammonia (NH₃)",
+        "body": [
+          "This value is calculated, not measured. Your test kit reads total ammonium (NH₄); how much of it is actually the toxic free ammonia depends on pH and temperature.",
+          "The same NH₄ reading is harmless at pH 6.5 and dangerous at pH 8.2. That is why Aquaman judges the calculated NH₃ and not the raw number.",
+          "From 0.012 mg/l you get a warning, above 0.02 mg/l it is critical."
+        ]
+      },
+      "tightInterval": {
+        "title": "Interval too tight?",
+        "body": [
+          "This shows up once three of the plan's preferred days have passed since its target date — the task would have come around three times.",
+          "It is a suggestion, not a reproach. Often the interval is simply shorter than your routine, and widening it is the honest fix."
+        ]
+      },
+      "aiData": {
+        "title": "What the coach can see",
+        "body": [
+          "Your data only: tank profiles, water tests including the calculated NH₃, your care history and how far behind you are.",
+          "Never your API keys, your calendar or MCP tokens, your .env contents or any server path.",
+          "It can draft changes but never write them. Every proposal waits for your confirmation."
+        ]
+      },
+      "planReview": {
+        "title": "The coach badge",
+        "body": [
+          "A pulsing dot means the coach is reviewing your plan, triggered by changed tank data or new water values.",
+          "A number means it finished and has that many suggestions waiting for you."
+        ]
+      },
+      "medianDelay": {
+        "title": "Median delay",
+        "body": [
+          "Per action type, the middle value of how late your completions were: half were quicker, half slower.",
+          "The median rather than the average, because a single forgotten fortnight would otherwise skew the whole picture."
+        ]
+      }
+    },
+    "notes": {
+      "feeding": "A daily habit, not a scheduled task — feeding never shows up in the calendar or the ICS feed.",
+      "feedBackfill": "Use the arrows to log a day you forgot, up to 30 days back.",
+      "doneToday": "Stays here until midnight so you can take back a mis-tap.",
+      "catchUp": "Shown once more than five tasks are behind, so you always have one clear next step.",
+      "valuesOff": "From your most recent test — not the trend.",
+      "activityBars": "Care actions per day. Feeding is not counted here.",
+      "waterRanges": "Target ranges come from the water type and can be overridden per tank. In an established tank the nitrite target is 0.",
+      "sparkline": "The last six tests, oldest to newest.",
+      "preferredDays": "Occurrences only land on these days — including when the app re-plans an overdue one.",
+      "endsOn": "After this date the plan disappears from dashboard, calendar and feed. Your logs stay.",
+      "calendarLegend": "behind · due today · planned",
+      "aiGate": "The coach drafts. Nothing reaches your data until you confirm it.",
+      "aiLimits": "There is a daily budget for both calls and tokens. Both reset at local midnight.",
+      "aiOffline": "Without an API key every other part of Aquaman works as normal.",
+      "costUnits": "An estimate derived from token prices, not an amount in any currency.",
+      "timezone": "“Today” follows the timezone Aquaman is configured with, not your browser clock.",
+      "plansStat": "Active care plans, including those with nothing due this week.",
+      "feedMax": "Up to five feedings per day."
+    },
+    "concepts": {
+      "title": "How Aquaman plans",
+      "lede": "One idea explains most of what you see on the dashboard: Aquaman keeps two dates for every task, and only one of them ever moves.",
+      "sections": [
+        {
+          "id": "scheduling",
+          "heading": "Two dates, both true",
+          "body": [
+            "Every occurrence has a target date — when it was due. It is set once, when the occurrence is created, and then never moves.",
+            "What you see on a card is the planned date: where the app suggests you actually do it. If the target date has passed, the planned date moves forward to your next preferred weekday.",
+            "A card reading “behind 2d · planned Saturday” is telling you both at once: it was due two days ago, and Saturday is the realistic next slot."
+          ]
+        },
+        {
+          "id": "projection",
+          "heading": "Re-planning is never written down",
+          "body": [
+            "The planned date is recalculated every time something reads it, and never stored. Only what you do is recorded: completing a task, or pushing it back with Later.",
+            "That is why your subscribed calendar is always current even if you never open the dashboard — and why a week of ignoring the app does not quietly rewrite its own history."
+          ]
+        },
+        {
+          "id": "backlog",
+          "heading": "Why the backlog stays honest",
+          "body": [
+            "Because the target date never moves, being behind cannot disappear by itself. The app keeps offering you a realistic next date without pretending the delay did not happen.",
+            "Aquaman also counts how many of your preferred days went by since the target date. Once three have passed, it asks whether the interval is simply too tight — a question, not a telling-off."
+          ]
+        },
+        {
+          "id": "preferred",
+          "heading": "Preferred days",
+          "body": [
+            "Each plan has the weekdays you are willing to do it on. New occurrences are placed on one of those days from the start, so you never begin a task already late by construction.",
+            "Re-planning respects them too: an overdue weekend task moves to the next weekend, not to Tuesday."
+          ]
+        },
+        {
+          "id": "calendar",
+          "heading": "Why calendar events move instead of doubling",
+          "body": [
+            "In the ICS feed each occurrence keeps a stable identity tied to its target date. When the planned date changes, the event moves.",
+            "If the identity followed the planned date instead, Google would delete and recreate the event every day you stayed behind — losing your reminders and flashing duplicates in between."
+          ]
+        },
+        {
+          "id": "feeding",
+          "heading": "Feeding is not a plan",
+          "body": [
+            "Feeding is a daily habit with its own control on the dashboard. It is never an occurrence, never appears in the calendar or the feed, and never affects whether you are behind.",
+            "You can log up to five feedings a day and fill in a day you forgot, up to 30 days back."
+          ]
+        }
+      ]
+    }
   }
 }

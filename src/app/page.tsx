@@ -8,6 +8,7 @@ import { feedMinDay, resolveFeedDay } from "@/lib/domain/feed-window";
 import { ScheduleCard } from "@/components/schedule-card";
 import { FeedControl } from "@/components/feed-checkbox";
 import { PageHeader } from "@/components/ui/page-header";
+import { HelpDot, HelpNote } from "@/components/ui/help";
 import { StatusNote } from "@/components/ui/status-note";
 
 export const dynamic = "force-dynamic";
@@ -85,9 +86,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const upcoming = open.filter(({ due }) => due.plannedFor > t && due.overdueDays === 0);
   const catchUpCandidate = behind.length > 5 ? behind.sort((a, b) => b.weight - a.weight)[0] : null;
 
-  const kpi = (label: string, value: number | string, color?: string) => (
+  const kpi = (label: string, value: number | string, color?: string, help?: string) => (
     <div className="rounded-xl p-4 edge-card">
-      <div className="text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</div>
+      <div className="text-xs uppercase tracking-wide mb-1 flex items-center gap-0.5" style={{ color: "var(--muted-foreground)" }}>
+        {label}
+        {help && <HelpDot id={help} />}
+      </div>
       <div className="text-2xl font-medium tnum" style={{ color }}>{value}</div>
     </div>
   );
@@ -112,6 +116,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               <i aria-hidden className="ph-fill ph-drop text-sm" style={{ color: "var(--due)" }} />
               <span className="text-sm font-medium tnum" style={{ color: "var(--foreground)" }}>{streak}</span>
               <span style={{ color: "var(--muted-foreground)" }}>day streak</span>
+              <HelpDot id="streak" />
             </span>
           )
         }
@@ -153,6 +158,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 )}
               </div>
             </div>
+            <HelpNote id="feeding" className="mt-0" />
+            <HelpNote id="feedBackfill" className="mb-3 mt-1" />
             <div className="flex flex-col gap-2">
               {tanks.map((tank) => (
                 <FeedControl key={tank.id} tankId={tank.id} tankName={tank.name} day={day}
@@ -167,8 +174,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {tanks.length > 0 && avgAdherence !== null && (
         <div className="panel-card rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>
+            <div className="text-[10px] uppercase tracking-widest mb-1 flex items-center gap-0.5" style={{ color: "var(--muted-foreground)" }}>
               Adherence · 30 d
+              <HelpDot id="adherence" />
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-medium tnum">{avgAdherence}</span>
@@ -193,7 +201,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {/* KPIs */}
       <section className="grid grid-cols-3 gap-3 mb-6">
         {kpi("Due today", dueToday.length, dueToday.length > 0 ? "var(--accent)" : "var(--success)")}
-        {kpi("Behind", behind.length, behind.length > 0 ? "var(--warning)" : undefined)}
+        {kpi("Behind", behind.length, behind.length > 0 ? "var(--warning)" : undefined, "behindKpi")}
         {kpi("This week", upcoming.length)}
       </section>
 
@@ -207,6 +215,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
             {behind.length - 1} more tasks behind — they keep rescheduling to your preferred days, no rush.
           </div>
+          <HelpNote id="catchUp" />
         </div>
       )}
 
@@ -226,9 +235,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         {dueToday.length > 0 && <div className="space-y-3">{dueToday.map(card)}</div>}
         {closedToday.length > 0 && (
           <div className="mt-3">
-            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
+            <div className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
               Done today ({closedToday.length})
             </div>
+            <HelpNote id="doneToday" className="mb-2 mt-0.5" />
             <div className="space-y-3">{closedToday.map(card)}</div>
           </div>
         )}

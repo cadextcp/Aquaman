@@ -7,6 +7,7 @@ import { scheduleAdherence, crossTankStats, cyclingInfo, dailyActivity } from "@
 import { db } from "@/lib/db";
 import { maintenanceLogs } from "@/lib/db/schema";
 import { PageHeader } from "@/components/ui/page-header";
+import { HelpDot, HelpNote } from "@/components/ui/help";
 
 export const dynamic = "force-dynamic";
 
@@ -99,11 +100,13 @@ export default async function TanksPage() {
                     <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>
                       {tank.volumeL} L · {tank.waterType === "fresh" ? "Freshwater" : "Saltwater"} ·{" "}
                       {tank.tankState === "cycling" ? "cycling" : "established"}
+                      <HelpDot id="cyclingState" />
                     </div>
                   </div>
                   <div className="flex flex-wrap justify-end gap-1 min-w-0">
                     {cycling && (
                       <Badge>
+                        <HelpDot id="cyclingDay" className="-ml-1" />
                         <span className="tnum">cycling day {cycling.day}</span>
                         {cycling.no2trend === "falling" && <span style={{ color: "var(--success)" }}> · NO₂ <i aria-hidden className="ph-fill ph-caret-down text-[9px]" /></span>}
                         {cycling.no2trend === "rising" && <span style={{ color: "var(--warning)" }}> · NO₂ <i aria-hidden className="ph-fill ph-caret-up text-[9px]" /></span>}
@@ -162,6 +165,7 @@ export default async function TanksPage() {
           <span className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
             Across {tanks.length === 1 ? "tank" : "all tanks"} · 30 d
           </span>
+          <HelpNote id="activityBars" className="mt-0.5" />
           <div className="flex items-end gap-1 mt-3" style={{ height: 44 }}>
             {activity.map((a, i) => (
               <span

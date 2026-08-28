@@ -160,7 +160,11 @@ describe("adjustFeedToday ± (issue #32)", () => {
     const { markFed, todayFeed } = await import("../src/lib/repo");
 
     const tank = db.insert(tanks).values({ name: "FeedT", volumeL: 60, waterType: "fresh" }).returning().get();
-    const day = new Date().toISOString().slice(0, 10);
+    // the app keys feed rows on the LOCAL day (AQUAMAN_TIMEZONE), so reading
+    // them back by the UTC day makes this test fail every night between
+    // 22:00 and 24:00 UTC — bug hotspot #1, in the test rather than the code
+    const { today } = await import("../src/lib/domain/dates");
+    const day = today();
 
     let r = await adjustFeedToday(tank.id, 1);
     expect(r.ok && r.data!.timesFed).toBe(1);

@@ -92,5 +92,182 @@
   "calendarPage": {
     "title": "Kalender",
     "phase3": "In-App-Kalender und ICS-Feed für Google Calendar kommen in Phase 3."
+  },
+  "help": {
+    "topics": {
+      "streak": {
+        "title": "Serie",
+        "body": [
+          "Tage in Folge ohne vernachlässigte Pflege. Ein Tag zählt, wenn nichts länger als ein volles Intervall liegen blieb — Tage ohne fällige Aufgaben zählen also mit.",
+          "Füttern unterbricht die Serie nie, und eine Aufgabe, die die App auf deinen nächsten Wunschtag verschoben hat, ebenso wenig.",
+          "Heute zählt erst, wenn alles heute Fällige erledigt ist. Bis dahin siehst du den Stand von gestern."
+        ]
+      },
+      "behindKpi": {
+        "title": "Was als Rückstand zählt",
+        "body": [
+          "Eine Aufgabe ist im Rückstand, sobald ihr Soll-Termin vorbei ist — der Termin, an dem sie ursprünglich fällig war, nicht das Datum auf der Karte.",
+          "Der Soll-Termin wandert nie. Genau das hält deinen Rückstand ehrlich, während die App das sichtbare Datum für dich weiterplant."
+        ],
+        "more": "scheduling"
+      },
+      "adherence": {
+        "title": "Einhaltung über 30 Tage",
+        "body": [
+          "Über alle Pläne hinweg: der Anteil geplanter Termine, die du in den letzten 30 Tagen pünktlich geschlossen hast.",
+          "Pünktlich heißt am Soll-Tag oder höchstens einen Tag danach. Ab 80 % gilt das als „auf Kurs“."
+        ]
+      },
+      "onTime": {
+        "title": "% pünktlich",
+        "body": [
+          "Nur für diesen Plan: wie viele seiner Termine du in den letzten 30 Tagen am Soll-Tag oder höchstens einen Tag später geschlossen hast.",
+          "Erscheint, sobald der Plan in diesem Zeitraum mindestens einen erledigten Termin hat."
+        ]
+      },
+      "plannedDate": {
+        "title": "Im Rückstand, aber für später geplant?",
+        "body": [
+          "Das sind zwei verschiedene Termine, und beide stimmen.",
+          "Der Soll-Termin ist, wann die Aufgabe fällig war. Er wandert nie — so bleibt dein Rückstand ehrlich.",
+          "Das Datum auf der Karte ist der neu geplante Termin: dein nächster Wunsch-Wochentag. Er wird jeden Tag neu berechnet und nie gespeichert.",
+          "„im Rückstand 2 T. · geplant Samstag“ heißt also: vor zwei Tagen fällig, und Samstag ist der nächste Tag, an dem du es wirklich machen würdest."
+        ],
+        "more": "scheduling"
+      },
+      "earlyLater": {
+        "title": "Vorzeitig erledigen und Später",
+        "body": [
+          "„Vorzeitig erledigt“ trägt die Aufgabe jetzt ein und startet das nächste Intervall ab heute.",
+          "„Später“ verschiebt nur diesen einen Termin. Der Soll-Termin bleibt, wo er ist — eine Aufgabe im Rückstand bleibt also im Rückstand, und ein abonnierter Kalender verschiebt den Eintrag, statt einen zweiten anzulegen."
+        ]
+      },
+      "cyclingState": {
+        "title": "Einfahrphase oder eingefahren",
+        "body": [
+          "Während ein Becken einfährt, gehören Nitrit- und Ammoniakspitzen zum Prozess. Aquaman bewertet sie milder, und der Coach liest sie in diesem Licht.",
+          "Stell auf „eingefahren“ um, sobald sich das Becken stabilisiert hat. Ab dann gilt jeder Nitritwert über null wieder als echte Warnung."
+        ]
+      },
+      "cyclingDay": {
+        "title": "Einfahrtag und der NO₂-Trend",
+        "body": [
+          "Der Tag wird ab dem Anlegen des Beckens in Aquaman gezählt, nicht ab dem Befüllen.",
+          "Der Pfeil vergleicht deinen neuesten Nitritwert mit dem ältesten der letzten drei Messungen. Fallend ist das, was du sehen willst."
+        ]
+      },
+      "nh3": {
+        "title": "Freies Ammoniak (NH₃)",
+        "body": [
+          "Dieser Wert wird berechnet, nicht gemessen. Dein Test zeigt Gesamt-Ammonium (NH₄); wie viel davon tatsächlich das giftige freie Ammoniak ist, hängt von pH und Temperatur ab.",
+          "Derselbe NH₄-Wert ist bei pH 6,5 harmlos und bei pH 8,2 gefährlich. Deshalb bewertet Aquaman das berechnete NH₃ und nicht den Rohwert.",
+          "Ab 0,012 mg/l gibt es eine Warnung, über 0,02 mg/l ist es kritisch."
+        ]
+      },
+      "tightInterval": {
+        "title": "Intervall zu eng?",
+        "body": [
+          "Das erscheint, sobald seit dem Soll-Termin drei Wunschtage dieses Plans vergangen sind — die Aufgabe wäre also dreimal drangekommen.",
+          "Das ist ein Vorschlag, kein Vorwurf. Oft ist das Intervall schlicht kürzer als dein Alltag, und es zu verlängern ist die ehrliche Lösung."
+        ]
+      },
+      "aiData": {
+        "title": "Was der Coach sieht",
+        "body": [
+          "Nur deine Daten: Beckenprofile, Wassertests samt berechnetem NH₃, deine Pflegehistorie und wie weit du im Rückstand bist.",
+          "Nie deine API-Schlüssel, deine Kalender- oder MCP-Tokens, den Inhalt deiner .env oder Serverpfade.",
+          "Er kann Änderungen entwerfen, aber nie schreiben. Jeder Vorschlag wartet auf deine Bestätigung."
+        ]
+      },
+      "planReview": {
+        "title": "Das Coach-Abzeichen",
+        "body": [
+          "Ein pulsierender Punkt heißt: Der Coach prüft deinen Plan — ausgelöst durch geänderte Beckendaten oder neue Wasserwerte.",
+          "Eine Zahl heißt: Er ist fertig und hat so viele Vorschläge für dich."
+        ]
+      },
+      "medianDelay": {
+        "title": "Mittlerer Verzug",
+        "body": [
+          "Je Aktionsart der mittlere Wert deiner Verspätungen: Die Hälfte war schneller, die Hälfte langsamer.",
+          "Der Median statt des Durchschnitts, weil sonst ein einziger vergessener Zeitraum das ganze Bild verzerren würde."
+        ]
+      }
+    },
+    "notes": {
+      "feeding": "Tägliche Gewohnheit, kein Pflegeplan — Füttern taucht weder im Kalender noch im ICS-Feed auf.",
+      "feedBackfill": "Mit den Pfeilen trägst du einen vergessenen Tag nach, bis zu 30 Tage zurück.",
+      "doneToday": "Bleibt bis Mitternacht hier, damit du einen Fehlgriff zurücknehmen kannst.",
+      "catchUp": "Erscheint, sobald mehr als fünf Aufgaben im Rückstand sind — damit es immer einen klaren nächsten Schritt gibt.",
+      "valuesOff": "Aus deiner letzten Messung — nicht aus dem Verlauf.",
+      "activityBars": "Pflegeaktionen pro Tag. Fütterungen zählen hier nicht mit.",
+      "waterRanges": "Die Zielbereiche kommen vom Wassertyp und lassen sich pro Becken überschreiben. Im eingefahrenen Becken ist das Nitritziel 0.",
+      "sparkline": "Die letzten sechs Messungen, von alt nach neu.",
+      "preferredDays": "Termine landen nur auf diesen Tagen — auch dann, wenn die App einen überfälligen neu plant.",
+      "endsOn": "Nach diesem Datum verschwindet der Plan aus Übersicht, Kalender und Feed. Deine Einträge bleiben.",
+      "calendarLegend": "im Rückstand · heute fällig · geplant",
+      "aiGate": "Der Coach entwirft. Nichts erreicht deine Daten, bevor du es bestätigst.",
+      "aiLimits": "Es gibt ein Tagesbudget für Aufrufe und für Tokens. Beide setzen zur lokalen Mitternacht zurück.",
+      "aiOffline": "Ohne API-Schlüssel funktioniert jeder andere Teil von Aquaman ganz normal.",
+      "costUnits": "Eine Schätzung aus Tokenpreisen, kein Betrag in einer Währung.",
+      "timezone": "„Heute“ richtet sich nach der Zeitzone, mit der Aquaman konfiguriert ist — nicht nach deiner Browseruhr.",
+      "plansStat": "Aktive Pflegepläne, auch solche ohne Termin in dieser Woche.",
+      "feedMax": "Bis zu fünf Fütterungen pro Tag."
+    },
+    "concepts": {
+      "title": "Wie Aquaman plant",
+      "lede": "Ein Gedanke erklärt das meiste, was du auf der Übersicht siehst: Aquaman führt zu jeder Aufgabe zwei Termine — und nur einer davon bewegt sich je.",
+      "sections": [
+        {
+          "id": "scheduling",
+          "heading": "Zwei Termine, beide richtig",
+          "body": [
+            "Jeder Termin hat ein Soll-Datum — wann er fällig war. Es wird einmal bei der Entstehung gesetzt und wandert danach nie.",
+            "Was du auf der Karte siehst, ist der geplante Termin: der Tag, an dem die App dir vorschlägt, es wirklich zu tun. Ist das Soll-Datum vorbei, rückt der geplante Termin auf deinen nächsten Wunsch-Wochentag.",
+            "Eine Karte mit „im Rückstand 2 T. · geplant Samstag“ sagt dir beides auf einmal: vor zwei Tagen fällig, und Samstag ist der realistische nächste Slot."
+          ]
+        },
+        {
+          "id": "projection",
+          "heading": "Das Neuplanen wird nie gespeichert",
+          "body": [
+            "Der geplante Termin wird bei jedem Lesen neu berechnet und nie abgelegt. Gespeichert wird nur, was du tust: eine Aufgabe erledigen oder sie mit „Später“ verschieben.",
+            "Deshalb ist dein abonnierter Kalender immer aktuell, auch wenn du die Übersicht nie öffnest — und deshalb schreibt eine ignorierte Woche nicht still die eigene Historie um."
+          ]
+        },
+        {
+          "id": "backlog",
+          "heading": "Warum der Rückstand ehrlich bleibt",
+          "body": [
+            "Weil das Soll-Datum nie wandert, kann sich ein Rückstand nicht von selbst auflösen. Die App bietet dir weiter einen realistischen nächsten Termin an, ohne so zu tun, als wäre die Verzögerung nicht passiert.",
+            "Aquaman zählt außerdem, wie viele deiner Wunschtage seit dem Soll-Datum vergangen sind. Ab dem dritten fragt es, ob das Intervall vielleicht zu eng ist — eine Frage, keine Rüge."
+          ]
+        },
+        {
+          "id": "preferred",
+          "heading": "Wunschtage",
+          "body": [
+            "Jeder Plan hat die Wochentage, an denen du ihn erledigen willst. Neue Termine werden von Anfang an auf einen davon gelegt, damit du nie per Konstruktion zu spät startest.",
+            "Auch das Neuplanen hält sich daran: Eine überfällige Wochenendaufgabe rückt aufs nächste Wochenende, nicht auf Dienstag."
+          ]
+        },
+        {
+          "id": "calendar",
+          "heading": "Warum Kalendereinträge wandern statt sich zu verdoppeln",
+          "body": [
+            "Im ICS-Feed behält jeder Termin eine feste Identität, die am Soll-Datum hängt. Ändert sich der geplante Termin, wandert der Eintrag.",
+            "Hänge die Identität stattdessen am geplanten Termin, würde Google den Eintrag an jedem Tag im Rückstand löschen und neu anlegen — deine Erinnerungen wären weg und zwischendurch hättest du Dubletten."
+          ]
+        },
+        {
+          "id": "feeding",
+          "heading": "Füttern ist kein Plan",
+          "body": [
+            "Füttern ist eine tägliche Gewohnheit mit einer eigenen Steuerung auf der Übersicht. Es ist nie ein Termin, taucht weder im Kalender noch im Feed auf und beeinflusst nie, ob du im Rückstand bist.",
+            "Du kannst bis zu fünf Fütterungen pro Tag eintragen und einen vergessenen Tag nachtragen, bis zu 30 Tage zurück."
+          ]
+        }
+      ]
+    }
   }
 }
