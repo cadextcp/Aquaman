@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getTank, listSchedules, recentLogs, waterTestsForTank } from "@/lib/repo";
+import { getTank, listSchedules, recentLogs, allLogsForTank, waterTestsForTank } from "@/lib/repo";
 import { nextDue, missedSlots, doneOn, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { EditTankButton } from "@/components/edit-tank-button";
@@ -25,6 +25,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
 
   const schedules = listSchedules(tank.id);
   const logs = recentLogs(tank.id, 10);
+  const adherenceLogs = allLogsForTank(tank.id); // untruncated — adherence reconstructs the occurrence chain from it
   const tests = waterTestsForTank(tank.id, 365);
   const ranges = tank.waterType === "salt" ? SALTWATER_RANGES : FRESHWATER_RANGES;
   const lastTest = tests[0];
@@ -36,13 +37,13 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
       })
     : [];
   const problems = evaluation.filter((e) => e.status !== "ok");
-  const tankLogs = logs; // recentLogs already fetched
+  const tankLogs = adherenceLogs; // full history, needed by scheduleAdherence's grid walk
   const adherenceBySchedule = new Map<number, number | null>();
   for (const sch of schedules) {
     adherenceBySchedule.set(
       sch.id,
       scheduleAdherence(
-        { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active },
+        { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active, endsOn: sch.endsOn },
         tankLogs.filter((l) => l.actionType === sch.actionType),
       ),
     );

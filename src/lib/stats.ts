@@ -13,7 +13,7 @@ import { db } from "@/lib/db";
 import { maintenanceLogs, waterTests, feedLogs, schedules, aiCalls } from "@/lib/db/schema";
 import { listTanks, listSchedules } from "@/lib/repo";
 import { missedSlots, nextPreferredDay } from "@/lib/domain/scheduler";
-import { addDays, today, dayMatchesMask } from "@/lib/domain/dates";
+import { addDays, today, dayMatchesMask, isoToLocalDate } from "@/lib/domain/dates";
 
 export type MonthlyStats = {
   month: string; // YYYY-MM
@@ -106,10 +106,10 @@ export function careReliabilityStats(): DelayStat[] {
     let prevDone: string | null = null;
     for (const doneAt of doneAts) {
       // original due of the occurrence this completion closed
-      const baseStr = (prevDone ?? schedule.createdAt).slice(0, 10);
+      const baseStr = prevDone ? isoToLocalDate(prevDone) : isoToLocalDate(schedule.createdAt);
       const raw = addDays(baseStr, schedule.intervalDays);
       const originalDue = nextPreferredDay(raw, schedule.preferredDays);
-      const doneDay = doneAt.slice(0, 10);
+      const doneDay = isoToLocalDate(doneAt);
       const delay = doneDay < originalDue ? 0 : dayDiff(originalDue, doneDay);
       const list = delaysByAction.get(schedule.actionType) ?? [];
       list.push(delay);
@@ -180,9 +180,21 @@ function dayDiff(a: string, b: string): number {
 
 /**
  * Adherence per schedule over the last N days (design: "94% on time"):
- * share of planned occurrences (weekday-gridded originalDue dates in the
- * window) that were closed within a grace of 1 day past their due date.
- * Schedules without any planned occurrence in the window return null
+ * share of planned occurrences that were closed no more than 1 day after
+ * their due date — closing early always counts (same clamp as the
+ * median-delay metric, where early = 0 delay).
+ *
+ * The occurrence timeline follows the scheduler's own reset semantics
+ * (originalDueAt chains from the last completion, scheduler.ts): each
+ * completion closes the currently open occurrence and the next due is
+ * gridded from that completion's day. An earlier version chained the grid
+ * from createdAt only, so it diverged from the real schedule after the
+ * first late completion and scored perfectly-caught-up users 0%.
+ *
+ * An occurrence is counted when it was live during the window: due date in
+ * the window, closed during the window (lingering backlog), or still open
+ * today (honest backlog — being behind shows, it does not hide).
+ * Schedules without any live occurrence in the window return null
  * (nothing to be on time FOR — design hides the % in that case).
  */
 export function scheduleAdherence(
@@ -193,6 +205,7 @@ export function scheduleAdherence(
     lastDoneAt: string | null;
     createdAt: string;
     active: boolean;
+    endsOn?: string | null;
   },
   logs: { actionType: string; doneAt: string }[],
   days = 30,
@@ -201,27 +214,37 @@ export function scheduleAdherence(
   const t = today(undefined, now);
   const from = addDays(t, -days);
 
-  // planned occurrences: chain from createdAt (approximation without per-occurrence persistence)
-  const created = schedule.createdAt.slice(0, 10);
-  let due = addDays(created, schedule.intervalDays);
-  let guard = 0;
-  const dues: string[] = [];
-  while (due <= t && guard++ < 400) {
+  // completion days in app-tz, deduped, oldest first — two completions on
+  // one day cannot close distinct occurrences (the base moves by day only)
+  const doneDays = [...new Set(logs.map((l) => isoToLocalDate(l.doneAt)))].sort();
+
+  let base = isoToLocalDate(schedule.createdAt);
+  let ci = 0; // next completion that may close the open occurrence
+  let counted = 0;
+  let onTime = 0;
+  // every pass consumes one completion or stops at the open occurrence,
+  // so at most doneDays.length + 1 passes run — no runaway guard needed
+  for (let guard = 0; guard <= doneDays.length + 1; guard++) {
+    let due = addDays(base, schedule.intervalDays);
     let g2 = 0;
     while (!dayMatchesMask(due, schedule.preferredDays) && g2++ < 7) due = addDays(due, 1);
-    if (due > t) break;
-    if (due >= from) dues.push(due);
-    due = addDays(due, schedule.intervalDays);
-  }
-  if (dues.length === 0) return null;
+    if ((schedule.endsOn && due > schedule.endsOn) || due > t) break;
 
-  const doneDays = new Set(logs.map((l) => l.doneAt.slice(0, 10)));
-  let onTime = 0;
-  for (const d of dues) {
-    // closed on the due day or the day after (grace 1 d, like the median-delay clamp)
-    if (doneDays.has(d) || doneDays.has(addDays(d, 1))) onTime++;
+    // first completion after the base closes the open occurrence (early or late)
+    while (ci < doneDays.length && doneDays[ci] <= base) ci++;
+    const closedOn = ci < doneDays.length ? doneDays[ci++] : null;
+
+    if (due >= from || closedOn === null || closedOn >= from) {
+      counted++;
+      if (closedOn !== null && closedOn <= addDays(due, 1)) onTime++;
+    }
+
+    if (closedOn === null) break; // occurrence stays open — no later occurrence exists
+    base = closedOn;
   }
-  return Math.round((onTime / dues.length) * 100);
+
+  if (counted === 0) return null;
+  return Math.round((onTime / counted) * 100);
 }
 
 /** Cross-tank 30-day summary (design: "60 care actions"). */
