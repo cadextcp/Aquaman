@@ -66,7 +66,7 @@ export default async function TanksPage() {
             const adherences = schedules
               .map((sch) =>
                 scheduleAdherence(
-                  { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active },
+                  { id: sch.id, intervalDays: sch.intervalDays, preferredDays: sch.preferredDays, lastDoneAt: sch.lastDoneAt, createdAt: sch.createdAt, active: sch.active, endsOn: sch.endsOn },
                   allLogs.filter((l) => l.tankId === tank.id && l.actionType === sch.actionType),
                 ),
               )

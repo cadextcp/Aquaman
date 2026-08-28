@@ -125,3 +125,95 @@ describe("chronicOverload (metric 1b)", () => {
     expect(wc!.tankName).toBe("Stats Tank");
   });
 });
+
+/**
+ * scheduleAdherence is pure — no DB rows needed. Fixed `now` keeps every case
+ * deterministic. All doneAt instants are 10:00Z (noon Berlin, same local day)
+ * unless a test deliberately probes the app-tz day boundary.
+ */
+describe("scheduleAdherence (30 d, reset-grid semantics)", () => {
+  type AdhSchedule = Parameters<Awaited<typeof import("../src/lib/stats")>["scheduleAdherence"]>[0];
+  const NOW = new Date("2026-08-28T12:00:00.000Z"); // today 2026-08-28, window from 2026-07-29
+  const sched = (over: Partial<AdhSchedule> = {}): AdhSchedule => ({
+    id: 1,
+    intervalDays: 7,
+    preferredDays: 127,
+    lastDoneAt: null,
+    createdAt: "2026-06-01T00:00:00.000Z",
+    active: true,
+    ...over,
+  });
+  const logs = (days: string[]) => days.map((d) => ({ actionType: "water_change", doneAt: `${d}T10:00:00.000Z` }));
+
+  it("regression: catching up after a late completion is scored on the real grid, not 0%", async () => {
+    const { scheduleAdherence } = await import("../src/lib/stats");
+    // on-time weekly chain until 07-06, one 19-day-late catch-up on 08-01,
+    // then perfectly on time again (08-08, 08-15, 08-22)
+    const pct = scheduleAdherence(
+      sched(),
+      logs(["2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-08-01", "2026-08-08", "2026-08-15", "2026-08-22"]),
+      30,
+      NOW,
+    );
+    // counted: the lingering occurrence closed 08-01 (miss) + 3 on-time → 3/4
+    expect(pct).toBe(75); // the old createdAt-frozen grid scored this 0%
+  });
+
+  it("closing early counts as on time", async () => {
+    const { scheduleAdherence } = await import("../src/lib/stats");
+    // due 07-08, done 07-06 via "done early"
+    const pct = scheduleAdherence(sched({ createdAt: "2026-07-01T00:00:00.000Z" }), logs(["2026-07-06"]), 30, new Date("2026-07-12T12:00:00.000Z"));
+    expect(pct).toBe(100);
+  });
+
+  it("a completion just after local midnight is the local day, not the UTC day", async () => {
+    const { scheduleAdherence } = await import("../src/lib/stats");
+    // due 07-08, done 2026-07-07T22:30Z = 07-08 00:30 Berlin → on time.
+    // UTC slicing read 07-07 and scored a miss.
+    const pct = scheduleAdherence(
+      sched({ createdAt: "2026-07-01T00:00:00.000Z" }),
+      [{ actionType: "water_change", doneAt: "2026-07-07T22:30:00.000Z" }],
+      30,
+      new Date("2026-07-12T12:00:00.000Z"),
+    );
+    expect(pct).toBe(100);
+  });
+
+  it("an occurrence still open today counts as a miss (honest backlog)", async () => {
+    const { scheduleAdherence } = await import("../src/lib/stats");
+    const pct = scheduleAdherence(sched(), [], 30, NOW);
+    expect(pct).toBe(0); // due 2026-06-08, never closed — visible, not hidden as null
+  });
+
+  it("returns null when nothing was live in the window", async () => {
+    const { scheduleAdherence } = await import("../src/lib/stats");
+    // brand-new 30-day schedule: first due 2026-09-24, outside today
+    expect(scheduleAdherence(sched({ createdAt: "2026-08-25T00:00:00.000Z", intervalDays: 30 }), [], 30, NOW)).toBeNull();
+    // ended schedule fully resolved before the window
+    expect(
+      scheduleAdherence(
+        sched({ endsOn: "2026-06-20" }),
+        logs(["2026-06-08", "2026-06-15"]),
+        30,
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  it("a weeks-late closure of an old occurrence counts in the window as a miss", async () => {
+    const { scheduleAdherence } = await import("../src/lib/stats");
+    const pct = scheduleAdherence(sched(), logs(["2026-08-01"]), 30, NOW);
+    expect(pct).toBe(0); // single live occurrence (due 06-08, closed 08-01) → 0/1
+  });
+
+  it("same-day duplicate completions close one occurrence, not two", async () => {
+    const { scheduleAdherence } = await import("../src/lib/stats");
+    const pct = scheduleAdherence(
+      sched({ createdAt: "2026-07-01T00:00:00.000Z" }),
+      logs(["2026-07-08", "2026-07-08"]),
+      30,
+      new Date("2026-07-12T12:00:00.000Z"),
+    );
+    expect(pct).toBe(100);
+  });
+});
