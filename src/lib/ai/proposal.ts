@@ -14,7 +14,7 @@ export const PROPOSAL_TOOL_NAME = "propose_schedule";
 export const PROPOSAL_TOOL_DESCRIPTION = `Propose maintenance schedule changes as a draft for the user to approve.
 Use when: a tank has no schedules yet, water values suggest a different cadence (e.g. nitrate rising → shorter water-change interval), or a task repeatedly misses its slots (missedSlots >= 3 → suggest a LONGER interval).
 STRICT output contract — the app rejects any change that misses a required field:
-- Every change MUST include kind, intervalDays, tankId, actionType and preferredDays. For kind=adjust also include scheduleId of the existing schedule.
+- Every change MUST include kind and intervalDays. For kind=create ALSO include tankId, actionType and preferredDays. For kind=adjust ALSO include scheduleId of the existing schedule (never tankId/actionType — the schedule already has those).
 - actionType must be exactly one of: water_change, fertilize, feed, filter_change, water_test (or a short snake_case custom label).
 - preferredDays is a 7-bit weekday bitmask: bit0=Mon(1) Tue(2) Wed(4) Thu(8) Fri(16) Sat(32) Sun(64). Examples: 127=every day, 96=weekend only (Sat+Sun), 31=weekdays. Use 127 when the user gives no weekday preference.
 - Never send an empty changes array, and always also write a short visible summary of what you proposed.
@@ -41,11 +41,25 @@ export const PROPOSAL_TOOL_INPUT_SCHEMA = {
           detailData: { type: "object", description: "Structured details. water_change: {percent}; fertilize: {nutrients:{c_co2|n_no3|p_po4|k|mg|ca|fe|mn|zn|b|mo|cu: 'dose'}}; feed: {foods:{'Food name':'amount'}}. Keep it consistent with details." },
           note: { type: "string", description: "Optional short reason for this single change" },
         },
-        // Mirrors proposalSchema's per-kind required fields (zod is the last
-        // gate, this is the first): whatever zod demands, the model must
+        // Mirrors proposalChangeSchema's per-kind required fields (zod is the
+        // last gate, this is the first): whatever zod demands, the model must
         // already be told to send — 2026-08-30: GLM legitimately omitted
         // preferredDays here and every create-proposal failed validation.
-        required: ["kind", "intervalDays", "tankId", "actionType", "preferredDays"],
+        // A flat `required` list can't express "tankId only for create,
+        // scheduleId only for adjust" — it either over-requires create-only
+        // fields on adjust or never requires scheduleId at all, so this uses
+        // if/then per kind exactly like the zod discriminated union below.
+        required: ["kind", "intervalDays"],
+        allOf: [
+          {
+            if: { properties: { kind: { const: "create" } } },
+            then: { required: ["tankId", "actionType", "preferredDays"] },
+          },
+          {
+            if: { properties: { kind: { const: "adjust" } } },
+            then: { required: ["scheduleId"] },
+          },
+        ],
       },
     },
   },

@@ -15,7 +15,7 @@ import { MAX_HISTORY_MESSAGES } from "@/lib/ai/constants";
 import type { Proposal } from "@/lib/ai/proposal";
 import { StatusNote } from "./ui/status-note";
 
-type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal };
+type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal; tone?: "error" | "warning" };
 
 type UsageInfo = { calls: number; totalTokens: number; maxCalls: number; maxTokens: number } | null;
 
@@ -91,7 +91,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
     // Every turn MUST end with something visible in the bubble — an error, or
     // an explicit "no answer" note. A stream that ends without any content
     // (provider quirk, proxy cut) used to leave a permanently empty bubble.
-    const saw = { content: false, error: false };
+    const saw = { output: false };
 
     try {
       const res = await fetch("/api/coach", {
@@ -136,10 +136,14 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
           handleEvent(ev, saw);
         }
       }
-      if (!saw.content && !saw.error) {
+      if (!saw.output) {
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: "⚠ No answer received — please send your question again." };
+          copy[copy.length - 1] = {
+            role: "assistant",
+            content: "No answer received — please send your question again.",
+            tone: "warning",
+          };
           return copy;
         });
       }
@@ -155,7 +159,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
     }
   }
 
-  function handleEvent(ev: Record<string, unknown>, saw: { content: boolean; error: boolean }) {
+  function handleEvent(ev: Record<string, unknown>, saw: { output: boolean }) {
     switch (ev.type) {
       case "usage":
         setUsage({
@@ -166,7 +170,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
         });
         break;
       case "text":
-        if (String(ev.delta ?? "")) saw.content = true;
+        if (String(ev.delta ?? "")) saw.output = true;
         setMessages((prev) => {
           const copy = [...prev];
           const last = copy[copy.length - 1];
@@ -177,7 +181,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
       case "proposal": {
         const proposal = ev.proposal as Proposal | undefined;
         if (!proposal) break;
-        saw.content = true;
+        saw.output = true;
         setMessages((prev) => {
           const copy = [...prev];
           const last = copy[copy.length - 1];
@@ -189,11 +193,11 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
       case "error": {
         // The message belongs IN the bubble where the answer was expected —
         // a separate banner alone left the bubble empty and easy to miss.
-        saw.error = true;
+        saw.output = true;
         const message = String(ev.message ?? "AI error");
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: `⚠ ${message}` };
+          copy[copy.length - 1] = { role: "assistant", content: message, tone: "error" };
           return copy;
         });
         break;
@@ -231,7 +235,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
                 : { background: "var(--surface)", boxShadow: "inset 0 1px 0 var(--surface)", borderRadius: "13px 13px 13px 4px" }
             }
           >
-            {m.content}
+            {m.tone ? <StatusNote tone={m.tone}>{m.content}</StatusNote> : m.content}
             {m.proposal && <ProposalCard proposal={m.proposal} />}
           </div>
         </div>

@@ -12,14 +12,33 @@
 import { describe, it, expect } from "vitest";
 import { PROPOSAL_TOOL_INPUT_SCHEMA, parseProposal } from "../src/lib/ai/proposal";
 
-type ItemsSchema = { properties: { changes: { items: { required: string[] } } } };
+type ConditionalBranch = { if: { properties: { kind: { const: string } } }; then: { required: string[] } };
+type ItemsSchema = { properties: { changes: { items: { required: string[]; allOf: ConditionalBranch[] } } } };
 const items = (PROPOSAL_TOOL_INPUT_SCHEMA as ItemsSchema).properties.changes.items;
 
+/** The extra fields required on top of the base `required` list for one `kind`. */
+function requiredFor(kind: string): string[] {
+  const branch = items.allOf.find((b) => b.if.properties.kind.const === kind);
+  return branch?.then.required ?? [];
+}
+
 describe("propose_schedule JSON schema ↔ zod contract", () => {
-  it("tool schema requires every zod-mandatory field of kind=create", () => {
-    for (const key of ["kind", "tankId", "actionType", "intervalDays", "preferredDays"]) {
+  it("base required fields apply to every kind", () => {
+    for (const key of ["kind", "intervalDays"]) {
       expect(items.required).toContain(key);
     }
+  });
+
+  it("tool schema requires every zod-mandatory field of kind=create", () => {
+    for (const key of ["tankId", "actionType", "preferredDays"]) {
+      expect(requiredFor("create")).toContain(key);
+    }
+  });
+
+  it("tool schema requires scheduleId for kind=adjust, and never tankId/actionType", () => {
+    expect(requiredFor("adjust")).toContain("scheduleId");
+    expect(requiredFor("adjust")).not.toContain("tankId");
+    expect(requiredFor("adjust")).not.toContain("actionType");
   });
 
   it("zod still rejects what the tool schema forbids: create without preferredDays", () => {
@@ -56,5 +75,13 @@ describe("propose_schedule JSON schema ↔ zod contract", () => {
       changes: [{ kind: "adjust", scheduleId: 13, intervalDays: 5, preferredDays: 127 }],
     };
     expect(parseProposal(adjust)).not.toBeNull();
+  });
+
+  it("zod rejects what the tool schema now also forbids: adjust without scheduleId", () => {
+    const missing = {
+      rationale: "Shorten the water-change cadence.",
+      changes: [{ kind: "adjust", intervalDays: 5, preferredDays: 127 }],
+    };
+    expect(parseProposal(missing)).toBeNull();
   });
 });

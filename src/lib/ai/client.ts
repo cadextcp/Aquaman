@@ -52,10 +52,14 @@ type ToolAcc = { name: string; json: string };
  * Output budget per call. GLM (and other reasoning models) emit a "thinking"
  * section BEFORE the visible answer and bill it against max_tokens — at 1024
  * a real coach question often produced zero visible text (empty bubble,
- * output_tokens reported as exactly the cap). 4096 leaves room for thinking
- * plus a full answer; 20 calls × 4096 still fits the default 200k/day ceiling.
+ * output_tokens reported as exactly the cap). z.ai gets a higher ceiling as a
+ * safety margin around that (on top of disabling thinking below); the default
+ * (api.anthropic.com, which never had this bug) keeps the original budget —
+ * quadrupling it there would only inflate cost/latency for no corresponding
+ * problem.
  */
-const MAX_OUTPUT_TOKENS = 4096;
+const MAX_OUTPUT_TOKENS_DEFAULT = 1024;
+const MAX_OUTPUT_TOKENS_ZAI = 4096;
 
 /** Steadier care advice and tool calls — no feature wants sampling variety. */
 const TEMPERATURE = 0.3;
@@ -91,15 +95,17 @@ export async function streamCoachAnswer(opts: {
   let proposalOut: Proposal | null = null;
   const startedAt = Date.now();
 
+  const isZai = providerLabel(config.baseUrl) === "zai";
+
   const requestBody = {
     model: config.model,
-    max_tokens: MAX_OUTPUT_TOKENS,
+    max_tokens: isZai ? MAX_OUTPUT_TOKENS_ZAI : MAX_OUTPUT_TOKENS_DEFAULT,
     temperature: TEMPERATURE,
     // z.ai's GLM streams a "thinking" block by default and their
     // Anthropic-compat layer accepts turning it off (verified live:
     // zero thinking deltas, all tool fields present). api.anthropic.com
     // rejects that shape, so only send it on the z.ai path.
-    ...(config.baseUrl.includes("z.ai") ? { thinking: { type: "disabled" as const } } : {}),
+    ...(isZai ? { thinking: { type: "disabled" as const } } : {}),
     system: opts.system,
     messages: normalizeHistory(opts.history, opts.question),
     tools: [
