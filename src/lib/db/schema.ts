@@ -113,8 +113,9 @@ export const maintenanceLogs = sqliteTable(
     actionType: text("action_type").notNull(),
     doneAt: text("done_at").notNull(), // ISO-8601 UTC
     note: text("note"),
-    // 'user' | 'ai_proposed' | 'mcp' (never auto-written) — 'mcp' = done via the v1.1 MCP tools
-    source: text("source", { enum: ["user", "ai_proposed", "mcp"] }).notNull().default("user"),
+    // 'user' | 'ai_proposed' | 'mcp' | 'api' (never auto-written) — 'mcp' = done via the v1.1
+    // MCP tools, 'api' = done via the v1 REST API (/api/v1) e.g. an ESPHome display
+    source: text("source", { enum: ["user", "ai_proposed", "mcp", "api"] }).notNull().default("user"),
   },
   (t) => [
     index("idx_logs_tank").on(t.tankId),

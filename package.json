@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run db:ensure && next dev",
-    "build": "next build",
+    "dev": "npm run db:ensure && node scripts/copy-swagger-assets.mjs && next dev",
+    "build": "node scripts/copy-swagger-assets.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -39,6 +39,7 @@
     "drizzle-kit": "^0.31.2",
     "eslint": "^9",
     "eslint-config-next": "^15.5.23",
+    "swagger-ui-dist": "^5.32.14",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.20.3",
     "typescript": "^5",

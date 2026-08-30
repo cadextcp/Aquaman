@@ -22,37 +22,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { McpServer, WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
 import { createAquamanMcpServer } from "@/lib/mcp/server";
 import { getOrCreateMcpToken, safeTokenEqual } from "@/lib/mcp-token";
-import { isRateLimited, recordFailure, recordSuccess } from "@/lib/rate-limit";
+import { bearerGate } from "@/lib/api/guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]!.trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
-}
-
-function bearerToken(req: NextRequest): string | null {
-  const h = req.headers.get("authorization");
-  if (!h?.startsWith("Bearer ")) return null;
-  return h.slice(7).trim() || null;
-}
-
 /** Returns a 429/404 response when the request may not proceed, else null. */
 function gate(req: NextRequest): NextResponse | null {
-  const ip = clientIp(req);
-  if (isRateLimited(`mcp:${ip}`)) {
-    return new NextResponse(null, { status: 429 });
-  }
-  const provided = bearerToken(req);
-  if (!provided || !safeTokenEqual(provided, getOrCreateMcpToken())) {
-    recordFailure(`mcp:${ip}`);
-    // 404, never 401/403 — same "no existence confirmation" rule as the ICS feed
-    return new NextResponse(null, { status: 404 });
-  }
-  recordSuccess(`mcp:${ip}`);
-  return null;
+  return bearerGate(req, "mcp", getOrCreateMcpToken, safeTokenEqual);
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
