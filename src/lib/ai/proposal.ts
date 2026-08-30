@@ -13,7 +13,11 @@ export const PROPOSAL_TOOL_NAME = "propose_schedule";
 
 export const PROPOSAL_TOOL_DESCRIPTION = `Propose maintenance schedule changes as a draft for the user to approve.
 Use when: a tank has no schedules yet, water values suggest a different cadence (e.g. nitrate rising → shorter water-change interval), or a task repeatedly misses its slots (missedSlots >= 3 → suggest a LONGER interval).
-preferredDays is a 7-bit weekday bitmask: bit0=Mon(1) Tue(2) Wed(4) Thu(8) Fri(16) Sat(32) Sun(64). Examples: 127=every day, 96=weekend only (Sat+Sun), 31=weekdays.
+STRICT output contract — the app rejects any change that misses a required field:
+- Every change MUST include kind, intervalDays, tankId, actionType and preferredDays. For kind=adjust also include scheduleId of the existing schedule.
+- actionType must be exactly one of: water_change, fertilize, feed, filter_change, water_test (or a short snake_case custom label).
+- preferredDays is a 7-bit weekday bitmask: bit0=Mon(1) Tue(2) Wed(4) Thu(8) Fri(16) Sat(32) Sun(64). Examples: 127=every day, 96=weekend only (Sat+Sun), 31=weekdays. Use 127 when the user gives no weekday preference.
+- Never send an empty changes array, and always also write a short visible summary of what you proposed.
 Keep it minimal: only the changes that matter, with a short rationale each.`;
 
 /** JSON Schema handed to the provider (mirrors proposalSchema below). */
@@ -28,16 +32,20 @@ export const PROPOSAL_TOOL_INPUT_SCHEMA = {
         type: "object",
         properties: {
           kind: { type: "string", enum: ["create", "adjust"], description: "create = new schedule, adjust = change an existing one" },
-          tankId: { type: "integer", description: "Tank for kind=create (from context TANK #id)" },
-          scheduleId: { type: "integer", description: "Existing schedule for kind=adjust (from context #id)" },
-          actionType: { type: "string", description: "For create: e.g. water_change, fertilize, filter_clean" },
-          intervalDays: { type: "integer", description: "New interval in days (1–365)" },
-          preferredDays: { type: "integer", description: "7-bit weekday mask: 1=Mon … 64=Sun; 127=every day; 96=weekend" },
+          tankId: { type: "integer", description: "REQUIRED. Tank for kind=create (from context TANK #id); for kind=adjust the tank that owns the schedule" },
+          scheduleId: { type: "integer", description: "REQUIRED for kind=adjust: the existing schedule (from context #id)" },
+          actionType: { type: "string", description: "REQUIRED. Exact standard type: water_change | fertilize | feed | filter_change | water_test (or a short snake_case custom label)" },
+          intervalDays: { type: "integer", description: "REQUIRED. Interval in days (1–365)" },
+          preferredDays: { type: "integer", description: "REQUIRED. 7-bit weekday mask: 1=Mon … 64=Sun; 127=every day; 96=weekend. Use 127 if the user names no weekdays" },
           details: { type: "string", description: "Concrete instructions for the task, e.g. '30 L of 60 L (50 %) water change' or '10 ml iron fertilizer'. Fertilizer/water-change amounts only — NEVER medication. Always append: (verify dosage against the product label)" },
           detailData: { type: "object", description: "Structured details. water_change: {percent}; fertilize: {nutrients:{c_co2|n_no3|p_po4|k|mg|ca|fe|mn|zn|b|mo|cu: 'dose'}}; feed: {foods:{'Food name':'amount'}}. Keep it consistent with details." },
           note: { type: "string", description: "Optional short reason for this single change" },
         },
-        required: ["kind", "intervalDays"],
+        // Mirrors proposalSchema's per-kind required fields (zod is the last
+        // gate, this is the first): whatever zod demands, the model must
+        // already be told to send — 2026-08-30: GLM legitimately omitted
+        // preferredDays here and every create-proposal failed validation.
+        required: ["kind", "intervalDays", "tankId", "actionType", "preferredDays"],
       },
     },
   },

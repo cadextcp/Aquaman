@@ -48,6 +48,18 @@ export function normalizeHistory(history: CoachMessage[], question: string): { r
 type ToolAcc = { name: string; json: string };
 
 /**
+ * Output budget per call. GLM (and other reasoning models) emit a "thinking"
+ * section BEFORE the visible answer and bill it against max_tokens — at 1024
+ * a real coach question often produced zero visible text (empty bubble,
+ * output_tokens reported as exactly the cap). 4096 leaves room for thinking
+ * plus a full answer; 20 calls × 4096 still fits the default 200k/day ceiling.
+ */
+const MAX_OUTPUT_TOKENS = 4096;
+
+/** Steadier care advice and tool calls — no feature wants sampling variety. */
+const TEMPERATURE = 0.3;
+
+/**
  * Stream a coach answer. `onEvent` fires per event; provider failures surface
  * as { type: "error" } so the UI can degrade gracefully (fallback rule).
  */
@@ -79,7 +91,13 @@ export async function streamCoachAnswer(opts: {
     const stream = client.messages.stream(
       {
         model: config.model,
-        max_tokens: 1024,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        temperature: TEMPERATURE,
+        // z.ai's GLM streams a "thinking" block by default and their
+        // Anthropic-compat layer accepts turning it off (verified live:
+        // zero thinking deltas, all tool fields present). api.anthropic.com
+        // rejects that shape, so only send it on the z.ai path.
+        ...(config.baseUrl.includes("z.ai") ? { thinking: { type: "disabled" as const } } : {}),
         system: opts.system,
         messages: normalizeHistory(opts.history, opts.question),
         tools: [
