@@ -9,11 +9,12 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import { getAiConfig, REQUEST_TIMEOUT_MS } from "./config";
+import { getAiConfig, providerLabel, REQUEST_TIMEOUT_MS } from "./config";
 import { buildCoachContext } from "./context";
 import { parseSuggestions } from "./proposal";
 import { getDailySuggestions, saveDailySuggestions } from "../settings";
 import { listSchedules } from "@/lib/repo";
+import { logAiCall } from "./debug-log";
 
 const TOOL_NAME = "daily_suggestions";
 const TOOL_SCHEMA = {
@@ -59,6 +60,8 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
   const config = getAiConfig();
   if (!config) return null;
 
+  const startedAt = Date.now();
+  let requestBody: Anthropic.Messages.MessageCreateParamsNonStreaming | null = null;
   try {
     const client = new Anthropic({ apiKey: config.apiKey, baseURL: config.baseUrl, timeout: REQUEST_TIMEOUT_MS });
     const context = buildCoachContext(now);
@@ -68,7 +71,7 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
     const planTypes = [...new Set(schedules.map((s) => s.actionType))];
     const contextWithHints = `${context}\n\nEXISTING PLAN TYPES: ${planTypes.join(", ") || "(none)"}`;
 
-    const response = await client.messages.create({
+    requestBody = {
       model: config.model,
       max_tokens: 700,
       system: `${SYSTEM}\n\n=== USER DATA CONTEXT ===\n${contextWithHints}`,
@@ -81,6 +84,18 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
         },
       ],
       tool_choice: { type: "tool", name: TOOL_NAME },
+    };
+
+    const response = await client.messages.create(requestBody);
+
+    logAiCall({
+      purpose: "suggestions",
+      provider: providerLabel(config.baseUrl),
+      model: config.model,
+      request: requestBody,
+      response: { content: response.content, usage: response.usage },
+      error: null,
+      durationMs: Date.now() - startedAt,
     });
 
     // find the tool_use block
@@ -99,7 +114,7 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
 
     // count the call against the daily budget
     const { recordAiCall } = await import("./cost-guard");
-    const { providerLabel, estimateCostMicros } = await import("./config");
+    const { estimateCostMicros } = await import("./config");
     recordAiCall({
       provider: providerLabel(config.baseUrl),
       model: config.model,
@@ -113,6 +128,17 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
     return { items: saved.items, cached: false };
   } catch (err) {
     console.error("[dailySuggestions]", err);
+    if (requestBody) {
+      logAiCall({
+        purpose: "suggestions",
+        provider: providerLabel(config.baseUrl),
+        model: config.model,
+        request: requestBody,
+        response: null,
+        error: err instanceof Error ? err.message : String(err),
+        durationMs: Date.now() - startedAt,
+      });
+    }
     return null;
   }
 }

@@ -66,6 +66,20 @@ export default async function MorePage() {
         <i aria-hidden className="ph ph-caret-right" style={{ color: "var(--faint)" }} />
       </Link>
 
+      <Link
+        href="/more/debug"
+        className="rounded-xl p-4 mb-4 flex items-center gap-3 edge-card transition-colors hover:bg-white/[0.07]"
+      >
+        <i aria-hidden className="ph ph-bug text-xl" style={{ color: "var(--accent)" }} />
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-medium">Debug</span>
+          <span className="block text-xs" style={{ color: "var(--muted-foreground)" }}>
+            Raw request/response of the last AI calls
+          </span>
+        </span>
+        <i aria-hidden className="ph ph-caret-right" style={{ color: "var(--faint)" }} />
+      </Link>
+
       <div className="mb-4">
         <IcsSettings initialUrl={icsUrl} />
       </div>

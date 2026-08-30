@@ -158,6 +158,30 @@ export const aiCalls = sqliteTable(
   (t) => [index("idx_ai_day").on(t.day)],
 );
 
+// Debug-only trace of raw provider payloads (Settings → More → Debug). Kept
+// SEPARATE from aiCalls: aiCalls is an insert-only audit trail read for
+// budget aggregates and must contain only counters/cost estimates (AGENTS.md
+// AI data-boundary check); this table is pruned to the most recent N rows in
+// logAiCall() since it exists purely to inspect the last few calls, not to
+// keep history.
+export const aiCallLogs = sqliteTable(
+  "ai_call_logs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
+    purpose: text("purpose").notNull(), // 'coach' | 'plan_review' | 'suggestions'
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    requestJson: text("request_json").notNull(),
+    responseJson: text("response_json"), // null when the call errored before a response
+    error: text("error"),
+    durationMs: integer("duration_ms").notNull().default(0),
+  },
+  (t) => [index("idx_ai_call_logs_created").on(t.createdAt)],
+);
+
 export const feedLogs = sqliteTable(
   "feed_logs",
   {
@@ -177,3 +201,4 @@ export type Schedule = typeof schedules.$inferSelect;
 export type MaintenanceLog = typeof maintenanceLogs.$inferSelect;
 export type WaterTest = typeof waterTests.$inferSelect;
 export type FeedLog = typeof feedLogs.$inferSelect;
+export type AiCallLog = typeof aiCallLogs.$inferSelect;
