@@ -3,8 +3,9 @@
 /**
  * Coach chat UI (Phase 4 — PRD §5.6). Streams NDJSON from /api/coach,
  * renders proposals as approval cards (the gate is the ONLY write path),
- * and always degrades gracefully: unconfigured → info card, 429 → paused
- * message, network error → fallback note.
+ * and always degrades VISIBLY: every turn ends with content in the bubble —
+ * text, a proposal, or an explicit error/“no answer” note (2026-08-30: an
+ * empty stream used to leave a permanently empty bubble).
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -14,7 +15,7 @@ import { MAX_HISTORY_MESSAGES } from "@/lib/ai/constants";
 import type { Proposal } from "@/lib/ai/proposal";
 import { StatusNote } from "./ui/status-note";
 
-type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal };
+type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal; tone?: "error" | "warning" };
 
 type UsageInfo = { calls: number; totalTokens: number; maxCalls: number; maxTokens: number } | null;
 
@@ -25,7 +26,6 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [usage, setUsage] = useState<UsageInfo>(null);
-  const [banner, setBanner] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggestionsLoaded, setSuggestionsLoaded] = useState(false);
 
@@ -76,7 +76,6 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
     setBusy(true);
     busyRef.current = true;
     setInput("");
-    setBanner(null);
 
     // Trim to what the route actually accepts — an unbounded history here
     // used to break the chat permanently after ~7 exchanges (route.ts 400s
@@ -88,6 +87,11 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
       .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
 
     setMessages((prev) => [...prev, { role: "user", content: question }, { role: "assistant", content: "" }]);
+
+    // Every turn MUST end with something visible in the bubble — an error, or
+    // an explicit "no answer" note. A stream that ends without any content
+    // (provider quirk, proxy cut) used to leave a permanently empty bubble.
+    const saw = { output: false };
 
     try {
       const res = await fetch("/api/coach", {
@@ -129,8 +133,19 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
           } catch {
             continue;
           }
-          handleEvent(ev);
+          handleEvent(ev, saw);
         }
+      }
+      if (!saw.output) {
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = {
+            role: "assistant",
+            content: "No answer received — please send your question again.",
+            tone: "warning",
+          };
+          return copy;
+        });
       }
     } catch {
       setMessages((prev) => {
@@ -144,7 +159,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
     }
   }
 
-  function handleEvent(ev: Record<string, unknown>) {
+  function handleEvent(ev: Record<string, unknown>, saw: { output: boolean }) {
     switch (ev.type) {
       case "usage":
         setUsage({
@@ -155,6 +170,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
         });
         break;
       case "text":
+        if (String(ev.delta ?? "")) saw.output = true;
         setMessages((prev) => {
           const copy = [...prev];
           const last = copy[copy.length - 1];
@@ -165,6 +181,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
       case "proposal": {
         const proposal = ev.proposal as Proposal | undefined;
         if (!proposal) break;
+        saw.output = true;
         setMessages((prev) => {
           const copy = [...prev];
           const last = copy[copy.length - 1];
@@ -173,9 +190,18 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
         });
         break;
       }
-      case "error":
-        setBanner(String(ev.message ?? "AI error"));
+      case "error": {
+        // The message belongs IN the bubble where the answer was expected —
+        // a separate banner alone left the bubble empty and easy to miss.
+        saw.output = true;
+        const message = String(ev.message ?? "AI error");
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: message, tone: "error" };
+          return copy;
+        });
         break;
+      }
       case "done":
         break;
       default:
@@ -209,18 +235,12 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
                 : { background: "var(--surface)", boxShadow: "inset 0 1px 0 var(--surface)", borderRadius: "13px 13px 13px 4px" }
             }
           >
-            {m.content}
+            {m.tone ? <StatusNote tone={m.tone}>{m.content}</StatusNote> : m.content}
             {m.proposal && <ProposalCard proposal={m.proposal} />}
           </div>
         </div>
       ))}
       <div ref={endRef} />
-
-      {banner && (
-        <div className="rounded-xl p-3 text-sm" style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--warning)" }}>
-          {banner}
-        </div>
-      )}
 
       <PlanReviewBanner onUsePrompt={(prompt) => askWithQuestion(prompt)} />
 
