@@ -10,6 +10,7 @@ import { recordAiCall } from "./cost-guard";
 import { buildCoachContext } from "./context";
 import { listSchedules } from "@/lib/repo";
 import { planReviewResultSchema } from "./plan-review";
+import { logAiCall } from "./debug-log";
 
 const TOOL_NAME = "plan_review_result";
 
@@ -35,17 +36,17 @@ export async function executePlanReview(
   const planTypes = [...new Set(listSchedules().map((s) => s.actionType))];
   const system = `${SYSTEM}\n\n=== USER DATA CONTEXT ===\n${context}\n\nEXISTING PLAN TYPES: ${planTypes.join(", ") || "(none)"}`;
 
-  const response = await client.messages.create({
+  const requestBody = {
     model: config.model,
     max_tokens: 600,
     system,
-    messages: [{ role: "user", content: `Trigger: ${reason}. Review the care plan now.` }],
+    messages: [{ role: "user" as const, content: `Trigger: ${reason}. Review the care plan now.` }],
     tools: [
       {
         name: TOOL_NAME,
         description: "Return the plan review verdict",
         input_schema: {
-          type: "object",
+          type: "object" as const,
           properties: {
             shouldChange: { type: "boolean", description: "true only if the plan actually needs adjustment" },
             summary: { type: "string", description: "One sentence: why (or why not)" },
@@ -66,7 +67,34 @@ export async function executePlanReview(
         },
       },
     ],
-    tool_choice: { type: "tool", name: TOOL_NAME },
+    tool_choice: { type: "tool" as const, name: TOOL_NAME },
+  };
+
+  const startedAt = Date.now();
+  let response: Anthropic.Messages.Message;
+  try {
+    response = await client.messages.create(requestBody);
+  } catch (err) {
+    logAiCall({
+      purpose: "plan_review",
+      provider: providerLabel(config.baseUrl),
+      model: config.model,
+      request: requestBody,
+      response: null,
+      error: err instanceof Error ? err.message : String(err),
+      durationMs: Date.now() - startedAt,
+    });
+    throw err;
+  }
+
+  logAiCall({
+    purpose: "plan_review",
+    provider: providerLabel(config.baseUrl),
+    model: config.model,
+    request: requestBody,
+    response: { content: response.content, usage: response.usage },
+    error: null,
+    durationMs: Date.now() - startedAt,
   });
 
   // count against the budget regardless of outcome

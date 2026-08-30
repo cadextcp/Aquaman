@@ -29,6 +29,13 @@
       "when": 1787632714563,
       "tag": "0003_curvy_luckman",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788079173410,
+      "tag": "0004_worthless_plazm",
+      "breakpoints": true
     }
   ]
 }
