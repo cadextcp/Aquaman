@@ -4,7 +4,29 @@
  * function signature doing nothing. Mocks @anthropic-ai/sdk to verify
  * `messages.stream()` receives it as RequestOptions.signal — no network.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
+import { mkdirSync, rmSync } from "node:fs";
+import path from "node:path";
+import { tmpdir } from "node:os";
+
+// streamCoachAnswer now logs each call to ai_call_logs (debug-log.ts) — point
+// it at a throwaway SQLite file so this mocked-SDK test never touches the
+// real dev database.
+const TMP = path.join(tmpdir(), `aquaman-aiclientsignal-${Date.now()}`);
+process.env.AQUAMAN_DATA_DIR = TMP;
+
+beforeAll(async () => {
+  mkdirSync(TMP, { recursive: true });
+  const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
+  const { db } = await import("../src/lib/db");
+  migrate(db, { migrationsFolder: "./drizzle" });
+});
+
+afterAll(async () => {
+  const { closeDb } = await import("./helpers");
+  closeDb();
+  rmSync(TMP, { recursive: true, force: true });
+});
 
 const streamSpy = vi.fn();
 

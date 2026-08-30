@@ -19,8 +19,9 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import { getAiConfig, REQUEST_TIMEOUT_MS, MAX_HISTORY_MESSAGES } from "./config";
+import { getAiConfig, providerLabel, REQUEST_TIMEOUT_MS, MAX_HISTORY_MESSAGES } from "./config";
 import { parseProposal, PROPOSAL_TOOL_NAME, PROPOSAL_TOOL_DESCRIPTION, PROPOSAL_TOOL_INPUT_SCHEMA, type Proposal } from "./proposal";
+import { logAiCall } from "./debug-log";
 
 export type CoachMessage = { role: "user" | "assistant"; content: string };
 
@@ -86,28 +87,33 @@ export async function streamCoachAnswer(opts: {
 
   const usage = { promptTokens: 0, completionTokens: 0 };
   const tools: Record<number, ToolAcc> = {}; // content-block index → accumulator
+  let fullText = "";
+  let proposalOut: Proposal | null = null;
+  const startedAt = Date.now();
+
+  const requestBody = {
+    model: config.model,
+    max_tokens: MAX_OUTPUT_TOKENS,
+    temperature: TEMPERATURE,
+    // z.ai's GLM streams a "thinking" block by default and their
+    // Anthropic-compat layer accepts turning it off (verified live:
+    // zero thinking deltas, all tool fields present). api.anthropic.com
+    // rejects that shape, so only send it on the z.ai path.
+    ...(config.baseUrl.includes("z.ai") ? { thinking: { type: "disabled" as const } } : {}),
+    system: opts.system,
+    messages: normalizeHistory(opts.history, opts.question),
+    tools: [
+      {
+        name: PROPOSAL_TOOL_NAME,
+        description: PROPOSAL_TOOL_DESCRIPTION,
+        input_schema: { ...PROPOSAL_TOOL_INPUT_SCHEMA, type: "object" as const },
+      },
+    ],
+  };
 
   try {
     const stream = client.messages.stream(
-      {
-        model: config.model,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        temperature: TEMPERATURE,
-        // z.ai's GLM streams a "thinking" block by default and their
-        // Anthropic-compat layer accepts turning it off (verified live:
-        // zero thinking deltas, all tool fields present). api.anthropic.com
-        // rejects that shape, so only send it on the z.ai path.
-        ...(config.baseUrl.includes("z.ai") ? { thinking: { type: "disabled" as const } } : {}),
-        system: opts.system,
-        messages: normalizeHistory(opts.history, opts.question),
-        tools: [
-          {
-            name: PROPOSAL_TOOL_NAME,
-            description: PROPOSAL_TOOL_DESCRIPTION,
-            input_schema: { ...PROPOSAL_TOOL_INPUT_SCHEMA, type: "object" as const },
-          },
-        ],
-      },
+      requestBody,
       // forward the caller's abort signal — a disconnected client actually
       // stops the upstream call instead of burning budget for nobody
       { signal: opts.signal },
@@ -125,6 +131,7 @@ export async function streamCoachAnswer(opts: {
           break;
         case "content_block_delta":
           if (event.delta.type === "text_delta") {
+            fullText += event.delta.text;
             opts.onEvent({ type: "text", delta: event.delta.text });
           } else if (event.delta.type === "input_json_delta") {
             tools[event.index]!.json += event.delta.partial_json;
@@ -141,6 +148,7 @@ export async function streamCoachAnswer(opts: {
             }
             const parsed = parseProposal(raw);
             if (parsed) {
+              proposalOut = parsed;
               opts.onEvent({ type: "proposal", proposal: parsed });
             } else {
               opts.onEvent({ type: "text", delta: "\n(I drafted a schedule proposal, but it failed validation — nothing was saved.)\n" });
@@ -159,12 +167,32 @@ export async function streamCoachAnswer(opts: {
       }
     }
 
+    logAiCall({
+      purpose: "coach",
+      provider: providerLabel(config.baseUrl),
+      model: config.model,
+      request: requestBody,
+      response: { text: fullText, proposal: proposalOut, usage },
+      error: null,
+      durationMs: Date.now() - startedAt,
+    });
+
     opts.onEvent({ type: "done", usage: { promptTokens: usage.promptTokens, completionTokens: usage.completionTokens } });
   } catch (err) {
     // an aborted signal surfaces here too (SDK throws on cancellation) — no
     // one is listening by then, so onEvent below is a harmless no-op if the
     // caller's send() already guards against a closed stream (route.ts does)
-    opts.onEvent({ type: "error", message: friendlyError(err) });
+    const message = friendlyError(err);
+    logAiCall({
+      purpose: "coach",
+      provider: providerLabel(config.baseUrl),
+      model: config.model,
+      request: requestBody,
+      response: fullText ? { text: fullText } : null,
+      error: message,
+      durationMs: Date.now() - startedAt,
+    });
+    opts.onEvent({ type: "error", message });
   }
 }
 
