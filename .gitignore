@@ -14,6 +14,9 @@ node_modules/
 .next/
 out/
 
+# Swagger UI assets copied from node_modules at build/dev time (scripts/copy-swagger-assets.mjs)
+public/swagger/
+
 # Misc
 .DS_Store
 *.log
