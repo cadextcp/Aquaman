@@ -7,7 +7,9 @@ manages its own memory automatically — this file serves other agents and human
 
 - Current task: v1.1 (MCP + OpenClaw) IMPLEMENTED on main — commit pending push/tag; owner wires OpenClaw against the deployed instance (README "MCP / OpenClaw" section)
 - Current phase: MVP complete through v0.3.0; v0.4.0 = MCP endpoint + post-v0.3.0 coach work (not yet tagged)
-- Next step: push main, tag v0.4.0, owner deploys on TrueNAS + wires OpenClaw
+- **2026-08-30 PRODUCTION LIVE on TrueNAS** (container `ix-aquaman-aquaman-1`, data `/mnt/nvda/Aquaman`, host port 3100); all test data wiped before go-live (backup: `/mnt/nvda/Aquaman-backup-20260830`). Ops runbook + architecture summary: `docs/How-It-Works.md`
+- 2026-08-30 Coach hardening (UNCOMMITTED in working tree — needs push + image rebuild to reach production): max_tokens 1024→4096 + temperature 0.3 + z.ai-only `thinking:{type:"disabled"}` (GLM's reasoning ate the old budget → empty bubbles); propose_schedule tool schema now requires tankId/actionType/preferredDays (GLM legitimately omitted preferredDays → every create-proposal was rejected; contract test `tests/proposal-schema.test.ts`); coach UI renders errors + empty streams INSIDE the bubble (error banner removed)
+- Next step: push main, tag v0.4.0, owner wires OpenClaw
 - Blocked by: none
 
 ## Decisions
