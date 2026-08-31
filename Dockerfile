@@ -34,6 +34,11 @@ COPY --from=build /app/scripts ./scripts
 # migrate.ts imports ../src/lib/db — the standalone trace does not include
 # non-route source files, so scripts/migrate.ts cannot resolve it without this
 COPY --from=build /app/src ./src
+# tsx needs this to resolve the "@/*" path alias (get-tsconfig reads it) —
+# without it, any "@/..." import reachable from migrate.ts's dependency graph
+# (e.g. db/schema.ts importing @/lib/domain/action-types) 500s at boot with
+# MODULE_NOT_FOUND, even though the file exists on disk.
+COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/node_modules/tsx ./node_modules/tsx
 COPY --from=build /app/node_modules/.bin ./node_modules/.bin
 # tsx deps (esbuild etc.) — copy the few packages tsx needs at runtime
