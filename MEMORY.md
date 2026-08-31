@@ -5,12 +5,14 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Current State
 
-- Current task: v1.1 (MCP + OpenClaw) IMPLEMENTED on main — commit pending push/tag; owner wires OpenClaw against the deployed instance (README "MCP / OpenClaw" section)
-- Current phase: MVP complete through v0.3.0; v0.4.0 = MCP endpoint + post-v0.3.0 coach work (not yet tagged)
+- Current task: none open — v1 REST API + aquarium wall display shipped, production incident resolved, docs pass done (2026-08-31). Details + deploy recipe: `HANDOFF.md`
+- Current phase: MVP complete through v0.3.0; v0.4.0 = MCP endpoint + coach hardening + v1 REST API (`/api/v1/*`) + standard-events catalog (not yet tagged)
 - **2026-08-30 PRODUCTION LIVE on TrueNAS** (container `ix-aquaman-aquaman-1`, data `/mnt/nvda/Aquaman`, host port 3100); all test data wiped before go-live (backup: `/mnt/nvda/Aquaman-backup-20260830`). Ops runbook + architecture summary: `docs/How-It-Works.md`
-- 2026-08-30 Coach hardening (UNCOMMITTED in working tree — needs push + image rebuild to reach production): max_tokens 1024→4096 + temperature 0.3 + z.ai-only `thinking:{type:"disabled"}` (GLM's reasoning ate the old budget → empty bubbles); propose_schedule tool schema now requires tankId/actionType/preferredDays (GLM legitimately omitted preferredDays → every create-proposal was rejected; contract test `tests/proposal-schema.test.ts`); coach UI renders errors + empty streams INSIDE the bubble (error banner removed)
-- Next step: push main, tag v0.4.0, owner wires OpenClaw
-- Blocked by: none
+- 2026-08-31 v1 REST API live (PR #52): bearer-gated `/api/v1/*` with OpenAPI at `/api/v1/docs`; ESPHome wall display "display-aquarium" (sister repo `../haDisplay/`) reads tank status via the HA bridge (`V:\packages\aquamon.yaml`, rest sensors + scripts) and logs `water_change`/`fertilize` through `POST /api/v1/actions` — full loop display → HA → API → `maintenance_logs (source:'api')` verified end-to-end
+- 2026-08-31 Production incident RESOLVED: PR #53 (standard-events catalog) deploy crash-looped the container — Dockerfile runner stage was missing `tsconfig.json`, so `tsx` couldn't resolve `@/*` in `migrate.ts`'s graph; fixed by PR #54 (one COPY line), deployed, healthy on revision `b27b8811`
+- Coach hardening (4096 budget, thinking off on z.ai, strict proposal schema) is ON MAIN since `ff4ba66` — earlier "uncommitted" note is obsolete
+- Next step: tag v0.4.0; NAS backups `/mnt/nvda/Aquaman-backup-20260830-2214` + `-20260831-1811` can be deleted once production is trusted
+- Blocked by: Docker Desktop on the Windows dev machine won't start (stale `AppData\Local\Docker\run\dockerInference` socket file; deleting it with Docker fully stopped is the untried first fix) — NAS-side docker engine works fine, builds happen there
 
 ## Decisions
 

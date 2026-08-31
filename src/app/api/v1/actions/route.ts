@@ -1,8 +1,9 @@
 /**
  * POST /api/v1/actions — the generic event sink (Fütterung is the one
- * exception: it is a daily counter, see /tanks/{id}/feedings). Any
- * actionType string is accepted, not just the built-in ones, so a client
- * can log care AquaMon has no dedicated schedule type for.
+ * exception: it is a daily counter, see /tanks/{id}/feedings). actionType
+ * must be one of the standard-events catalog's loggable keys
+ * (LOGGABLE_ACTION_TYPES in @/lib/domain/action-types) — anything else,
+ * including "feed", is rejected with a 400 listing the valid values.
  */
 import { NextRequest } from "next/server";
 import { logActionCore } from "@/lib/repo";

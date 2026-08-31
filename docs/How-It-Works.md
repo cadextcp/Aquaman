@@ -99,6 +99,36 @@ compat — nothing reads them at runtime.)
   can be deleted or rewritten remotely.** `ask_coach` shares the coach budget
   and drops proposals (approval stays in-app).
 
+## v1 REST API (`/api/v1/*` — for the wall display, HA & scripts)
+
+- Generic machine API for non-Next clients — built for the ESPHome aquarium
+  wall display (repo `../haDisplay/`), consumed through a Home Assistant
+  bridge (`rest:` sensors + `rest_command:`/`script:`) since ESPHome has no
+  HTTP client of its own. Equally usable by curl/Scripts.
+- **Auth:** bearer-gated via `apiGate` — same 404-not-401/429 contract as
+  `/api/mcp`, but its **own token** (shown/rotated under *More* → REST API)
+  and its own rate-limit scope, so rotating the MCP token never locks the
+  API out and vice versa.
+- **Discovery:** Swagger UI at `/api/v1/docs`, machine-readable OpenAPI at
+  `/api/v1/openapi.json` (both public GETs).
+- **Endpoint groups:** `tanks` (list/CRUD, per-tank `status`, `actions`
+  history, `feedings`, `water-tests`), `schedules` (list/create, get/
+  patch/delete, `done`/`snooze`/`undo`), `water-tests` (create, patch/
+  delete), read-only `tasks` + `water-parameters`, and `POST /actions` as
+  the generic event sink.
+- **Standard-events catalog:** `actionType` on `POST /api/v1/actions` must
+  be one of `LOGGABLE_ACTION_TYPES` from `src/lib/domain/action-types.ts`
+  — the single source of truth shared by schedules, logs, UI, MCP and this
+  API. Anything else → 400 with the valid keys in the message. `feed` is
+  deliberately rejected there with a pointer to `POST /tanks/{id}/feedings`
+  (`delta: 1|-1`), because feeding is a daily counter (`feed_logs`), not a
+  timestamped log row.
+- **Writes** go through the same cores as Server Actions (`logActionCore`
+  etc.) and set `source: 'api'` in `maintenance_logs`. When a call omits
+  `detailData`, `logActionCore` inherits the structured details (e.g.
+  "Fe 10 ml") from the tank's matching active plan — a bare
+  `{actionType: "fertilize"}` log reads exactly like a dashboard tick-off.
+
 ## Security model
 
 Designed to sit behind a reverse proxy that does auth; the container binds
