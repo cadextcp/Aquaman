@@ -4,9 +4,10 @@
  * Structured details editor (issue #42): renders type-specific inputs instead
  * of free text for standard plan types —
  * - water_change: percentage slider/number → formats "30 % (18 L of 60 L)"
+ * - water_top_up: liters number → formats "12 L"
  * - fertilize: dose per nutrient from the fixed catalog (macro + micro)
  * - feed: amount per food type defined at the tank
- * Free text stays available for custom types (and as a rendered preview).
+ * Free text stays available for types with no structured editor (and as a rendered preview).
  */
 
 import { NUTRIENTS, formatDetailData } from "@/lib/domain/plan-structure";
@@ -46,6 +47,27 @@ export function StructuredDetailsEditor({
         <p className="text-xs tnum mt-1" style={{ color: "var(--faint)" }}>
           ≈ {Math.round((pct / 100) * tankVolumeL)} L of {tankVolumeL} L
         </p>
+      </div>
+    );
+  }
+
+  if (actionType === "water_top_up") {
+    const liters = Number(value?.liters ?? 5);
+    return (
+      <div>
+        <label className="block text-xs uppercase tracking-wide mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+          Top-up amount
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="number" min={1} max={9999} step={1}
+            value={liters}
+            onChange={(e) => onChange({ liters: Number(e.target.value) }, formatDetailData("water_top_up", { liters: Number(e.target.value) }))}
+            className="rounded-md px-2 py-1.5 text-sm w-24"
+            style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
+          />
+          <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>L</span>
+        </div>
       </div>
     );
   }

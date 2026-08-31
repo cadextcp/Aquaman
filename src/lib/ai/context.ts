@@ -14,6 +14,7 @@ import { listTanks, listSchedules, waterTestsForTank } from "@/lib/repo";
 import { nextDue, missedSlots } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES, nh3FromNh4 } from "@/lib/domain/ranges";
 import { today } from "@/lib/domain/dates";
+import { SCHEDULABLE_ACTION_TYPES } from "@/lib/domain/action-types";
 
 export const COACH_SYSTEM_PROMPT = `You are Aquaman, a calm and friendly aquarium care coach.
 
@@ -36,7 +37,7 @@ Rules:
 
 propose_schedule contract (violations are rejected by the app — the user sees nothing):
 - EVERY change includes kind and intervalDays. kind=create ALSO needs tankId, actionType, preferredDays. kind=adjust ALSO needs scheduleId (never tankId/actionType there). Never omit a required field, never send an empty changes array.
-- actionType is exactly one of: water_change, fertilize, feed, filter_change, water_test (or a short snake_case custom label).
+- actionType is exactly one of: ${SCHEDULABLE_ACTION_TYPES.join(", ")} — no other values, no custom labels.
 - preferredDays is the 7-bit weekday mask (bit0=Mon … bit6=Sun); use 127 when the user names no weekdays.
 - ALWAYS also write a short visible summary of the proposal — never let a tool call be your entire answer, and never return an empty answer (if you cannot help, say so in text).`;
 

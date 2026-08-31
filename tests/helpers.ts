@@ -22,13 +22,14 @@ export async function createTankDirect(name: string): Promise<number> {
 
 export async function createScheduleDirect(
   tankId: number,
-  opts: { actionType: string; intervalDays: number; preferredDays: number },
+  opts: { actionType: string; intervalDays: number; preferredDays: number; details?: string; detailData?: Record<string, unknown> },
 ): Promise<Schedule> {
   return db
     .insert(schedules)
     .values({
       tankId, actionType: opts.actionType,
       intervalDays: opts.intervalDays, preferredDays: opts.preferredDays,
+      details: opts.details ?? null, detailData: opts.detailData ?? null,
     })
     .returning()
     .get();

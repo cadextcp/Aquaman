@@ -1,14 +1,17 @@
 /**
  * Structured care plans (issue #42):
- * - STANDARD_PLAN_TYPES: exactly one plan per type per tank (duplicate guard)
+ * - STANDARD_PLAN_TYPES: action types with structured detailData (derived from
+ *   the action-types catalog) — exactly one plan per type per tank (duplicate guard)
  * - NUTRIENTS: the fixed fertilizer nutrient catalog (owner list) —
  *   macro: C/CO2, N/NO3, P/PO4, K, Mg, Ca; micro: Fe, Mn, Zn, B, Mo, Cu
  * - formatDetailData(): structured JSON → human-readable one-liner
  * - tankFingerprint(): master-data signature for change detection
  */
 
-export const STANDARD_PLAN_TYPES = ["fertilize", "feed", "filter_change", "water_change", "water_test"] as const;
-export type StandardPlanType = (typeof STANDARD_PLAN_TYPES)[number];
+import { ACTION_TYPES, type ActionType } from "./action-types";
+
+export const STANDARD_PLAN_TYPES = ACTION_TYPES.filter((a) => a.standardPlan).map((a) => a.key) as ActionType[];
+export type StandardPlanType = ActionType;
 
 export type NutrientDef = { key: string; symbol: string; label: string; group: "macro" | "micro" };
 
@@ -35,6 +38,7 @@ export function isStandardPlanType(t: string): t is StandardPlanType {
 /**
  * Structured details → human-readable line (also stored in `details`).
  * water_change: { percent } → "30 % (18 L of 60 L)"
+ * water_top_up: { liters } → "12 L"
  * fertilize: { nutrients: { fe: "10 ml", k: "5 ml" } } → "Fe 10 ml · K 5 ml"
  * feed: { foods: { "Flakes": "1 pinch", "Frozen": "2 cubes" } } → "Flakes 1 pinch · Frozen 2 cubes"
  */
@@ -45,6 +49,11 @@ export function formatDetailData(actionType: string, data: Record<string, unknow
     if (!Number.isFinite(pct) || pct <= 0 || pct > 100) return "";
     const liters = tankVolumeL ? ` (${Math.round((pct / 100) * tankVolumeL)} L of ${tankVolumeL} L)` : "";
     return `${pct} %${liters}`;
+  }
+  if (actionType === "water_top_up") {
+    const liters = Number(data.liters);
+    if (!Number.isFinite(liters) || liters <= 0) return "";
+    return `${liters} L`;
   }
   if (actionType === "fertilize" && data.nutrients && typeof data.nutrients === "object") {
     const parts = Object.entries(data.nutrients as Record<string, unknown>)

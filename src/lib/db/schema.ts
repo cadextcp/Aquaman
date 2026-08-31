@@ -1,5 +1,13 @@
 import { sqliteTable, text, integer, index, uniqueIndex, check } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { ACTION_TYPE_KEYS } from "@/lib/domain/action-types";
+
+/**
+ * issue: standard-events catalog (action-types.ts) is the single source of
+ * truth for action_type — this CHECK is the last gate (zod at the API layer
+ * is first) so raw SQL / a future MCP write can't slip a free-form type in.
+ */
+const ACTION_TYPE_LIST = sql.raw(ACTION_TYPE_KEYS.map((k) => `'${k}'`).join(","));
 
 /**
  * Aquaman schema — SQLite via Drizzle.
@@ -100,6 +108,7 @@ export const schedules = sqliteTable(
     check("schedules_interval_positive", sql`${t.intervalDays} >= 1`),
     check("schedules_preferred_days_range", sql`${t.preferredDays} >= 1 AND ${t.preferredDays} <= 127`),
     check("schedules_tight_gap_pct_range", sql`${t.tightGapThresholdPct} IS NULL OR (${t.tightGapThresholdPct} >= 1 AND ${t.tightGapThresholdPct} <= 99)`),
+    check("schedules_action_type_standard", sql`${t.actionType} IN (${ACTION_TYPE_LIST})`),
   ],
 );
 
@@ -116,10 +125,21 @@ export const maintenanceLogs = sqliteTable(
     // 'user' | 'ai_proposed' | 'mcp' | 'api' (never auto-written) — 'mcp' = done via the v1.1
     // MCP tools, 'api' = done via the v1 REST API (/api/v1) e.g. an ESPHome display
     source: text("source", { enum: ["user", "ai_proposed", "mcp", "api"] }).notNull().default("user"),
+    // issue: standard-events catalog — the plan this log closed, if any (nullable:
+    // a freestanding log, e.g. a backdated note, has no matching plan)
+    // ON DELETE SET NULL: deleteScheduleCore hard-deletes schedules while
+    // history stays intact (repo.ts) — a log that closed a since-deleted
+    // plan keeps its details/detailData, it just loses the back-reference.
+    scheduleId: integer("schedule_id").references(() => schedules.id, { onDelete: "set null" }),
+    // same shape/rendering as schedules.details/detailData: a plan-closing log
+    // inherits the plan's details unless the caller supplies its own (repo.ts)
+    details: text("details"),
+    detailData: text("detail_data", { mode: "json" }).$type<DetailData>(),
   },
   (t) => [
     index("idx_logs_tank").on(t.tankId),
     index("idx_logs_done").on(t.doneAt),
+    check("logs_action_type_standard", sql`${t.actionType} IN (${ACTION_TYPE_LIST})`),
   ],
 );
 

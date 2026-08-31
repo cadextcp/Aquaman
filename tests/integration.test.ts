@@ -72,6 +72,27 @@ describe("repo + actions integration", () => {
     expect(recentLogs(tankId).some((l) => l.actionType === "fertilize")).toBe(true);
   });
 
+  it("markDone carries the plan's scheduleId/details/detailData onto the log (same shape as an API-logged action)", async () => {
+    const { markDone } = await import("../src/app/actions");
+    const { createTankDirect, createScheduleDirect, recentLogs } = await import("./helpers");
+    const tankId = await createTankDirect("MD2");
+    const s = await createScheduleDirect(tankId, {
+      actionType: "fertilize",
+      intervalDays: 7,
+      preferredDays: 127,
+      details: "Fe 10 ml · K 5 ml",
+      detailData: { nutrients: { fe: "10 ml", k: "5 ml" } },
+    });
+
+    const done = await markDone(s.id);
+    expect(done.ok).toBe(true);
+
+    const log = recentLogs(tankId).find((l) => l.actionType === "fertilize")!;
+    expect(log.scheduleId).toBe(s.id);
+    expect(log.details).toBe("Fe 10 ml · K 5 ml");
+    expect(log.detailData).toEqual({ nutrients: { fe: "10 ml", k: "5 ml" } });
+  });
+
   it("snooze rejects past dates without touching the schedule", async () => {
     const { snooze } = await import("../src/app/actions");
     const { createTankDirect, getScheduleDirect, createScheduleDirect } = await import("./helpers");

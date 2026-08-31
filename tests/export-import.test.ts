@@ -178,6 +178,31 @@ describe("import roundtrip (DoD: export → wipe → import → identical state)
     expect(db.select().from(tanks).all()).toEqual(before);
   });
 
+  it("rejects an actionType outside the standard-events catalog", async () => {
+    const { importSnapshot } = await import("../src/lib/export");
+    expect(() =>
+      importSnapshot({
+        format: 1, app: "aquaman",
+        tanks: [{ id: 1, name: "x", volumeL: 60, waterType: "fresh", photoPath: null, plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established", paramOverrides: {}, createdAt: "2026-08-01", deletedAt: null }],
+        schedules: [{ id: 1, tankId: 1, actionType: "kaffee_kochen", intervalDays: 7, preferredDays: 127, autoReschedule: true, lastDoneAt: null, snoozedUntil: null, snoozeSource: null, scheduleVersion: 0, tightGapPolicy: null, tightGapThresholdPct: null, createdAt: "2026-08-01", updatedAt: "2026-08-01", active: true }],
+        maintenanceLogs: [], waterTests: [], feedLogs: [], aiCalls: [],
+      }),
+    ).toThrow(/Invalid snapshot/);
+  });
+
+  it("broken references (log → missing schedule) rejected before any write", async () => {
+    const { importSnapshot } = await import("../src/lib/export");
+    expect(() =>
+      importSnapshot({
+        format: 1, app: "aquaman",
+        tanks: [{ id: 1, name: "x", volumeL: 60, waterType: "fresh", photoPath: null, plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established", paramOverrides: {}, createdAt: "2026-08-01", deletedAt: null }],
+        schedules: [],
+        maintenanceLogs: [{ id: 1, tankId: 1, actionType: "water_change", doneAt: "2026-08-01T00:00:00.000Z", note: null, source: "user", scheduleId: 999, details: null, detailData: null }],
+        waterTests: [], feedLogs: [], aiCalls: [],
+      }),
+    ).toThrow(/references missing schedule/);
+  });
+
   it("rejects wrong app / future format versions explicitly", async () => {
     const { importSnapshot } = await import("../src/lib/export");
     expect(() =>

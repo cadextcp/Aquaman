@@ -15,6 +15,7 @@ import { Modal, ModalDeleteButton } from "./ui/modal";
 import { HelpDot } from "./ui/help";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
+import { actionTypeDef } from "@/lib/domain/action-types";
 
 export type ScheduleCardData = Schedule & {
   tankName: string;
@@ -22,18 +23,21 @@ export type ScheduleCardData = Schedule & {
   today: string; // YYYY-MM-DD
 };
 
-/** actionType → Phosphor icon + rail color (from the design's TASKS list) */
-const ACTION_ICON: Record<string, { icon: string; color: string }> = {
-  water_change: { icon: "drop-half", color: "var(--due)" },
-  water_test: { icon: "eyedropper", color: "var(--accent)" },
-  fertilize: { icon: "flask", color: "var(--warning)" },
-  filter_change: { icon: "funnel", color: "var(--accent)" },
-  filter_clean: { icon: "funnel", color: "var(--accent)" },
-  glass_clean: { icon: "sparkle", color: "var(--accent)" },
-  plant_trim: { icon: "leaf", color: "var(--success)" },
+/** actionType → Phosphor icon color, per rail (from the design's TASKS list) — icon name itself comes from the catalog. */
+const ACTION_COLOR: Record<string, string> = {
+  water_change: "var(--due)",
+  water_top_up: "var(--due)",
+  water_test: "var(--accent)",
+  fertilize: "var(--warning)",
+  substrate_vacuum: "var(--accent)",
+  filter_change: "var(--accent)",
+  filter_clean: "var(--accent)",
+  glass_clean: "var(--accent)",
+  plant_trim: "var(--success)",
 };
 function actionVisual(actionType: string) {
-  return ACTION_ICON[actionType] ?? { icon: "check", color: "var(--secondary-foreground)" };
+  const icon = actionTypeDef(actionType)?.icon ?? "check";
+  return { icon, color: ACTION_COLOR[actionType] ?? "var(--secondary-foreground)" };
 }
 
 function daysUntil(dateStr: string, today: string): number {

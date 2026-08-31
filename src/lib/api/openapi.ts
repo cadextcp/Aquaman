@@ -70,7 +70,7 @@ const scheduleOutSchema: JsonSchema = {
     id: { type: "integer" },
     tankId: { type: "integer" },
     tankName: { type: "string" },
-    actionType: { type: "string" },
+    actionType: { type: "string", description: "One of the standard-events catalog's types (see ScheduleInput)" },
     intervalDays: { type: "integer" },
     preferredDays: { type: "integer", description: "7-bit weekday mask, bit 0 = Monday" },
     autoReschedule: { type: "boolean" },
@@ -81,6 +81,21 @@ const scheduleOutSchema: JsonSchema = {
     endsOn: { type: ["string", "null"], format: "date" },
     scheduleVersion: { type: "integer" },
     active: { type: "boolean" },
+  },
+};
+
+const logOutSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    id: { type: "integer" },
+    tankId: { type: "integer" },
+    actionType: { type: "string" },
+    doneAt: { type: "string", format: "date-time" },
+    note: { type: ["string", "null"] },
+    source: { type: "string", enum: ["user", "ai_proposed", "mcp", "api"] },
+    scheduleId: { type: ["integer", "null"], description: "The plan this log closed, if any" },
+    details: { type: ["string", "null"] },
+    detailData: { type: ["object", "null"] },
   },
 };
 
@@ -102,6 +117,7 @@ const componentSchemas: Record<string, JsonSchema> = {
   WaterTestInput: schema(waterTestInputSchema),
   WaterTestUpdateInput: schema(waterTestUpdateSchema),
   ActionInput: schema(logActionSchema),
+  Log: logOutSchema,
   FeedingInput: {
     type: "object",
     properties: {
@@ -165,12 +181,15 @@ const paths: Record<string, JsonSchema> = {
         { name: "type", in: "query", schema: { type: "string" }, description: "Filter to one actionType" },
         { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 200, default: 20 } },
       ],
-      responses: { 200: { description: "Log entries" }, 404: NOT_FOUND },
+      responses: {
+        200: { description: "Log entries", content: { "application/json": { schema: { type: "object", properties: { actions: { type: "array", items: { $ref: "#/components/schemas/Log" } } } } } } },
+        404: NOT_FOUND,
+      },
     },
   },
   "/actions": {
     post: {
-      summary: "Log a care action (any actionType except feed, which has its own endpoint at /tanks/{id}/feedings)",
+      summary: "Log a care action from the standard-events catalog (any type except feed, which has its own endpoint at /tanks/{id}/feedings). Without detailData, inherits the matching active plan's structured details.",
       tags: ["Actions"],
       requestBody: jsonBody("ActionInput"),
       responses: { 201: { description: "Logged" }, 400: BAD_REQUEST, 404: NOT_FOUND },
