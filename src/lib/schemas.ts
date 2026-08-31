@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FRESHWATER_RANGES, SALTWATER_RANGES, type Range } from "./domain/ranges";
+import { SCHEDULABLE_ACTION_TYPES } from "./domain/action-types";
 
 /**
  * Shared zod schemas — SAME schema validates the client form and the
@@ -34,7 +35,7 @@ export type TankInput = z.infer<typeof tankInputSchema>;
 
 export const scheduleInputSchema = z.object({
   tankId: z.number().int().positive(),
-  actionType: z.string().trim().min(1).max(40),
+  actionType: z.enum(SCHEDULABLE_ACTION_TYPES as [string, ...string[]]),
   intervalDays: z.number().int().min(1, "Interval must be ≥ 1 day").max(365),
   preferredDays: z
     .number()

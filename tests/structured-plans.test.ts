@@ -44,6 +44,12 @@ describe("formatDetailData", () => {
     expect(formatDetailData("feed", { foods: { Flakes: "1 pinch", Frozen: "2 cubes" } })).toBe("Flakes 1 pinch · Frozen 2 cubes");
   });
 
+  it("water_top_up: liters", async () => {
+    const { formatDetailData } = await import("../src/lib/domain/plan-structure");
+    expect(formatDetailData("water_top_up", { liters: 12 })).toBe("12 L");
+    expect(formatDetailData("water_top_up", { liters: 0 })).toBe("");
+  });
+
   it("standard types: exactly the five", async () => {
     const { STANDARD_PLAN_TYPES, isStandardPlanType } = await import("../src/lib/domain/plan-structure");
     expect(STANDARD_PLAN_TYPES).toHaveLength(5);

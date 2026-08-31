@@ -8,6 +8,8 @@
  * NH3 (free ammonia) — NOT raw NH4 — is what decides the ammonia verdict.
  */
 
+import { ACTION_TYPE_KEYS } from "./action-types";
+
 export type Range = {
   key: string;
   label: string;
@@ -51,7 +53,7 @@ export const SALTWATER_RANGES: Range[] = [
   { key: "alkalinity", label: "Alkalinity (KH)", unit: "°dKH", min: 7, max: 11, warnMin: 6, warnMax: 12 },
 ];
 
-export const DEFAULT_ACTIONS: string[] = ["water_change", "fertilize", "filter_change", "filter_clean"];
+export const DEFAULT_ACTIONS: string[] = [...ACTION_TYPE_KEYS];
 
 /**
  * Free ammonia (NH3) from total ammonium (NH4), pH and temperature.

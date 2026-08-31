@@ -18,6 +18,9 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { tanks, schedules, maintenanceLogs, waterTests, feedLogs, aiCalls } from "@/lib/db/schema";
 import { APP_VERSION } from "./version";
+import { ACTION_TYPE_KEYS } from "./domain/action-types";
+
+const actionTypeEnum = z.enum(ACTION_TYPE_KEYS as [string, ...string[]]);
 
 export const EXPORT_FORMAT_VERSION = 1 as const;
 
@@ -80,7 +83,7 @@ export const tankRowSchema = z.object({
 export const scheduleRowSchema = z.object({
   id: z.number().int().positive(),
   tankId: z.number().int().positive(),
-  actionType: z.string().min(1).max(40),
+  actionType: actionTypeEnum,
   intervalDays: z.number().int().min(1).max(365),
   preferredDays: z.number().int().min(1).max(127),
   autoReschedule: z.boolean(),
@@ -103,10 +106,18 @@ export const scheduleRowSchema = z.object({
 export const maintenanceLogRowSchema = z.object({
   id: z.number().int().positive(),
   tankId: z.number().int().positive(),
-  actionType: z.string().min(1).max(40),
+  actionType: actionTypeEnum,
   doneAt: isoString,
   note: z.string().max(500).nullable(),
-  source: z.enum(["user", "ai_proposed"]),
+  // 'mcp'/'api' were missing here even though the DB has allowed them since
+  // the MCP/v1-REST-API launches — older exports predate both, so keep this
+  // optional-safe rather than tightening further.
+  source: z.enum(["user", "ai_proposed", "mcp", "api"]),
+  // issue: standard-events catalog — optional so exports made before this
+  // change stay importable (older rows have no schedule link / detailData)
+  scheduleId: z.number().int().positive().nullable().optional(),
+  details: z.string().max(300).nullable().optional(),
+  detailData: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export const waterTestRowSchema = z.object({
@@ -168,8 +179,12 @@ export type ImportResult = {
  */
 function checkReferences(snap: ImportSnapshot): string | null {
   const tankIds = new Set(snap.tanks.map((t) => t.id));
+  const scheduleIds = new Set(snap.schedules.map((s) => s.id));
   for (const s of snap.schedules) if (!tankIds.has(s.tankId)) return `schedule #${s.id} references missing tank ${s.tankId}`;
-  for (const l of snap.maintenanceLogs) if (!tankIds.has(l.tankId)) return `maintenance log #${l.id} references missing tank ${l.tankId}`;
+  for (const l of snap.maintenanceLogs) {
+    if (!tankIds.has(l.tankId)) return `maintenance log #${l.id} references missing tank ${l.tankId}`;
+    if (l.scheduleId != null && !scheduleIds.has(l.scheduleId)) return `maintenance log #${l.id} references missing schedule ${l.scheduleId}`;
+  }
   for (const w of snap.waterTests) if (!tankIds.has(w.tankId)) return `water test #${w.id} references missing tank ${w.tankId}`;
   for (const f of snap.feedLogs) if (!tankIds.has(f.tankId)) return `feed log #${f.id} references missing tank ${f.tankId}`;
   return null;

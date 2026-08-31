@@ -27,6 +27,7 @@ import {
   type ScheduleLike,
 } from "./scheduler";
 import { today as todayStr, addDays, toIcsDate } from "./dates";
+import { actionLabel } from "./action-types";
 
 export const ICS_HORIZON_DAYS = 90;
 
@@ -41,12 +42,6 @@ export type IcsSchedule = ScheduleLike & {
   /** issue #30: free-text instructions → ICS DESCRIPTION */
   details?: string | null;
 };
-
-/** "water_change" → "Water change" — matches the dashboard's casing. */
-function actionLabel(actionType: string): string {
-  const s = actionType.replace(/_/g, " ");
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 
 /** RFC 5545 §3.3.11 text escaping. */
 function escapeText(s: string): string {

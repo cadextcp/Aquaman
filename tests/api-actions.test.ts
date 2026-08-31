@@ -53,6 +53,15 @@ describe("POST /api/v1/actions", () => {
     expect(body.error).toMatch(/feedings/i);
   });
 
+  it("a free-form/unknown actionType is rejected with the allowed catalog listed", async () => {
+    const { POST } = await import("../src/app/api/v1/actions/route");
+    const res = await POST(postActions({ tankId, actionType: "kaffee_kochen" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/water_change/);
+    expect(body.error).not.toContain("feed"); // feed is excluded from the loggable list (own daily-counter endpoint)
+  });
+
   it("unknown tank → 404", async () => {
     const { POST } = await import("../src/app/api/v1/actions/route");
     const res = await POST(postActions({ tankId: 999999, actionType: "water_change" }));
@@ -128,5 +137,76 @@ describe("POST /api/v1/actions", () => {
     const after = db.select().from(schedules).where(eq(schedules.id, schedule.id)).get()!;
     // still the RECENT completion — the backdated log must not make the task look overdue again
     expect(after.lastDoneAt).toBe(recent);
+  });
+
+  it("without detailData, the log inherits the matching active plan's details/detailData and scheduleId", async () => {
+    const { db } = await import("../src/lib/db");
+    const { tanks, schedules, maintenanceLogs } = await import("../src/lib/db/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    // isolated tank -- earlier tests in this file already created a
+    // "fertilize" schedule for the shared tankId via raw db.insert (which
+    // bypasses the one-plan-per-type duplicate guard), so reusing it here
+    // would leave two active fertilize schedules and an ambiguous match.
+    const tankId = db.insert(tanks).values({ name: "Inherit Tank", volumeL: 60, waterType: "fresh" }).returning().get().id;
+    const schedule = db
+      .insert(schedules)
+      .values({
+        tankId,
+        actionType: "fertilize",
+        intervalDays: 7,
+        preferredDays: 127,
+        details: "Fe 10 ml · K 5 ml",
+        detailData: { nutrients: { fe: "10 ml", k: "5 ml" } },
+      })
+      .returning()
+      .get();
+
+    const { POST } = await import("../src/app/api/v1/actions/route");
+    const res = await POST(postActions({ tankId, actionType: "fertilize" }));
+    expect(res.status).toBe(201);
+
+    const log = db.select().from(maintenanceLogs).where(eq(maintenanceLogs.tankId, tankId)).orderBy(desc(maintenanceLogs.id)).limit(1).get()!;
+    expect(log.scheduleId).toBe(schedule.id);
+    expect(log.details).toBe("Fe 10 ml · K 5 ml");
+    expect(log.detailData).toEqual({ nutrients: { fe: "10 ml", k: "5 ml" } });
+  });
+
+  it("supplied detailData overrides the plan's and renders its own details line", async () => {
+    const { db } = await import("../src/lib/db");
+    const { schedules, maintenanceLogs } = await import("../src/lib/db/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    db.insert(schedules)
+      .values({
+        tankId,
+        actionType: "water_top_up",
+        intervalDays: 3,
+        preferredDays: 127,
+      })
+      .returning()
+      .get();
+
+    const { POST } = await import("../src/app/api/v1/actions/route");
+    const res = await POST(postActions({ tankId, actionType: "water_top_up", detailData: { liters: 5 } }));
+    expect(res.status).toBe(201);
+
+    const log = db.select().from(maintenanceLogs).where(eq(maintenanceLogs.tankId, tankId)).orderBy(desc(maintenanceLogs.id)).limit(1).get()!;
+    expect(log.details).toBe("5 L");
+    expect(log.detailData).toEqual({ liters: 5 });
+  });
+
+  it("a log with no matching active plan has a null scheduleId/details", async () => {
+    const { db } = await import("../src/lib/db");
+    const { tanks, maintenanceLogs } = await import("../src/lib/db/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    const freeTank = db.insert(tanks).values({ name: "No plans here", volumeL: 40, waterType: "fresh" }).returning().get();
+
+    const { POST } = await import("../src/app/api/v1/actions/route");
+    const res = await POST(postActions({ tankId: freeTank.id, actionType: "glass_clean" }));
+    expect(res.status).toBe(201);
+
+    const log = db.select().from(maintenanceLogs).where(eq(maintenanceLogs.tankId, freeTank.id)).orderBy(desc(maintenanceLogs.id)).limit(1).get()!;
+    expect(log.scheduleId).toBeNull();
+    expect(log.details).toBeNull();
+    expect(log.detailData).toBeNull();
   });
 });

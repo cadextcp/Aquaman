@@ -16,6 +16,7 @@
  */
 
 import { addDays, dayMatchesMask, isoToLocalDate, today as todayStr } from "./dates";
+import { actionTypeDef } from "./action-types";
 
 export const ALL_DAYS_MASK = 0b1111111; // 127
 export const MISSED_SLOTS_HINT = 3;
@@ -336,11 +337,5 @@ export function occurrencesInRange(
  * older backlog weighs more.
  */
 export function catchUpWeight(actionType: string, overdueDays: number): number {
-  const base: Record<string, number> = {
-    water_change: 100,
-    fertilize: 60,
-    filter_change: 40,
-    filter_clean: 40,
-  };
-  return (base[actionType] ?? 20) + overdueDays * 10;
+  return (actionTypeDef(actionType)?.weight ?? 20) + overdueDays * 10;
 }

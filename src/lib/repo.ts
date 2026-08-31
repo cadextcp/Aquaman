@@ -11,7 +11,9 @@ import {
   scheduleInputSchema,
 } from "@/lib/schemas";
 import { today, addDays } from "@/lib/domain/dates";
-import { isStandardPlanType } from "@/lib/domain/plan-structure";
+import { isStandardPlanType, formatDetailData } from "@/lib/domain/plan-structure";
+import { LOGGABLE_ACTION_TYPES } from "@/lib/domain/action-types";
+import type { DetailData } from "@/lib/db/schema";
 
 // ==================== Tanks ====================
 
@@ -49,6 +51,9 @@ export function addMaintenanceLog(entry: {
   doneAt?: string;
   note?: string;
   source?: "user" | "ai_proposed" | "mcp" | "api";
+  scheduleId?: number | null;
+  details?: string | null;
+  detailData?: DetailData | null;
 }): MaintenanceLog {
   return db
     .insert(maintenanceLogs)
@@ -58,6 +63,9 @@ export function addMaintenanceLog(entry: {
       doneAt: entry.doneAt ?? new Date().toISOString(),
       note: entry.note,
       source: entry.source ?? "user",
+      scheduleId: entry.scheduleId ?? null,
+      details: entry.details ?? null,
+      detailData: entry.detailData ?? null,
     })
     .returning()
     .get();
@@ -237,7 +245,15 @@ export function markScheduleDoneCore(
 ): WriteResultWithTank {
   const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
   if (!s) return { ok: false, error: "Schedule not found" };
-  addMaintenanceLog({ tankId: s.tankId, actionType: s.actionType, note, source });
+  addMaintenanceLog({
+    tankId: s.tankId,
+    actionType: s.actionType,
+    note,
+    source,
+    scheduleId: s.id,
+    details: s.details,
+    detailData: s.detailData,
+  });
   db.update(schedules)
     .set({
       lastDoneAt: new Date().toISOString(),
@@ -596,17 +612,27 @@ export function deleteWaterTestCore(id: number): WriteResultWithTank {
 
 // ==================== Generic action log (v1 REST API -- the display's write path) ====================
 //
-// `logActionCore` is the API's generic event sink: any actionType, not just
-// the standard ones. Feeding is deliberately rejected here -- it is a daily
-// COUNTER (feed_logs, unique per tankId+day, cycling 0 -> 1 -> 2 -> 0), not a
-// timestamped maintenance_logs row, and accepting both would give AquaMon
-// two disagreeing answers to "when was this tank last fed".
+// `logActionCore` is the API's generic event sink -- but only for the
+// standard-events catalog (action-types.ts), same as schedules. Feeding is
+// deliberately rejected here -- it is a daily COUNTER (feed_logs, unique per
+// tankId+day, cycling 0 -> 1 -> 2 -> 0), not a timestamped maintenance_logs
+// row, and accepting both would give AquaMon two disagreeing answers to
+// "when was this tank last fed".
 
 export const logActionSchema = z.object({
   tankId: z.number().int().positive(),
-  actionType: z.string().trim().min(1).max(40),
+  // Validated against the standard-events catalog in logActionCore (not a
+  // zod enum here) so the "feed" rejection can carry its own friendlier
+  // message pointing at /tanks/{id}/feedings. Allowed values: LOGGABLE_ACTION_TYPES
+  // in @/lib/domain/action-types (water_change, fertilize, water_test,
+  // substrate_vacuum, filter_change, filter_clean, water_top_up, glass_clean, plant_trim).
+  actionType: z.string().trim().min(1).max(40).describe("One of the standard-events catalog's loggable types (see LOGGABLE_ACTION_TYPES) -- everything except 'feed', which is a daily counter logged via POST /tanks/{id}/feedings"),
   doneAt: z.string().datetime().optional(),
   note: z.string().trim().max(500).optional().nullable(),
+  // issue: standard-events catalog -- structured details, same shape as a
+  // schedule's detailData (rendered to `details` via formatDetailData).
+  // Omitted -> the log inherits the matching active plan's details, if any.
+  detailData: z.record(z.string(), z.unknown()).optional().nullable().describe("Structured details, same shapes as a schedule's detailData (percent/liters/nutrients/foods). Omitted: inherits the matching active plan's details, if any."),
   // default true: a logged action marks its matching active plan done too.
   // Set false to record history only (e.g. a backdated note) without
   // touching the schedule's due date.
@@ -616,50 +642,58 @@ export const logActionSchema = z.object({
 export function logActionCore(input: unknown): WriteResultWithTank {
   const parsed = logActionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
-  if (parsed.data.actionType === "feed") {
+  const { actionType } = parsed.data;
+  if (actionType === "feed") {
     return {
       ok: false,
       error: "Feeding is tracked as a daily count, not a logged action -- use POST /api/v1/tanks/{id}/feedings instead",
     };
   }
+  if (!(LOGGABLE_ACTION_TYPES as readonly string[]).includes(actionType)) {
+    return { ok: false, error: `actionType must be one of: ${LOGGABLE_ACTION_TYPES.join(", ")}` };
+  }
   const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
   if (!tank) return { ok: false, error: "Tank not found" };
   try {
     const doneAt = parsed.data.doneAt ?? new Date().toISOString();
+    const active = db
+      .select()
+      .from(schedules)
+      .where(and(eq(schedules.tankId, parsed.data.tankId), eq(schedules.actionType, actionType), eq(schedules.active, true)))
+      .get();
+    // Structured details: caller-supplied detailData renders its own `details`
+    // line; otherwise inherit the matching plan's details/detailData (this is
+    // what makes a bare `{ actionType: "fertilize" }` log carry the same
+    // "Fe 10 ml · K 5 ml" line as ticking the plan off in the dashboard).
+    const detailData = parsed.data.detailData !== undefined ? parsed.data.detailData : (active?.detailData ?? null);
+    const details =
+      parsed.data.detailData !== undefined
+        ? formatDetailData(actionType, parsed.data.detailData, tank.volumeL) || null
+        : (active?.details ?? null);
     addMaintenanceLog({
       tankId: parsed.data.tankId,
-      actionType: parsed.data.actionType,
+      actionType,
       doneAt,
       note: parsed.data.note ?? undefined,
       source: "api",
+      scheduleId: active?.id ?? null,
+      details,
+      detailData,
     });
-    if (parsed.data.applyToSchedule !== false) {
-      const active = db
-        .select()
-        .from(schedules)
-        .where(
-          and(
-            eq(schedules.tankId, parsed.data.tankId),
-            eq(schedules.actionType, parsed.data.actionType),
-            eq(schedules.active, true),
-          ),
-        )
-        .get();
-      if (active) {
-        // never pull lastDoneAt BACKWARD -- a backdated log must not make an
-        // already-done task look overdue again
-        const nextLastDoneAt = !active.lastDoneAt || doneAt > active.lastDoneAt ? doneAt : active.lastDoneAt;
-        db.update(schedules)
-          .set({
-            lastDoneAt: nextLastDoneAt,
-            snoozedUntil: null,
-            snoozeSource: null,
-            scheduleVersion: active.scheduleVersion + 1,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(schedules.id, active.id))
-          .run();
-      }
+    if (parsed.data.applyToSchedule !== false && active) {
+      // never pull lastDoneAt BACKWARD -- a backdated log must not make an
+      // already-done task look overdue again
+      const nextLastDoneAt = !active.lastDoneAt || doneAt > active.lastDoneAt ? doneAt : active.lastDoneAt;
+      db.update(schedules)
+        .set({
+          lastDoneAt: nextLastDoneAt,
+          snoozedUntil: null,
+          snoozeSource: null,
+          scheduleVersion: active.scheduleVersion + 1,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(schedules.id, active.id))
+        .run();
     }
     return { ok: true, tankId: parsed.data.tankId };
   } catch (err) {

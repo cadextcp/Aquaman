@@ -8,9 +8,10 @@ import { WEEKDAY_LABELS, ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } f
 import type { ScheduleInput } from "@/lib/schemas";
 import type { Schedule } from "@/lib/db/schema";
 import { StructuredDetailsEditor } from "./structured-details-editor";
-import { formatDetailData, isStandardPlanType } from "@/lib/domain/plan-structure";
+import { formatDetailData } from "@/lib/domain/plan-structure";
+import { SCHEDULABLE_ACTION_TYPES, actionTypeDef } from "@/lib/domain/action-types";
 
-const ACTIONS = ["water_change", "fertilize", "filter_change", "filter_clean", "glass_clean", "plant_trim"];
+const ACTIONS = SCHEDULABLE_ACTION_TYPES;
 
 export function ScheduleForm({
   tankId,
@@ -97,7 +98,7 @@ export function ScheduleForm({
         </div>
       </div>
 
-      {isStandardPlanType(actionType) && actionType !== "filter_change" && actionType !== "water_test" ? (
+      {actionTypeDef(actionType)?.detailKind ? (
         <StructuredDetailsEditor
           actionType={actionType}
           tankVolumeL={tankVolumeL}
