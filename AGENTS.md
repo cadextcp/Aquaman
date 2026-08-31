@@ -58,6 +58,7 @@ live in PRD/TechDesign. `docs/plan-review.md` documents why v1.2/v1.1 differ.
 - Healthcheck uses `node -e "fetch(...)"` — `wget` does NOT exist in `node:*-slim` (Debian), only Alpine/busybox.
 - Photo upload needs `experimental.serverActions.bodySizeLimit: '6mb'` — Next.js default is 1 MB and silently fails larger uploads.
 - The uploads route (catch-all segment) takes a URL path → normalize + reject `..` (path traversal), Content-Type whitelist.
+- `action_type` is validated against the catalog in `src/lib/domain/action-types.ts` at **two** layers: zod at every write path AND a DB-level `CHECK` on both `schedules` and `maintenance_logs` (`schema.ts`). SQLite can't `ALTER` a `CHECK` constraint, so adding/removing a catalog entry needs a new drizzle migration that rebuilds both tables (FK-off, `PRAGMA foreign_keys=OFF/ON` around both, per `drizzle/0005_standard_events_catalog.sql`) — not just an edit to `action-types.ts`.
 
 ### AI
 
