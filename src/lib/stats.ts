@@ -247,11 +247,15 @@ export function scheduleAdherence(
   return Math.round((onTime / counted) * 100);
 }
 
-/** Cross-tank 30-day summary (design: "60 care actions"). */
-export function crossTankStats(now: Date = new Date()) {
+/** Cross-tank 30-day summary (design: "60 care actions"). Pass `tankId` to scope to one tank (dashboard tank filter). */
+export function crossTankStats(now: Date = new Date(), tankId?: number) {
   const from = addDays(today(), -30);
   const fromIso = `${from}T00:00:00.000Z`;
-  const logs = db.select().from(maintenanceLogs).where(gte(maintenanceLogs.doneAt, fromIso)).all();
+  const logs = db
+    .select()
+    .from(maintenanceLogs)
+    .where(and(gte(maintenanceLogs.doneAt, fromIso), tankId !== undefined ? eq(maintenanceLogs.tankId, tankId) : undefined))
+    .all();
   return { actions: logs.length };
 }
 
@@ -274,12 +278,16 @@ export function dailyActivity(days = 30): { date: string; count: number }[] {
   return out;
 }
 
-/** Weekly summary for the empty-queue state (design: "4 tasks closed this week, zero behind"). */
-export function weeklySummary(now: Date = new Date()) {
+/** Weekly summary for the empty-queue state (design: "4 tasks closed this week, zero behind"). Pass `tankId` to scope to one tank (dashboard tank filter). */
+export function weeklySummary(now: Date = new Date(), tankId?: number) {
   const t = today();
   const from = addDays(t, -7);
   const fromIso = `${from}T00:00:00.000Z`;
-  const logs = db.select().from(maintenanceLogs).where(gte(maintenanceLogs.doneAt, fromIso)).all();
+  const logs = db
+    .select()
+    .from(maintenanceLogs)
+    .where(and(gte(maintenanceLogs.doneAt, fromIso), tankId !== undefined ? eq(maintenanceLogs.tankId, tankId) : undefined))
+    .all();
   return { closed: logs.length };
 }
 
