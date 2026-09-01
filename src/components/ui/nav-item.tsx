@@ -16,7 +16,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 export type NavVariant = "bottom" | "side";
 
 /** Pages that read `?tank=` — the dashboard's tank filter carries over between them. */
-const TANK_SCOPED_PATHS = new Set(["/", "/calendar"]);
+const TANK_SCOPED_PATHS = new Set(["/", "/calendar", "/coach"]);
 
 /** `/tanks` stays active on `/tanks/3`; `/` only matches itself. */
 export function useIsActive(href: string): boolean {

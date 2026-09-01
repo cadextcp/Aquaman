@@ -21,7 +21,16 @@ type UsageInfo = { calls: number; totalTokens: number; maxCalls: number; maxToke
 
 type Suggestion = { label: string; prompt: string };
 
-export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boolean; initialQuestion?: string }) {
+export function CoachChat({
+  aiConfigured,
+  initialQuestion,
+  tankId,
+}: {
+  aiConfigured: boolean;
+  initialQuestion?: string;
+  /** The one tank this conversation is scoped to (Coach page's tank selector) — sent with every /api/coach call. */
+  tankId: number;
+}) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -97,7 +106,7 @@ export function CoachChat({ aiConfigured, initialQuestion }: { aiConfigured: boo
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question, history }),
+        body: JSON.stringify({ question, history, tankId }),
       });
 
       if (!res.ok || !res.body) {

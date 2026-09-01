@@ -3,7 +3,7 @@
  * 400, budget exhausted → 429, rate limiting. The provider call itself is
  * mocked (no network in CI).
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -20,11 +20,18 @@ function coachReq(body: unknown, ip = "203.0.113.9"): NextRequest {
   });
 }
 
+let tankAId = 0;
+let tankBId = 0;
+
 beforeAll(async () => {
   mkdirSync(TMP, { recursive: true });
   const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
   const { db } = await import("../src/lib/db");
   migrate(db, { migrationsFolder: "./drizzle" });
+
+  const { tanks } = await import("../src/lib/db/schema");
+  tankAId = db.insert(tanks).values({ name: "Tank A", volumeL: 60, waterType: "fresh" }).returning().get().id;
+  tankBId = db.insert(tanks).values({ name: "Tank B", volumeL: 120, waterType: "fresh" }).returning().get().id;
 });
 
 afterAll(async () => {
@@ -41,6 +48,29 @@ beforeEach(async () => {
   delete process.env.AQUAMAN_AI_BASE_URL;
   delete process.env.AQUAMAN_AI_MAX_CALLS_PER_DAY;
   delete process.env.AQUAMAN_AI_MAX_TOKENS_PER_DAY;
+});
+
+// Mocked SDK (same pattern as ai-client-signal.test.ts) — only needed by the
+// "tankId scope" describe below, which lets a request past every guard to
+// inspect the actual system prompt handed to the provider. Harmless for
+// every other test here: none of them reach streamCoachAnswer at all.
+const streamSpy = vi.fn();
+vi.mock("@anthropic-ai/sdk", () => {
+  class FakeMessageStream {
+    async *[Symbol.asyncIterator]() {
+      /* empty stream — just enough for streamCoachAnswer to complete normally */
+    }
+  }
+  class FakeAnthropic {
+    messages = {
+      stream: (...args: unknown[]) => {
+        streamSpy(...args);
+        return new FakeMessageStream();
+      },
+    };
+  }
+  class FakeAPIError extends Error {}
+  return { default: FakeAnthropic, APIError: FakeAPIError };
 });
 
 describe("POST /api/coach — guards", () => {
@@ -162,5 +192,47 @@ describe("POST /api/coach — guards", () => {
       const res = await POST(coachReq({ question: "hi", history: bad }));
       expect(res.status).toBe(400);
     });
+  });
+});
+
+describe("POST /api/coach — tankId is mandatory (Coach page tank selector)", () => {
+  it("missing tankId → 400 (after AI config/budget guards pass)", async () => {
+    process.env.AQUAMAN_AI_API_KEY = "test-key";
+    process.env.AQUAMAN_AI_MODEL = "glm-4.6";
+    const { POST } = await import("../src/app/api/coach/route");
+    const res = await POST(coachReq({ question: "hi" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toContain("tankId");
+  });
+
+  it("tankId referencing a non-existent tank → 400", async () => {
+    process.env.AQUAMAN_AI_API_KEY = "test-key";
+    process.env.AQUAMAN_AI_MODEL = "glm-4.6";
+    const { POST } = await import("../src/app/api/coach/route");
+    const res = await POST(coachReq({ question: "hi", tankId: 999999 }));
+    expect(res.status).toBe(400);
+  });
+
+  it("a non-integer/negative tankId → 400", async () => {
+    process.env.AQUAMAN_AI_API_KEY = "test-key";
+    process.env.AQUAMAN_AI_MODEL = "glm-4.6";
+    const { POST } = await import("../src/app/api/coach/route");
+    expect((await POST(coachReq({ question: "hi", tankId: -1 }))).status).toBe(400);
+    expect((await POST(coachReq({ question: "hi", tankId: 1.5 }))).status).toBe(400);
+    expect((await POST(coachReq({ question: "hi", tankId: "1" }))).status).toBe(400);
+  });
+
+  it("a valid tankId reaches the provider call with a system prompt scoped to ONLY that tank", async () => {
+    process.env.AQUAMAN_AI_API_KEY = "test-key";
+    process.env.AQUAMAN_AI_MODEL = "glm-4.6";
+    streamSpy.mockClear();
+    const { POST } = await import("../src/app/api/coach/route");
+    const res = await POST(coachReq({ question: "how is my tank?", tankId: tankAId }));
+    expect(res.status).toBe(200);
+    expect(streamSpy).toHaveBeenCalledTimes(1);
+    const system = (streamSpy.mock.calls[0][0] as { system: string }).system;
+    expect(system).toContain("Tank A");
+    expect(system).toContain("SCOPE:");
+    expect(system).not.toContain("Tank B");
   });
 });
