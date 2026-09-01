@@ -10,7 +10,7 @@ import { DataCard } from "@/components/data-card";
 import { TightGapSettings } from "@/components/tightgap-settings";
 import { AiProviderSettings } from "@/components/ai-provider-settings";
 import { getGlobalSettings, getAiSettings } from "@/lib/settings";
-import { isAiConfigured } from "@/lib/ai/config";
+import { isAiConfigured, hasApiKey } from "@/lib/ai/config";
 import { usageForSettings } from "@/lib/ai/cost-guard";
 import { monthlyStats, careReliabilityStats, chronicOverload, aiCostStats } from "@/lib/stats";
 import { today, shiftMonth } from "@/lib/domain/dates";
@@ -154,7 +154,11 @@ export default async function MorePage() {
 
       {/* AI provider settings */}
       <div className="mb-4">
-        <AiProviderSettings initial={aiSettings} envConfigured={!!process.env.AQUAMAN_AI_API_KEY} />
+        <AiProviderSettings
+          initial={aiSettings}
+          envConfigured={!!process.env.AQUAMAN_AI_API_KEY}
+          keyConfigured={hasApiKey()}
+        />
       </div>
 
       {/* AI status + 30-day cost */}
@@ -169,7 +173,7 @@ export default async function MorePage() {
           </p>
         ) : (
           <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
-            <span className="inline-flex items-center gap-1.5"><i aria-hidden className="ph ph-circle text-[8px]" /> Offline</span> — no <code>AQUAMAN_AI_API_KEY</code> configured. The app works fully without it.
+            <span className="inline-flex items-center gap-1.5"><i aria-hidden className="ph ph-circle text-[8px]" /> Offline</span> — no API key configured yet (set one in the AI provider section below). The app works fully without it.
           </p>
         )}
         <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>

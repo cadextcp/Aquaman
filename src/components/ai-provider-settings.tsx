@@ -2,8 +2,9 @@
 
 /**
  * AI provider settings (issue #40): provider presets (z.ai / Anthropic /
- * Kimi), custom base URL, free-text model, daily limits.
- * The API key is deliberately NOT here — it stays an env var (never DB/export).
+ * Kimi), custom base URL, free-text model, daily limits, and the API key
+ * itself. The key is written to a file in DATA_DIR (never the DB/exports)
+ * and never sent back to the client after saving — see key-store.ts.
  */
 
 import { useState, useTransition } from "react";
@@ -22,9 +23,11 @@ type Draft = {
 export function AiProviderSettings({
   initial,
   envConfigured,
+  keyConfigured,
 }: {
   initial: AiProviderSettingsData | null;
   envConfigured: boolean;
+  keyConfigured: boolean;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(
@@ -39,6 +42,29 @@ export function AiProviderSettings({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const [apiKey, setApiKey] = useState("");
+  const [keySaved, setKeySaved] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [keyPending, startKeyTransition] = useTransition();
+
+  async function saveKey(value: string) {
+    setKeyError(null);
+    const res = await fetch("/api/settings/ai/key", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ apiKey: value }),
+    });
+    if (res.ok) {
+      setApiKey("");
+      setKeySaved(true);
+      setTimeout(() => setKeySaved(false), 2000);
+      startKeyTransition(() => router.refresh());
+    } else {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      setKeyError(data?.error ?? "Could not save key");
+    }
+  }
 
   function pickProvider(p: AiProviderSettingsData["provider"]) {
     if (p === "custom") {
@@ -73,12 +99,56 @@ export function AiProviderSettings({
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
         AI provider
       </div>
-      {!envConfigured && (
+      {!keyConfigured && (
         <p className="text-sm mb-3 rounded-lg p-2.5" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
-          Note: no <code>AQUAMAN_AI_API_KEY</code> in the environment — the coach stays offline until the key is set
-          (env-only by design). These settings become active as soon as a key exists.
+          No API key set yet — the coach stays offline until one is added below.
         </p>
       )}
+
+      <div className="mb-4">
+        <label className="block text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>
+          API key
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            autoComplete="off"
+            className="flex-1 rounded-lg px-3 py-2.5 text-sm font-mono"
+            style={input}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={keyConfigured ? "•••••••••••••• (set — enter a new value to replace)" : "sk-..."}
+          />
+          <button
+            type="button"
+            onClick={() => saveKey(apiKey)}
+            disabled={keyPending || !apiKey.trim()}
+            className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium"
+            style={{ minHeight: 44 }}
+          >
+            Save key
+          </button>
+          {keyConfigured && (
+            <button
+              type="button"
+              onClick={() => saveKey("")}
+              disabled={keyPending}
+              className="rounded-lg px-4 py-2.5 text-sm"
+              style={{ minHeight: 44, background: "var(--secondary)", color: "var(--secondary-foreground)" }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {keyError && <p className="mt-2"><StatusNote tone="error">{keyError}</StatusNote></p>}
+        {keySaved && <p className="mt-2"><StatusNote tone="success">Saved</StatusNote></p>}
+        <p className="text-xs mt-2" style={{ color: "var(--muted-foreground)" }}>
+          Stored in the app&apos;s data directory, never in the database or exports, and never shown again after saving.
+          {envConfigured && !keyConfigured && (
+            <> An <code>AQUAMAN_AI_API_KEY</code> environment variable is also set and will be used as a fallback.</>
+          )}
+        </p>
+      </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
         {(Object.keys(PROVIDER_PRESETS) as (keyof typeof PROVIDER_PRESETS)[]).map((p) => (
@@ -196,8 +266,7 @@ export function AiProviderSettings({
         {saved && <StatusNote tone="success">Saved</StatusNote>}
       </div>
       <p className="text-xs mt-3" style={{ color: "var(--muted-foreground)" }}>
-        These settings override the environment variables. The API key itself stays in <code>AQUAMAN_AI_API_KEY</code> —
-        it is never stored in the database or exports.
+        These settings override the environment variables.
       </p>
     </div>
   );

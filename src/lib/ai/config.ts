@@ -32,13 +32,15 @@ void _mhm;
 
 import { getAiSettings } from "../settings";
 import type { AiProviderSettingsData } from "./provider-presets";
+import { readStoredApiKey } from "./key-store";
 
 export function getAiConfig(): AiConfig | null {
-  const apiKey = process.env.AQUAMAN_AI_API_KEY?.trim();
+  const apiKey = readStoredApiKey() ?? process.env.AQUAMAN_AI_API_KEY?.trim();
   if (!apiKey) return null; // AI off — core features keep working
 
   // Settings (issue #40: /more → AI provider) take precedence; env is the
-  // bootstrap/fallback. The API key itself is env-only by design — never DB.
+  // bootstrap/fallback. The API key can be set from /more too (stored in
+  // DATA_DIR, never the DB/exports) and takes precedence over the env var.
   let baseUrl = process.env.AQUAMAN_AI_BASE_URL?.trim() || "https://api.anthropic.com";
   let model = process.env.AQUAMAN_AI_MODEL?.trim() || "";
   let maxCallsPerDay = Math.max(1, Number(process.env.AQUAMAN_AI_MAX_CALLS_PER_DAY) || DEFAULT_MAX_CALLS_PER_DAY);
@@ -62,6 +64,11 @@ export function getAiConfig(): AiConfig | null {
 /** True when the coach can run at all (key + model present). */
 export function isAiConfigured(): boolean {
   return getAiConfig() !== null;
+}
+
+/** True when a key exists from either source (stored file or env). */
+export function hasApiKey(): boolean {
+  return readStoredApiKey() !== null || !!process.env.AQUAMAN_AI_API_KEY?.trim();
 }
 
 /** Provider label for aiCalls telemetry (which configured path was used). */

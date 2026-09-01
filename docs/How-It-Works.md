@@ -64,9 +64,10 @@ compat — nothing reads them at runtime.)
 ## AI coach (optional — app works fully without a key)
 
 - Any Anthropic-compatible API via `AQUAMAN_AI_BASE_URL` / `AQUAMAN_AI_API_KEY`
-  / `AQUAMAN_AI_MODEL` (works with z.ai GLM and Anthropic). Provider/model can
-  also be set in *More* (`aiSettings.v1`); the key stays env-only, never in
-  the DB.
+  / `AQUAMAN_AI_MODEL` (works with z.ai GLM and Anthropic). Provider/model/key
+  can also be set in *More* (`aiSettings.v1` + a key file in `DATA_DIR`, see
+  `src/lib/ai/key-store.ts`); the key is never written to the DB or exports,
+  and takes precedence over the env var when set.
 - Two-tier daily budget — calls **and** tokens — resets at local midnight
   (`AQUAMAN_TIMEZONE`), enforced by aggregating `ai_calls`; the ledger is
   INSERT-only.
