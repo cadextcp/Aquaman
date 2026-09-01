@@ -50,6 +50,7 @@ export function ScheduleCard({
   schedule,
   adherence = null,
   doneToday = false,
+  showTankName = false,
 }: {
   schedule: ScheduleCardData;
   adherence?: number | null;
@@ -61,6 +62,8 @@ export function ScheduleCard({
    * local state with it.
    */
   doneToday?: boolean;
+  /** Show which tank this belongs to (dashboard "All tanks" view) — redundant on a single-tank page, so opt-in. */
+  showTankName?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -131,6 +134,11 @@ export function ScheduleCard({
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="min-w-0 flex-1">
+            {showTankName && (
+              <div className="text-xs font-medium mb-0.5 truncate" style={{ color: "var(--accent)" }}>
+                {schedule.tankName}
+              </div>
+            )}
             <div className="font-medium" style={{ textDecoration: showDone ? "line-through" : "none" }}>
               {schedule.actionType.replace(/_/g, " ")}
               <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}>
