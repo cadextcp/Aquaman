@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { listSchedules } from "@/lib/repo";
+import { listTanks, listSchedules } from "@/lib/repo";
 import { occurrencesInRange } from "@/lib/domain/scheduler";
 import { CalendarChip } from "@/components/calendar-chip";
 import { today as todayStr, monthGridRange, shiftMonth } from "@/lib/domain/dates";
 import { PageHeader } from "@/components/ui/page-header";
 import { CalendarLegend } from "@/components/calendar-legend";
+import { TankFilterBar } from "@/components/tank-filter-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +23,18 @@ function monthLabel(monthStr: string): string {
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ m?: string }>;
+  searchParams: Promise<{ m?: string; tank?: string }>;
 }) {
-  const { m } = await searchParams;
+  const { m, tank: tankParam } = await searchParams;
   const t = todayStr();
   const month = m && /^\d{4}-\d{2}$/.test(m) ? m : t.slice(0, 7);
 
-  const schedules = listSchedules();
+  const tanks = listTanks();
+  // Same tank filter as the dashboard (?tank=<id>), carried over via the nav
+  // when you switch pages — see TANK_SCOPED_PATHS in nav-item.tsx.
+  const selectedTankId = tankParam && tanks.some((tk) => String(tk.id) === tankParam) ? Number(tankParam) : null;
+  const allSchedules = listSchedules();
+  const schedules = selectedTankId === null ? allSchedules : allSchedules.filter((s) => s.tankId === selectedTankId);
   const { from, to, days } = monthGridRange(month);
 
   // date (YYYY-MM-DD) → list of tasks (with schedule ref → clickable, issue #31)
@@ -40,7 +46,8 @@ export default async function CalendarPage({
       const list = byDate.get(date) ?? [];
       const overdue = date < t;
       list.push({
-        label: `${s.actionType.replace(/_/g, " ")} — ${s.tankName}`,
+        // tank name only in the "All tanks" view — filtered to one tank it's redundant
+        label: selectedTankId === null ? `${s.actionType.replace(/_/g, " ")} — ${s.tankName}` : s.actionType.replace(/_/g, " "),
         overdue,
         variant: overdue ? "behind" : date === t ? "due" : "upcoming",
         schedule: s,
@@ -55,6 +62,18 @@ export default async function CalendarPage({
   const prevMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
 
+  // Preserve whichever of ?m=/?tank= isn't being changed by a given link —
+  // month navigation must not reset the tank filter and vice versa.
+  const hrefFor = (overrides: { m?: string; tank?: string | null }) => {
+    const params = new URLSearchParams();
+    const nextM = overrides.m ?? month;
+    const nextTank = overrides.tank !== undefined ? overrides.tank : selectedTankId !== null ? String(selectedTankId) : null;
+    if (nextM !== t.slice(0, 7)) params.set("m", nextM);
+    if (nextTank !== null) params.set("tank", nextTank);
+    const qs = params.toString();
+    return qs ? `/calendar?${qs}` : "/calendar";
+  };
+
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-4xl">
       <PageHeader
@@ -67,18 +86,24 @@ export default async function CalendarPage({
         action={
           <>
             {month !== t.slice(0, 7) && (
-              <Link href="/calendar" className="btn-ghost rounded-lg px-3 text-xs inline-flex items-center" style={{ minHeight: 44 }}>
+              <Link href={hrefFor({ m: t.slice(0, 7) })} className="btn-ghost rounded-lg px-3 text-xs inline-flex items-center" style={{ minHeight: 44 }}>
                 Today
               </Link>
             )}
-            <Link href={`/calendar?m=${prevMonth}`} aria-label="Previous month" className="icon-btn">
+            <Link href={hrefFor({ m: prevMonth })} aria-label="Previous month" className="icon-btn">
               <i aria-hidden className="ph ph-caret-left text-base" />
             </Link>
-            <Link href={`/calendar?m=${nextMonth}`} aria-label="Next month" className="icon-btn">
+            <Link href={hrefFor({ m: nextMonth })} aria-label="Next month" className="icon-btn">
               <i aria-hidden className="ph ph-caret-right text-base" />
             </Link>
           </>
         }
+      />
+
+      <TankFilterBar
+        tanks={tanks}
+        selectedTankId={selectedTankId}
+        hrefFor={(id) => hrefFor({ tank: id === null ? null : String(id) })}
       />
 
       <CalendarLegend />
