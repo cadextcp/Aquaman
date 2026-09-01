@@ -121,7 +121,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const card = (item: (typeof tasks)[number]) => {
     const { s, due } = item;
     // Tank name only in the "All tanks" view — filtered to one tank it's redundant.
-    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} doneToday={doneTodayIds.has(s.id)} showTankName={selectedTankId === null} />;
+    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} tanks={tanks} doneToday={doneTodayIds.has(s.id)} showTankName={selectedTankId === null} />;
   };
 
   return (
@@ -243,7 +243,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
             If you only do one thing today
           </div>
-          <ScheduleCard schedule={{ ...catchUpCandidate.s, due: catchUpCandidate.due, today: t }} showTankName={selectedTankId === null} />
+          <ScheduleCard schedule={{ ...catchUpCandidate.s, due: catchUpCandidate.due, today: t }} tanks={tanks} showTankName={selectedTankId === null} />
           <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
             {behind.length - 1} more tasks behind — they keep rescheduling to your preferred days, no rush.
           </div>

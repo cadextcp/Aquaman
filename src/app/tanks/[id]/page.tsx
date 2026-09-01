@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getTank, listSchedules, recentLogs, allLogsForTank, waterTestsForTank } from "@/lib/repo";
+import { getTank, listTanks, listSchedules, recentLogs, allLogsForTank, waterTestsForTank } from "@/lib/repo";
 import { nextDue, missedSlots, doneOn, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { EditTankButton } from "@/components/edit-tank-button";
@@ -24,6 +24,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
   const tank = getTank(Number(id));
   if (!tank) notFound();
 
+  const tanks = listTanks();
   const schedules = listSchedules(tank.id);
   const logs = recentLogs(tank.id, 10);
   const adherenceLogs = allLogsForTank(tank.id); // untruncated — adherence reconstructs the occurrence chain from it
@@ -159,6 +160,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                 <div key={s.id}>
                   <ScheduleCard
                     schedule={{ ...s, due, today: todayStrLocal() }}
+                    tanks={tanks}
                     adherence={adherenceBySchedule.get(s.id) ?? null}
                     doneToday={doneOn(s, todayStrLocal())}
                   />

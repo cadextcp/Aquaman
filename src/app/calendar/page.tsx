@@ -136,7 +136,7 @@ export default async function CalendarPage({
               </div>
               <div className="flex flex-col gap-[9px] items-center">
                 {tasks.slice(0, 3).map((task, i) => (
-                  <CalendarChip key={i} schedule={task.schedule} label={task.label} variant={task.variant} />
+                  <CalendarChip key={i} schedule={task.schedule} tanks={tanks} label={task.label} variant={task.variant} />
                 ))}
                 {tasks.length > 3 && (
                   <div style={{ color: "var(--muted-foreground)", fontSize: "9px" }}>+{tasks.length - 3}</div>

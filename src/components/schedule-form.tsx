@@ -15,6 +15,7 @@ const ACTIONS = SCHEDULABLE_ACTION_TYPES;
 
 export function ScheduleForm({
   tankId,
+  tanks = [],
   schedule,
   globalPolicy = "suppress",
   globalThreshold = 50,
@@ -22,6 +23,8 @@ export function ScheduleForm({
   tankFoods = [],
 }: {
   tankId: number;
+  /** other tanks to move this schedule to (issue: move event between aquariums) — only shown when editing */
+  tanks?: { id: number; name: string }[];
   schedule?: Schedule & { tankName: string };
   /** global default from /more (issue #39) — "default" means "like global" */
   globalPolicy?: "fixed" | "suppress";
@@ -32,6 +35,7 @@ export function ScheduleForm({
 }) {
   const router = useRouter();
   const editing = !!schedule;
+  const [selectedTankId, setSelectedTankId] = useState(tankId);
   const [actionType, setActionType] = useState(schedule?.actionType ?? "water_change");
   const [intervalDays, setIntervalDays] = useState(schedule?.intervalDays ?? 7);
   const [days, setDays] = useState<number[]>(schedule ? maskToDays(schedule.preferredDays) : [0, 1, 2, 3, 4, 5, 6]);
@@ -56,7 +60,7 @@ export function ScheduleForm({
     e.preventDefault();
     setError(null);
     const input: ScheduleInput = {
-      tankId,
+      tankId: selectedTankId,
       actionType,
       intervalDays,
       preferredDays: daysToMask(days),
@@ -83,6 +87,16 @@ export function ScheduleForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="text-sm" style={{ color: "var(--destructive)" }}>{error}</div>}
+
+      {editing && tanks.length > 0 && (
+        <div>
+          <label className="block text-xs uppercase tracking-wide mb-1">Tank</label>
+          <select className={field} style={input} value={selectedTankId}
+            onChange={(e) => setSelectedTankId(Number(e.target.value))}>
+            {tanks.map((tk) => <option key={tk.id} value={tk.id}>{tk.name}</option>)}
+          </select>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
