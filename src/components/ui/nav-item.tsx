@@ -9,10 +9,14 @@
  * current page, so there was no way to tell where you were.
  */
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export type NavVariant = "bottom" | "side";
+
+/** Pages that read `?tank=` — the dashboard's tank filter carries over between them. */
+const TANK_SCOPED_PATHS = new Set(["/", "/calendar"]);
 
 /** `/tanks` stays active on `/tanks/3`; `/` only matches itself. */
 export function useIsActive(href: string): boolean {
@@ -21,23 +25,17 @@ export function useIsActive(href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function NavItem({
-  href,
-  label,
-  icon,
-  variant,
-  badge,
-}: {
+type NavItemProps = {
   href: string;
   label: string;
   icon: string;
   variant: NavVariant;
   /** overlay rendered on top of the icon (the Coach notification badge) */
   badge?: React.ReactNode;
-}) {
-  const active = useIsActive(href);
-  const bottom = variant === "bottom";
+};
 
+function NavLink({ href, label, icon, variant, badge, active }: NavItemProps & { active: boolean }) {
+  const bottom = variant === "bottom";
   return (
     <Link
       href={href}
@@ -58,5 +56,22 @@ export function NavItem({
       </span>
       {label}
     </Link>
+  );
+}
+
+/** Reads `?tank=` (useSearchParams needs a Suspense boundary — see NavItem below). */
+function NavItemWithTank(props: NavItemProps) {
+  const active = useIsActive(props.href);
+  const tank = useSearchParams().get("tank");
+  const finalHref = tank && TANK_SCOPED_PATHS.has(props.href) ? `${props.href}?tank=${tank}` : props.href;
+  return <NavLink {...props} href={finalHref} active={active} />;
+}
+
+export function NavItem(props: NavItemProps) {
+  const active = useIsActive(props.href);
+  return (
+    <Suspense fallback={<NavLink {...props} active={active} />}>
+      <NavItemWithTank {...props} />
+    </Suspense>
   );
 }

@@ -10,6 +10,7 @@ import { FeedControl } from "@/components/feed-checkbox";
 import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
 import { StatusNote } from "@/components/ui/status-note";
+import { TankFilterBar } from "@/components/tank-filter-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -145,37 +146,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       />
 
       {/* Tank filter: "All" or one tank — narrows every section below except the streak badge above */}
-      {tanks.length > 1 && (
-        <div className="flex flex-wrap gap-1.5 mb-6">
-          <Link
-            href={hrefFor({ tank: null })}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium"
-            style={{
-              minHeight: 32,
-              background: selectedTankId === null ? "var(--accent-soft)" : "var(--secondary)",
-              boxShadow: selectedTankId === null ? "inset 0 0 0 1px var(--accent)" : "none",
-              color: selectedTankId === null ? "var(--accent-light)" : "var(--secondary-foreground)",
-            }}
-          >
-            All tanks
-          </Link>
-          {tanks.map((tk) => (
-            <Link
-              key={tk.id}
-              href={hrefFor({ tank: String(tk.id) })}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium"
-              style={{
-                minHeight: 32,
-                background: selectedTankId === tk.id ? "var(--accent-soft)" : "var(--secondary)",
-                boxShadow: selectedTankId === tk.id ? "inset 0 0 0 1px var(--accent)" : "none",
-                color: selectedTankId === tk.id ? "var(--accent-light)" : "var(--secondary-foreground)",
-              }}
-            >
-              {tk.name}
-            </Link>
-          ))}
-        </div>
-      )}
+      <TankFilterBar
+        tanks={tanks}
+        selectedTankId={selectedTankId}
+        hrefFor={(id) => hrefFor({ tank: id === null ? null : String(id) })}
+      />
 
       {/* Feeding (daily habit) — day navigation lets you backfill past days */}
       {visibleTanks.length > 0 && (
