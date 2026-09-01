@@ -41,13 +41,23 @@ propose_schedule contract (violations are rejected by the app — the user sees 
 - preferredDays is the 7-bit weekday mask (bit0=Mon … bit6=Sun); use 127 when the user names no weekdays.
 - ALWAYS also write a short visible summary of the proposal — never let a tool call be your entire answer, and never return an empty answer (if you cannot help, say so in text).`;
 
-/** Context block appended to the system prompt (data the model may see). */
-export function buildCoachContext(now: Date = new Date(), tz?: string): string {
+/**
+ * Context block appended to the system prompt (data the model may see).
+ * `tankId` scopes the coach to ONE tank (dashboard/calendar filter, extended
+ * to the coach): the model receives ONLY that tank's data, so it structurally
+ * cannot answer about or propose plans for any other tank — no other tank
+ * exists in the text it's given at all.
+ */
+export function buildCoachContext(now: Date = new Date(), tz?: string, tankId?: number): string {
   const t = today(tz, now);
   const lines: string[] = [];
   lines.push(`TODAY: ${t}`);
 
-  const tanks = listTanks();
+  const allTanks = listTanks();
+  const tanks = tankId !== undefined ? allTanks.filter((tk) => tk.id === tankId) : allTanks;
+  if (tankId !== undefined) {
+    lines.push("SCOPE: The user selected exactly this ONE tank below — it is the only tank in view. Never mention, compare to, or assume any other tank exists.");
+  }
   if (tanks.length === 0) {
     lines.push("TANKS: (none set up yet)");
     return lines.join("\n");

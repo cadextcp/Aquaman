@@ -5,15 +5,21 @@ import Link from "next/link";
  * dashboard and the calendar; both pages own their own `hrefFor` so the
  * OTHER query params on that page (day/month) are preserved across a tank
  * switch, and vice versa (see each page's `hrefFor`).
+ *
+ * `allowAll={false}` (the Coach page) drops the "All tanks" chip entirely —
+ * there, exactly one tank must always be selected (`selectedTankId` is never
+ * null in that mode; the page picks a default before rendering this).
  */
 export function TankFilterBar({
   tanks,
   selectedTankId,
   hrefFor,
+  allowAll = true,
 }: {
   tanks: { id: number; name: string }[];
   selectedTankId: number | null;
   hrefFor: (tankId: number | null) => string;
+  allowAll?: boolean;
 }) {
   if (tanks.length <= 1) return null;
 
@@ -38,7 +44,7 @@ export function TankFilterBar({
 
   return (
     <div className="flex flex-wrap gap-1.5 mb-6">
-      {chip(null, "All tanks")}
+      {allowAll && chip(null, "All tanks")}
       {tanks.map((tk) => chip(tk.id, tk.name))}
     </div>
   );

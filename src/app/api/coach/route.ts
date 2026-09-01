@@ -6,7 +6,9 @@
  * POST-only, input-capped, and guarded by the shared failure-only rate
  * limiter so it cannot become an open AI-cost spigot.
  *
- * Request:  { question: string, history?: [{role, content}] }
+ * Request:  { question: string, tankId: number, history?: [{role, content}] }
+ * tankId is REQUIRED and scopes the coach to that one tank — see
+ * buildCoachContext()'s tankId param and the Coach page's tank selector.
  * Response: NDJSON lines (one JSON object per line, in order):
  *   {"type":"usage",  calls, totalTokens, maxCalls, maxTokens}
  *   {"type":"text",   delta}
@@ -24,6 +26,7 @@ import { buildCoachContext, COACH_SYSTEM_PROMPT } from "@/lib/ai/context";
 import { streamCoachAnswer, type CoachMessage } from "@/lib/ai/client";
 import { isRateLimited, recordFailure, recordSuccess } from "@/lib/rate-limit";
 import { today } from "@/lib/domain/dates";
+import { getTank } from "@/lib/repo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,7 +77,7 @@ export async function POST(req: NextRequest): Promise<NextResponse | Response> {
   }
 
   // ---- input guards ----
-  let body: { question?: unknown; history?: unknown };
+  let body: { question?: unknown; history?: unknown; tankId?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -123,6 +126,16 @@ export async function POST(req: NextRequest): Promise<NextResponse | Response> {
     );
   }
 
+  // Mandatory tank scope (checked AFTER the AI-config/budget guards, and
+  // BEFORE reserving a call slot, so an invalid tankId never leaks a
+  // reservation): the coach only ever answers about the tank the user picked
+  // on the Coach page — never "all tanks", never a stray previous selection.
+  const tankId = typeof body.tankId === "number" && Number.isInteger(body.tankId) && body.tankId > 0 ? body.tankId : null;
+  if (tankId === null || !getTank(tankId)) {
+    recordFailure(`coach:${ip}`);
+    return badRequest("tankId is required and must reference an existing tank");
+  }
+
   // Reserve the call slot NOW, not just check it — checkBudget alone only
   // reads committed rows, so two near-simultaneous requests could both pass
   // it before either's recordAiCall commits, exceeding maxCallsPerDay by
@@ -138,7 +151,7 @@ export async function POST(req: NextRequest): Promise<NextResponse | Response> {
   recordSuccess(`coach:${ip}`); // well-formed request clears the failure counter
 
   // ---- stream ----
-  const context = buildCoachContext();
+  const context = buildCoachContext(new Date(), undefined, tankId);
   const system = `${COACH_SYSTEM_PROMPT}\n\n=== USER DATA CONTEXT ===\n${context}`;
 
   const encoder = new TextEncoder();

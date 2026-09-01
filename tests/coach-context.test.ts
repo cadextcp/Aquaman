@@ -11,6 +11,9 @@ import { tmpdir } from "node:os";
 const TMP = path.join(tmpdir(), `aquaman-context-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
 
+let contextTankId = 0;
+let otherTankId = 0;
+
 beforeAll(async () => {
   mkdirSync(TMP, { recursive: true });
   const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
@@ -27,6 +30,7 @@ beforeAll(async () => {
     })
     .returning()
     .get();
+  contextTankId = tank.id;
   db.insert(schedules)
     .values({ tankId: tank.id, actionType: "water_change", intervalDays: 7, preferredDays: 96 })
     .run();
@@ -35,6 +39,18 @@ beforeAll(async () => {
       tankId: tank.id, measuredAt: new Date().toISOString(),
       values: { temp: 25, ph: 8.2, nh4: 0.5, no2: 0.05, no3: 20 },
     })
+    .run();
+
+  // A second tank — used by the "coach tank scope" tests below to prove the
+  // OTHER tank is fully absent from a tankId-scoped context.
+  const other = db
+    .insert(tanks)
+    .values({ name: "Other Tank", volumeL: 60, waterType: "fresh", fish: [{ species: "Betta", qty: 1 }] })
+    .returning()
+    .get();
+  otherTankId = other.id;
+  db.insert(schedules)
+    .values({ tankId: other.id, actionType: "fertilize", intervalDays: 3, preferredDays: 127 })
     .run();
 });
 
@@ -75,6 +91,37 @@ describe("buildCoachContext", () => {
     // by checking the function does not throw
     const { buildCoachContext } = await import("../src/lib/ai/context");
     expect(() => buildCoachContext()).not.toThrow();
+  });
+});
+
+describe("buildCoachContext — tank scope (Coach page tank selector)", () => {
+  it("without tankId, both tanks appear (unscoped default)", async () => {
+    const { buildCoachContext } = await import("../src/lib/ai/context");
+    const ctx = buildCoachContext();
+    expect(ctx).toContain("Context Tank");
+    expect(ctx).toContain("Other Tank");
+  });
+
+  it("with tankId, ONLY that tank appears — the other tank is fully absent", async () => {
+    const { buildCoachContext } = await import("../src/lib/ai/context");
+    const ctx = buildCoachContext(new Date(), undefined, contextTankId);
+    expect(ctx).toContain("Context Tank");
+    expect(ctx).toContain("Guppy");
+    expect(ctx).toContain("water_change");
+    // the other tank's name, livestock and schedule must not leak in
+    expect(ctx).not.toContain("Other Tank");
+    expect(ctx).not.toContain("Betta");
+    expect(ctx).not.toContain("fertilize");
+    expect(ctx).toContain("SCOPE:");
+  });
+
+  it("scoping to the other tank flips which one is visible", async () => {
+    const { buildCoachContext } = await import("../src/lib/ai/context");
+    const ctx = buildCoachContext(new Date(), undefined, otherTankId);
+    expect(ctx).toContain("Other Tank");
+    expect(ctx).toContain("Betta");
+    expect(ctx).not.toContain("Context Tank");
+    expect(ctx).not.toContain("Guppy");
   });
 });
 
