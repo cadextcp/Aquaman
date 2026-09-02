@@ -108,6 +108,45 @@ describe("duplicate guard (one plan per type per tank)", () => {
   });
 });
 
+describe("moving a schedule to a different tank (edit popup's tank selector)", () => {
+  it("updateSchedule reassigns tankId — history stays keyed to the schedule, not re-parented", async () => {
+    const { createSchedule, createTank, updateSchedule } = await import("../src/app/actions");
+    const { db } = await import("../src/lib/db");
+    const { schedules } = await import("../src/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+
+    const a = await createTank({ name: "MoveFrom", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const b = await createTank({ name: "MoveTo", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const fromId = (a as { data?: { id: number } }).data!.id;
+    const toId = (b as { data?: { id: number } }).data!.id;
+
+    const created = await createSchedule({ tankId: fromId, actionType: "water_change", intervalDays: 7, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
+    const scheduleId = (created as { data?: { id: number } }).data!.id;
+
+    const moved = await updateSchedule(scheduleId, { tankId: toId, actionType: "water_change", intervalDays: 7, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
+    expect(moved.ok).toBe(true);
+
+    const row = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get()!;
+    expect(row.tankId).toBe(toId);
+  });
+
+  it("moving onto a tank that already has that standard type is blocked (same duplicate guard as creating)", async () => {
+    const { createSchedule, createTank, updateSchedule } = await import("../src/app/actions");
+    const a = await createTank({ name: "MoveFrom2", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const b = await createTank({ name: "MoveTo2", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const fromId = (a as { data?: { id: number } }).data!.id;
+    const toId = (b as { data?: { id: number } }).data!.id;
+
+    const created = await createSchedule({ tankId: fromId, actionType: "fertilize", intervalDays: 7, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
+    const scheduleId = (created as { data?: { id: number } }).data!.id;
+    await createSchedule({ tankId: toId, actionType: "fertilize", intervalDays: 3, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
+
+    const moved = (await updateSchedule(scheduleId, { tankId: toId, actionType: "fertilize", intervalDays: 7, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null })) as { ok: boolean; error?: string };
+    expect(moved.ok).toBe(false);
+    expect(moved.error).toContain("already has");
+  });
+});
+
 describe("detailData persistence + export", () => {
   it("createSchedule stores detailData; export/import roundtrip keeps it", async () => {
     const { createSchedule, createTank } = await import("../src/app/actions");
