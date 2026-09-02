@@ -48,11 +48,14 @@ function daysUntil(dateStr: string, today: string): number {
 
 export function ScheduleCard({
   schedule,
+  tanks = [],
   adherence = null,
   doneToday = false,
   showTankName = false,
 }: {
   schedule: ScheduleCardData;
+  /** other tanks to move this schedule to — threaded into the edit popup's tank selector */
+  tanks?: { id: number; name: string }[];
   adherence?: number | null;
   /**
    * The schedule was closed today (derived from lastDoneAt by the page).
@@ -271,7 +274,7 @@ export function ScheduleCard({
         title="Edit schedule"
         actions={<ModalDeleteButton onClick={remove} disabled={pending} />}
       >
-        <ScheduleForm tankId={schedule.tankId} schedule={schedule} />
+        <ScheduleForm tankId={schedule.tankId} tanks={tanks} schedule={schedule} />
       </Modal>
     </>
   );
