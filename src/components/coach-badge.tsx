@@ -105,10 +105,11 @@ export function CoachBadge({ state }: { state: PlanReviewBadgeState }) {
 }
 
 
-const COACH = { href: "/coach", label: "Coach", icon: "sparkle" } as const;
+const COACH = { href: "/coach", icon: "sparkle" } as const;
 
 /** Coach nav item with badge — must live in a client file (uses the hook). */
 export function CoachNavItem({ variant }: { variant: NavVariant }) {
+  const { t } = useI18n();
   const badge = usePlanReviewBadge();
-  return <NavItem {...COACH} variant={variant} badge={<CoachBadge state={badge} />} />;
+  return <NavItem {...COACH} label={t("nav.coach")} variant={variant} badge={<CoachBadge state={badge} />} />;
 }

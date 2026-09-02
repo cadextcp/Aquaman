@@ -2,13 +2,17 @@
   "app": {
     "name": "Aquaman",
     "tagline": "Self-hosted aquarium care",
-    "pageTitle": "{page} — Aquaman"
+    "pageTitle": "{page} — Aquaman",
+    "description": "Self-hosted aquarium care & water tracking with flexible scheduling and ICS calendar",
+    "title": "Aquaman — Aquarium Care"
   },
   "nav": {
-    "dashboard": "Dashboard",
     "tanks": "Tanks",
-    "calendar": "Calendar",
-    "more": "More"
+    "more": "More",
+    "today": "Today",
+    "plan": "Plan",
+    "coach": "Coach",
+    "aria": "Main navigation"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -71,7 +75,8 @@
     "saved": "Saved",
     "copy": "Copy",
     "copied": "Copied",
-    "back": "More"
+    "back": "More",
+    "close": "Close"
   },
   "tanks": {
     "title": "Tanks",

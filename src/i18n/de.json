@@ -2,13 +2,17 @@
   "app": {
     "name": "Aquaman",
     "tagline": "Selbstgehostete Aquariumpflege",
-    "pageTitle": "{page} — Aquaman"
+    "pageTitle": "{page} — Aquaman",
+    "description": "Selbstgehostete Aquarienpflege & Wasserwerte mit flexibler Planung und ICS-Kalender",
+    "title": "Aquaman — Aquarienpflege"
   },
   "nav": {
-    "dashboard": "Übersicht",
     "tanks": "Aquarien",
-    "calendar": "Kalender",
-    "more": "Mehr"
+    "more": "Mehr",
+    "today": "Heute",
+    "plan": "Plan",
+    "coach": "Coach",
+    "aria": "Hauptnavigation"
   },
   "dashboard": {
     "title": "Übersicht",
@@ -71,7 +75,8 @@
     "saved": "Gespeichert",
     "copy": "Kopieren",
     "copied": "Kopiert",
-    "back": "Mehr"
+    "back": "Mehr",
+    "close": "Schließen"
   },
   "tanks": {
     "title": "Aquarien",

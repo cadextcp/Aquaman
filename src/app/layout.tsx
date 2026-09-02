@@ -5,7 +5,7 @@ import "@phosphor-icons/web/fill/style.css";
 import "./globals.css";
 import { BottomNav, SideNav } from "@/components/nav";
 import { LocaleProvider } from "@/i18n/provider";
-import { catalogFor } from "@/i18n";
+import { catalogFor, t } from "@/i18n";
 import { getLocale } from "@/lib/settings";
 
 /**
@@ -19,11 +19,10 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Aquaman — Aquarium Care",
-  description:
-    "Self-hosted aquarium care & water tracking with flexible scheduling and ICS calendar",
-};
+export function generateMetadata(): Metadata {
+  const locale = getLocale();
+  return { title: t("app.title", locale), description: t("app.description", locale) };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // One language for the whole install (global setting, /more) — resolved here

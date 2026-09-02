@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "@/i18n/provider";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -31,6 +32,7 @@ export function Modal({
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const sheetRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
@@ -102,7 +104,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("common.close")}
               className="icon-btn icon-btn-sm icon-btn-bare"
             >
               <i aria-hidden className="ph ph-x text-base" />
@@ -120,19 +122,22 @@ export function Modal({
 export function ModalDeleteButton({
   onClick,
   disabled,
-  label = "Delete schedule",
+  label,
 }: {
   onClick: () => void;
   disabled?: boolean;
+  /** defaults to the schedule wording — pass one for any other kind of dialog */
   label?: string;
 }) {
+  const { t } = useI18n();
+  const text = label ?? t("card.deleteSchedule");
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={label}
-      title={label}
+      aria-label={text}
+      title={text}
       className="icon-btn icon-btn-sm icon-btn-danger"
     >
       <i aria-hidden className="ph ph-trash text-base" />
