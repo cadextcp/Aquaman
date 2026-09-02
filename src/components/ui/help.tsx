@@ -15,10 +15,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Modal } from "./modal";
-import { helpTopic, helpNote } from "@/i18n";
+import { useI18n } from "@/i18n/provider";
 
 /** E2: a quiet one-liner. `id` is a key under help.notes.*. */
 export function HelpNote({ id, className = "" }: { id: string; className?: string }) {
+  const { helpNote } = useI18n();
   const text = helpNote(id);
   if (!text) return null;
   return (
@@ -31,6 +32,7 @@ export function HelpNote({ id, className = "" }: { id: string; className?: strin
 /** E3: tappable detail. `id` is a key under help.topics.*. */
 export function HelpDot({ id, className = "" }: { id: string; className?: string }) {
   const [open, setOpen] = useState(false);
+  const { t, helpTopic } = useI18n();
   const topic = helpTopic(id);
   if (!topic) return null;
 
@@ -46,7 +48,7 @@ export function HelpDot({ id, className = "" }: { id: string; className?: string
           setOpen(true);
         }}
         onKeyDown={(e) => e.stopPropagation()}
-        aria-label={`What does “${topic.title}” mean?`}
+        aria-label={t("help.whatDoesThisMean", { term: topic.title })}
         className={`help-dot ${className}`}
       >
         <i aria-hidden className="ph ph-question" />
@@ -66,7 +68,7 @@ export function HelpDot({ id, className = "" }: { id: string; className?: string
               className="inline-flex items-center gap-1.5 text-sm mt-1"
               style={{ color: "var(--accent-light)" }}
             >
-              How Aquaman plans
+              {t("help.howAquamanPlans")}
               <i aria-hidden className="ph ph-arrow-right text-xs" />
             </Link>
           )}

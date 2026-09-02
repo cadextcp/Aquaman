@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { concepts } from "@/i18n";
+import { getLocale } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export const metadata = { title: "How Aquaman plans — Aquaman" };
  * entry point. Content lives in the i18n catalogs like every other string.
  */
 export default function ConceptsPage() {
-  const { title, lede, sections } = concepts();
+  const { title, lede, sections } = concepts(getLocale());
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-2xl">

@@ -8,6 +8,7 @@ import { McpSettings } from "@/components/mcp-settings";
 import { ApiSettings } from "@/components/api-settings";
 import { DataCard } from "@/components/data-card";
 import { TightGapSettings } from "@/components/tightgap-settings";
+import { LanguageSettings } from "@/components/language-settings";
 import { AiProviderSettings } from "@/components/ai-provider-settings";
 import { getGlobalSettings, getAiSettings } from "@/lib/settings";
 import { isAiConfigured, hasApiKey } from "@/lib/ai/config";
@@ -145,6 +146,11 @@ export default async function MorePage() {
             </ul>
           </div>
         )}
+      </div>
+
+      {/* Language (global — UI, ICS titles, coach) */}
+      <div className="mb-4">
+        <LanguageSettings initialLocale={globals.locale} />
       </div>
 
       {/* Scheduling: after catching up (global) */}

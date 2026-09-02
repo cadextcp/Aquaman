@@ -6,19 +6,10 @@ import { today as todayStr, monthGridRange, shiftMonth } from "@/lib/domain/date
 import { PageHeader } from "@/components/ui/page-header";
 import { CalendarLegend } from "@/components/calendar-legend";
 import { TankFilterBar } from "@/components/tank-filter-bar";
+import { getLocale } from "@/lib/settings";
+import { formatMonth, weekdayLabels } from "@/i18n";
 
 export const dynamic = "force-dynamic";
-
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function monthLabel(monthStr: string): string {
-  const [y, m] = monthStr.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export default async function CalendarPage({
   searchParams,
@@ -26,6 +17,7 @@ export default async function CalendarPage({
   searchParams: Promise<{ m?: string; tank?: string }>;
 }) {
   const { m, tank: tankParam } = await searchParams;
+  const locale = getLocale();
   const t = todayStr();
   const month = m && /^\d{4}-\d{2}$/.test(m) ? m : t.slice(0, 7);
 
@@ -77,7 +69,7 @@ export default async function CalendarPage({
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-4xl">
       <PageHeader
-        title={monthLabel(month)}
+        title={formatMonth(month, locale)}
         subtitle={
           <span className="tnum">
             {monthPlanned} planned{monthBehind > 0 ? ` · ${monthBehind} behind` : ""}
@@ -106,10 +98,10 @@ export default async function CalendarPage({
         hrefFor={(id) => hrefFor({ tank: id === null ? null : String(id) })}
       />
 
-      <CalendarLegend />
+      <CalendarLegend locale={locale} />
 
       <div className="grid grid-cols-7 gap-1.5 mb-1.5">
-        {WEEKDAY_LABELS.map((w) => (
+        {weekdayLabels(locale).map((w) => (
           <div key={w} className="text-xs text-center py-1" style={{ color: "var(--muted-foreground)" }}>
             {w}
           </div>

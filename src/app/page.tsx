@@ -11,27 +11,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
 import { StatusNote } from "@/components/ui/status-note";
 import { TankFilterBar } from "@/components/tank-filter-bar";
+import { formatDateLong, formatDateShort } from "@/i18n";
+import { getLocale } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-/** "Monday 24 August" (design header label) — date-only string, UTC-safe. */
-function fullDateLabel(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  const weekday = dt.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
-  const month = dt.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
-  return `${weekday} ${d} ${month}`;
-}
-
-/** "Mon, Aug 25" for the feeding day navigation pill. */
-function shortDateLabel(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
-}
+// Date labels come from i18n/format.ts — they used to hardcode "en-US" and
+// hand-assemble "Monday 24 August", which has no German word order at all.
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ day?: string; tank?: string }> }) {
   const { day: dayParam, tank: tankParam } = await searchParams;
+  const locale = getLocale();
   const tanks = listTanks();
   const schedules = listSchedules();
   const { db } = await import("@/lib/db");
@@ -128,7 +118,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       {/* Page header (design): date label + "Today" + streak badge */}
       <PageHeader
-        eyebrow={fullDateLabel(t)}
+        eyebrow={formatDateLong(t, locale)}
         title="Today"
         action={
           tanks.length > 0 && (
@@ -175,7 +165,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   style={{ minWidth: 92, color: day === t ? "var(--muted-foreground)" : "var(--due)" }}
                   aria-label={day === t ? "Showing today" : `Showing ${day}`}
                 >
-                  {day === t ? "Today" : shortDateLabel(day)}
+                  {day === t ? "Today" : formatDateShort(day, locale)}
                 </span>
                 {nextDay ? (
                   <Link href={hrefFor({ day: nextDay })} aria-label="Next day" className="icon-btn icon-btn-sm">

@@ -2,7 +2,7 @@
  * What the three stripe colours in the month grid mean. The grid has carried
  * them since the calendar shipped without ever naming them.
  */
-import { helpNote } from "@/i18n";
+import { helpNote, DEFAULT_LOCALE, type Locale } from "@/i18n";
 
 const KEYS = [
   { color: "var(--warning)", label: "behind" },
@@ -10,9 +10,10 @@ const KEYS = [
   { color: "var(--accent)", label: "planned" },
 ] as const;
 
-export function CalendarLegend() {
+/** Server component — the page resolves the locale once and passes it down. */
+export function CalendarLegend({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
   // the note carries the same three words, so the catalog stays the source
-  const labels = helpNote("calendarLegend").split("·").map((s) => s.trim());
+  const labels = helpNote("calendarLegend", locale).split("·").map((s) => s.trim());
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3">
       {KEYS.map((k, i) => (

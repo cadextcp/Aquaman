@@ -93,6 +93,12 @@
     "title": "Kalender",
     "phase3": "In-App-Kalender und ICS-Feed für Google Calendar kommen in Phase 3."
   },
+  "settings": {
+    "language": {
+      "title": "Sprache",
+      "description": "Gilt für die gesamte App: Oberfläche, Kalender-Termintitel und die Antworten des Coaches."
+    }
+  },
   "help": {
     "topics": {
       "streak": {
@@ -268,6 +274,8 @@
           ]
         }
       ]
-    }
+    },
+    "whatDoesThisMean": "Was bedeutet „{term}“?",
+    "howAquamanPlans": "Wie Aquaman plant"
   }
 }

@@ -93,6 +93,12 @@
     "title": "Calendar",
     "phase3": "In-app calendar view and the ICS feed for Google Calendar arrive in Phase 3."
   },
+  "settings": {
+    "language": {
+      "title": "Language",
+      "description": "Applies to the whole app: interface, calendar event titles and the coach's answers."
+    }
+  },
   "help": {
     "topics": {
       "streak": {
@@ -268,6 +274,8 @@
           ]
         }
       ]
-    }
+    },
+    "whatDoesThisMean": "What does “{term}” mean?",
+    "howAquamanPlans": "How Aquaman plans"
   }
 }

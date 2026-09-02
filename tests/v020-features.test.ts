@@ -328,6 +328,45 @@ describe("global settings (issues #39/#40)", () => {
     saveGlobalSettings({ tightGapPolicy: "suppress", tightGapThresholdPct: 50 });
   });
 
+  it("language round-trips and is readable via getLocale()", async () => {
+    const { getGlobalSettings, saveGlobalSettings, getLocale } = await import("../src/lib/settings");
+    saveGlobalSettings({ locale: "de" });
+    expect(getGlobalSettings().locale).toBe("de");
+    expect(getLocale()).toBe("de");
+    saveGlobalSettings({ locale: "en" });
+    expect(getLocale()).toBe("en");
+  });
+
+  it("saving one settings block does NOT reset another (merge, not replace)", async () => {
+    // the bug this pins: /more saves language and tight-gap in separate forms —
+    // a full replace would silently reset the language when the other form saves
+    const { getGlobalSettings, saveGlobalSettings } = await import("../src/lib/settings");
+    saveGlobalSettings({ locale: "de", tightGapPolicy: "fixed", tightGapThresholdPct: 40 });
+
+    saveGlobalSettings({ tightGapPolicy: "suppress", tightGapThresholdPct: 50 });
+    expect(getGlobalSettings().locale, "language survived a tight-gap save").toBe("de");
+
+    saveGlobalSettings({ locale: "en" });
+    const after = getGlobalSettings();
+    expect(after.tightGapPolicy, "tight-gap survived a language save").toBe("suppress");
+    expect(after.tightGapThresholdPct).toBe(50);
+  });
+
+  it("a legacy row without a language still parses (keeps the rest of the settings)", async () => {
+    const { getGlobalSettings } = await import("../src/lib/settings");
+    const { db } = await import("../src/lib/db");
+    const { appSettings } = await import("../src/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const legacy = { tightGapPolicy: "fixed", tightGapThresholdPct: 33 };
+    db.insert(appSettings).values({ key: "appSettings.v1", value: legacy as never })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value: legacy as never } }).run();
+
+    const g = getGlobalSettings();
+    expect(g.tightGapThresholdPct, "pre-language row must not fall back to ALL defaults").toBe(33);
+    expect(g.locale).toBe("en");
+    db.delete(appSettings).where(eq(appSettings.key, "appSettings.v1")).run();
+  });
+
   it("corrupt settings row falls back to defaults", async () => {
     const { getGlobalSettings, DEFAULT_GLOBAL_SETTINGS } = await import("../src/lib/settings");
     const { db } = await import("../src/lib/db");

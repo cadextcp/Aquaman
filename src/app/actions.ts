@@ -332,8 +332,9 @@ export async function saveGlobalSettingsAction(input: unknown): Promise<ActionRe
   try {
     const { saveGlobalSettings } = await import("@/lib/settings");
     saveGlobalSettings(input);
-    revalidatePath("/more");
-    revalidatePath("/");
+    // "layout" scope, not just these two pages: the language lives in the ROOT
+    // layout, so a switch has to repaint every route, not only /more and /.
+    revalidatePath("/", "layout");
     return { ok: true };
   } catch (err) {
     console.error("[saveGlobalSettingsAction]", err);

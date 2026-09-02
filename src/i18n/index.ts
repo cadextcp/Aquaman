@@ -1,55 +1,54 @@
 /**
- * Minimal i18n (PRD: en first, de from Phase 2 — structure exists from day 1).
- * Server-side: reads NEXT_PUBLIC default locale; locale switching via cookie
- * comes with the settings UI. Keep keys typed loosely for now.
+ * Server-side i18n entry point: the bundled catalogs plus the typed helpers
+ * built on core.ts.
+ *
+ * Client components do NOT import this (it pulls every locale's JSON) — they
+ * read the active catalog from LocaleProvider via useI18n(); see provider.tsx.
+ * The active locale itself lives in the global settings (see lib/settings.ts),
+ * so server rendering, the ICS feed and the coach all agree on one language.
  */
 import en from "./en.json";
 import de from "./de.json";
+import {
+  translate,
+  plural as pluralFrom,
+  lookup,
+  helpTopicFrom,
+  helpNoteFrom,
+  type Catalog,
+  type HelpTopic,
+  type Vars,
+} from "./core";
+import { DEFAULT_LOCALE, type Locale } from "./locales";
 
-export type Locale = "en" | "de";
-export const DEFAULT_LOCALE: Locale = "en";
-export const LOCALES: Locale[] = ["en", "de"];
+export { LOCALES, DEFAULT_LOCALE, LOCALE_LABELS, LOCALE_TAG, isLocale, envLocale } from "./locales";
+export type { Locale } from "./locales";
+export { formatDateLong, formatDateShort, formatMonth, formatDateTime, formatNumber, weekdayLabels } from "./format";
+export type { Catalog, Vars } from "./core";
 
-const catalogs: Record<Locale, unknown> = { en, de };
+const catalogs: Record<Locale, Catalog> = { en: en as Catalog, de: de as Catalog };
 
-/** Tiny t() — flat dot-key lookup with {placeholder} interpolation. */
-export function t(key: string, locale: Locale = DEFAULT_LOCALE, vars?: Record<string, string | number>): string {
-  const cat = catalogs[locale] ?? en;
-  const parts = key.split(".");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = cat;
-  for (const p of parts) {
-    cur = cur?.[p];
-    if (cur === undefined) break;
-  }
-  let str = typeof cur === "string" ? cur : key;
-  if (vars) {
-    for (const [k, v] of Object.entries(vars)) {
-      str = str.replaceAll(`{${k}}`, String(v));
-    }
-  }
-  return str;
+/** The whole catalog for one locale — handed to the client provider by the root layout. */
+export function catalogFor(locale: Locale): Catalog {
+  return catalogs[locale] ?? catalogs[DEFAULT_LOCALE];
+}
+
+/** Tiny t() — dot-key lookup with {placeholder} interpolation. Missing key → the key itself. */
+export function t(key: string, locale: Locale = DEFAULT_LOCALE, vars?: Vars): string {
+  return translate(catalogFor(locale), key, vars);
+}
+
+/** Counted copy ("1 task" / "2 Aufgaben") — see core.ts:plural for the catalog shape. */
+export function plural(key: string, n: number, locale: Locale = DEFAULT_LOCALE, vars?: Vars): string {
+  return pluralFrom(catalogFor(locale), key, n, vars);
 }
 
 /** Raw catalog lookup — for entries that are not plain strings (lists, objects). */
 function raw(key: string, locale: Locale): unknown {
-  const cat = catalogs[locale] ?? en;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = cat;
-  for (const p of key.split(".")) {
-    cur = cur?.[p];
-    if (cur === undefined) return undefined;
-  }
-  return cur;
+  return lookup(catalogFor(locale), key);
 }
 
-/** A help topic: the title of an E3 sheet plus its paragraphs. */
-export type HelpTopic = {
-  title: string;
-  body: string[];
-  /** anchor on the concepts page, when the topic has a longer explanation there */
-  more?: string;
-};
+export type { HelpTopic } from "./core";
 
 /**
  * In-app explanations (help.*). Copy lives in the catalogs so the largest body
@@ -57,21 +56,12 @@ export type HelpTopic = {
  * break the German locale silently (AGENTS.md).
  */
 export function helpTopic(id: string, locale: Locale = DEFAULT_LOCALE): HelpTopic | null {
-  const v = raw(`help.topics.${id}`, locale);
-  if (!v || typeof v !== "object") return null;
-  const o = v as { title?: unknown; body?: unknown; more?: unknown };
-  if (typeof o.title !== "string" || !Array.isArray(o.body)) return null;
-  return {
-    title: o.title,
-    body: o.body.filter((x): x is string => typeof x === "string"),
-    more: typeof o.more === "string" ? o.more : undefined,
-  };
+  return helpTopicFrom(catalogFor(locale), id);
 }
 
 /** One-line E2 micro-copy (help.notes.*). */
 export function helpNote(id: string, locale: Locale = DEFAULT_LOCALE): string {
-  const v = raw(`help.notes.${id}`, locale);
-  return typeof v === "string" ? v : "";
+  return helpNoteFrom(catalogFor(locale), id);
 }
 
 export type ConceptSection = { id: string; heading: string; body: string[] };
