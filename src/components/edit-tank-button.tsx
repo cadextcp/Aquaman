@@ -9,6 +9,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./ui/modal";
+import { useI18n } from "@/i18n/provider";
 import { TankForm } from "./tank-form";
 import type { Tank } from "@/lib/db/schema";
 
@@ -16,20 +17,21 @@ export function EditTankButton({ tank }: { tank: Tank }) {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useI18n();
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`Edit ${tank.name}`}
-        title="Edit tank"
+        aria-label={t("editTank.aria", { name: tank.name })}
+        title={t("tanks.edit")}
         className="icon-btn icon-btn-sm"
       >
         <i aria-hidden className="ph ph-pencil-simple text-base" />
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Edit tank">
+      <Modal open={open} onClose={() => setOpen(false)} title={t("tanks.edit")}>
         <TankForm tank={tank} />
         <div className="mt-4 text-right">
           <button

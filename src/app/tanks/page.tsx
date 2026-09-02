@@ -8,13 +8,16 @@ import { db } from "@/lib/db";
 import { maintenanceLogs } from "@/lib/db/schema";
 import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
+import { t, plural } from "@/i18n";
+import { getLocale } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function TanksPage() {
+  const locale = getLocale();
   const tanks = listTanks();
-  const t = todayStr();
-  const weekEnd = addDays(t, 7);
+  const today = todayStr();
+  const weekEnd = addDays(today, 7);
   const allSchedules = listSchedules();
   const allLogs = db.select().from(maintenanceLogs).all();
   const cross = crossTankStats();
@@ -24,15 +27,15 @@ export default async function TanksPage() {
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-5xl">
       <PageHeader
-        title="Tanks"
-        subtitle={tanks.length > 0 ? `${tanks.length} tank${tanks.length === 1 ? "" : "s"} · ${cross.actions} care actions logged` : undefined}
+        title={t("tanks.title", locale)}
+        subtitle={tanks.length > 0 ? plural("tanks.subtitle", tanks.length, locale, { actions: cross.actions }) : undefined}
         action={
           <Link
             href="/tanks/new"
             className="btn-outline inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
             style={{ minHeight: 44 }}
           >
-            <i aria-hidden className="ph ph-plus" /> New tank
+            <i aria-hidden className="ph ph-plus" /> {t("tanks.new", locale)}
           </Link>
         }
       />
@@ -40,13 +43,13 @@ export default async function TanksPage() {
       {tanks.length === 0 ? (
         <div className="rounded-xl p-8 text-center edge-card">
           <i aria-hidden className="ph ph-fish text-4xl" style={{ color: "var(--faint)" }} />
-          <p className="mb-4 mt-3" style={{ color: "var(--muted-foreground)" }}>No tanks yet — create your first tank.</p>
+          <p className="mb-4 mt-3" style={{ color: "var(--muted-foreground)" }}>{t("tanks.noTanks", locale)}</p>
           <Link
             href="/tanks/new"
             className="btn-outline inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium"
             style={{ minHeight: 44 }}
           >
-            <i aria-hidden className="ph ph-plus" /> Create tank
+            <i aria-hidden className="ph ph-plus" /> {t("tanks.create", locale)}
           </Link>
         </div>
       ) : (
@@ -55,11 +58,11 @@ export default async function TanksPage() {
             const schedules = allSchedules.filter((s) => s.tankId === tank.id);
             const dues = schedules
               .map((s) => ({ s, due: nextDue(s) }))
-              .filter(({ due, s }) => (s.endsOn && s.endsOn < t ? false : due.plannedFor <= weekEnd));
-            const dueToday = dues.filter(({ due }) => due.plannedFor <= t);
+              .filter(({ due, s }) => (s.endsOn && s.endsOn < today ? false : due.plannedFor <= weekEnd));
+            const dueToday = dues.filter(({ due }) => due.plannedFor <= today);
             const overdue = dues.filter(({ due }) => due.overdueDays > 0);
             const nextUp = dues
-              .filter(({ due }) => due.plannedFor > t)
+              .filter(({ due }) => due.plannedFor > today)
               .sort((a, b) => (a.due.plannedFor < b.due.plannedFor ? -1 : 1))[0];
 
             const tests = waterTestsForTank(tank.id, 365);
@@ -98,8 +101,8 @@ export default async function TanksPage() {
                   <div className="min-w-0">
                     <div className="text-lg font-semibold">{tank.name}</div>
                     <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                      {tank.volumeL} L · {tank.waterType === "fresh" ? "Freshwater" : "Saltwater"} ·{" "}
-                      {tank.tankState === "cycling" ? "cycling" : "established"}
+                      {tank.volumeL} L · {tank.waterType === "fresh" ? t("tanks.fresh", locale) : t("tanks.salt", locale)} ·{" "}
+                      {tank.tankState === "cycling" ? t("tanks.cycling", locale) : t("tanks.established", locale)}
                       <HelpDot id="cyclingState" />
                     </div>
                   </div>
@@ -107,13 +110,13 @@ export default async function TanksPage() {
                     {cycling && (
                       <Badge>
                         <HelpDot id="cyclingDay" className="-ml-1" />
-                        <span className="tnum">cycling day {cycling.day}</span>
+                        <span className="tnum">{t("tanks.cyclingDay", locale, { n: cycling.day })}</span>
                         {cycling.no2trend === "falling" && <span style={{ color: "var(--success)" }}> · NO₂ <i aria-hidden className="ph-fill ph-caret-down text-[9px]" /></span>}
                         {cycling.no2trend === "rising" && <span style={{ color: "var(--warning)" }}> · NO₂ <i aria-hidden className="ph-fill ph-caret-up text-[9px]" /></span>}
                       </Badge>
                     )}
                     {tank.hasCo2 && <Badge>CO₂</Badge>}
-                    {tank.hasHeater && <Badge>heat</Badge>}
+                    {tank.hasHeater && <Badge>{t("tanks.heat", locale)}</Badge>}
                     {tank.filterType && <Badge>{tank.filterType}</Badge>}
                   </div>
                 </div>
@@ -126,31 +129,31 @@ export default async function TanksPage() {
                 )}
 
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                  <Stat label="due today" value={dueToday.length} accent={dueToday.length > 0} />
-                  <Stat label="behind" value={overdue.length} warn={overdue.length > 0} />
-                  <Stat label="plans" value={schedules.length} />
+                  <Stat label={t("tanks.statDue", locale)} value={dueToday.length} accent={dueToday.length > 0} />
+                  <Stat label={t("tanks.statBehind", locale)} value={overdue.length} warn={overdue.length > 0} />
+                  <Stat label={t("tanks.statPlans", locale)} value={schedules.length} />
                 </div>
 
                 <div className="flex items-center justify-between gap-2 text-xs" style={{ color: "var(--muted-foreground)" }}>
                   <span>
                     {nextUp
-                      ? `next: ${nextUp.s.actionType.replace(/_/g, " ")} ${nextUp.due.plannedFor}`
+                      ? t("tanks.nextUp", locale, { action: nextUp.s.actionType.replace(/_/g, " "), date: nextUp.due.plannedFor })
                       : schedules.length === 0
-                        ? "no plans yet"
-                        : "nothing this week"}
+                        ? t("tanks.noPlansYet", locale)
+                        : t("tanks.nothingThisWeek", locale)}
                     {onTime !== null && (
                       <span className="tnum" style={{ color: onTime >= 80 ? "var(--success)" : "var(--warning)" }}>
-                        {" "}· {onTime}% on time
+                        {" "}{t("card.onTimePct", locale, { n: onTime })}
                       </span>
                     )}
                   </span>
                   {lastTest ? (
                     <span className="inline-flex items-center gap-1.5" style={{ color: problems.length > 0 ? "var(--warning)" : "var(--success)" }}>
                       <i aria-hidden className="ph-fill ph-circle text-[8px]" />
-                      {problems.length > 0 ? `${problems.length} value${problems.length > 1 ? "s" : ""} off` : "values ok"} ({lastTest.measuredAt.slice(0, 10)})
+                      {problems.length > 0 ? plural("tanks.valuesOff", problems.length, locale) : t("tanks.valuesOk", locale)} ({lastTest.measuredAt.slice(0, 10)})
                     </span>
                   ) : (
-                    <span>no water test yet</span>
+                    <span>{t("tanks.noWaterTest", locale)}</span>
                   )}
                 </div>
               </Link>
@@ -163,7 +166,7 @@ export default async function TanksPage() {
       {tanks.length > 0 && (
         <div className="mt-4 rounded-xl p-4 edge-card">
           <span className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
-            Across {tanks.length === 1 ? "tank" : "all tanks"} · 30 d
+            {plural("tanks.acrossTanks", tanks.length, locale)}
           </span>
           <HelpNote id="activityBars" className="mt-0.5" />
           <div className="flex items-end gap-1 mt-3" style={{ height: 44 }}>
@@ -181,7 +184,7 @@ export default async function TanksPage() {
           </div>
           <div className="flex items-center justify-between mt-2 text-[9px] tnum" style={{ color: "var(--faint)" }}>
             <span>{activity[0]?.date.slice(5)}</span>
-            <span>{cross.actions} care actions</span>
+            <span>{t("tanks.careActions", locale, { n: cross.actions })}</span>
             <span>{activity[activity.length - 1]?.date.slice(5)}</span>
           </div>
         </div>

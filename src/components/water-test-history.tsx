@@ -9,6 +9,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/i18n/provider";
 import { deleteWaterTest } from "@/app/actions";
 import { WaterTestForm } from "./water-test-form";
 import type { WaterTest } from "@/lib/db/schema";
@@ -25,11 +26,12 @@ export function WaterTestHistory({
   ranges: RangeLike[];
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  async function remove(t: WaterTest) {
-    if (!confirm(`Delete the measurement from ${t.measuredAt.slice(0, 10)}? This cannot be undone.`)) return;
-    await deleteWaterTest(t.id);
+  async function remove(test: WaterTest) {
+    if (!confirm(t("water.deleteConfirm", { date: test.measuredAt.slice(0, 10) }))) return;
+    await deleteWaterTest(test.id);
     router.refresh();
   }
 
@@ -38,24 +40,24 @@ export function WaterTestHistory({
   return (
     <div className="rounded-xl p-4 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-        History ({tests.length})
+        {t("water.historyCount", { n: tests.length })}
       </div>
       <ul className="space-y-1.5">
-        {tests.slice(0, 10).map((t) =>
-          editingId === t.id ? (
-            <li key={t.id} className="pt-2">
+        {tests.slice(0, 10).map((test) =>
+          editingId === test.id ? (
+            <li key={test.id} className="pt-2">
               <WaterTestForm
                 tankId={tankId}
                 ranges={ranges}
-                edit={{ id: t.id, measuredAt: t.measuredAt, values: t.values, note: t.note }}
+                edit={{ id: test.id, measuredAt: test.measuredAt, values: test.values, note: test.note }}
                 onDone={() => setEditingId(null)}
               />
             </li>
           ) : (
-            <li key={t.id} className="flex items-center justify-between gap-2 text-sm">
+            <li key={test.id} className="flex items-center justify-between gap-2 text-sm">
               <span style={{ color: "var(--muted-foreground)" }} className="min-w-0 truncate">
-                {t.measuredAt.slice(0, 10)}:{" "}
-                {Object.entries(t.values)
+                {test.measuredAt.slice(0, 10)}:{" "}
+                {Object.entries(test.values)
                   .filter(([, v]) => v !== null)
                   .map(([k, v]) => `${k} ${v}`)
                   .join(" · ")}
@@ -63,18 +65,18 @@ export function WaterTestHistory({
               <span className="flex gap-1 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setEditingId(t.id)}
-                  aria-label="Edit measurement"
-                  title="Edit measurement"
+                  onClick={() => setEditingId(test.id)}
+                  aria-label={t("water.editMeasurement")}
+                  title={t("water.editMeasurement")}
                   className="icon-btn icon-btn-sm"
                 >
                   <i aria-hidden className="ph ph-pencil-simple text-sm" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => remove(t)}
-                  aria-label="Delete measurement"
-                  title="Delete measurement"
+                  onClick={() => remove(test)}
+                  aria-label={t("water.deleteMeasurement")}
+                  title={t("water.deleteMeasurement")}
                   className="icon-btn icon-btn-sm icon-btn-danger"
                 >
                   <i aria-hidden className="ph ph-trash text-sm" />

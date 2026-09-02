@@ -23,7 +23,7 @@ import {
   type Vars,
 } from "./core";
 import { DEFAULT_LOCALE, type Locale } from "./locales";
-import { formatDateLong, formatDateShort, formatMonth, formatNumber } from "./format";
+import { formatDateLong, formatDateShort, formatMonth, formatNumber, weekdayLabels } from "./format";
 
 export type I18n = {
   locale: Locale;
@@ -37,6 +37,8 @@ export type I18n = {
   formatDateShort: (dateStr: string) => string;
   formatMonth: (monthStr: string) => string;
   formatNumber: (n: number) => string;
+  /** Monday-first weekday names (bit 0 = Mon, like the schedule mask). */
+  weekdayLabels: (width?: "short" | "long") => string[];
 };
 
 /**
@@ -75,6 +77,7 @@ export function useI18n(): I18n {
       formatDateShort: (dateStr) => formatDateShort(dateStr, locale),
       formatMonth: (monthStr) => formatMonth(monthStr, locale),
       formatNumber: (n) => formatNumber(n, locale),
+      weekdayLabels: (width) => weekdayLabels(locale, width),
     }),
     [locale, catalog],
   );

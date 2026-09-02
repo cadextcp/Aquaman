@@ -81,7 +81,33 @@
     "cycling": "Einfahrphase",
     "fishCount": "{n} Fische",
     "plantsCount": "{n} Pflanzenarten",
-    "backToList": "← Aquarien"
+    "backToList": "← Aquarien",
+    "subtitle": {
+      "one": "{n} Aquarium · {actions} Pflegeaktionen erfasst",
+      "other": "{n} Aquarien · {actions} Pflegeaktionen erfasst"
+    },
+    "established": "eingefahren",
+    "cyclingDay": "Einfahrtag {n}",
+    "heat": "Heizung",
+    "filter": "Filter",
+    "heater": "Heizer",
+    "statDue": "heute fällig",
+    "statBehind": "im Rückstand",
+    "statPlans": "Pläne",
+    "nextUp": "nächste: {action} {date}",
+    "noPlansYet": "noch keine Pläne",
+    "nothingThisWeek": "diese Woche nichts",
+    "valuesOff": {
+      "one": "{n} Wert außerhalb",
+      "other": "{n} Werte außerhalb"
+    },
+    "valuesOk": "Werte in Ordnung",
+    "noWaterTest": "noch keine Messung",
+    "acrossTanks": {
+      "one": "Im Becken · 30 T.",
+      "other": "Über alle Becken · 30 T."
+    },
+    "careActions": "{n} Pflegeaktionen"
   },
   "schedule": {
     "title": "Pflegeplan",
@@ -104,7 +130,26 @@
     "policySuppress": "Ruhig — zu schnelle Wiederholungen auslassen",
     "policyFixed": "Streng — exaktes Raster",
     "skipWithin": "Auslassen, wenn nächster Termin innerhalb von",
-    "pctOfInterval": "% des Intervalls liegt"
+    "pctOfInterval": "% des Intervalls liegt",
+    "tank": "Becken",
+    "details": "Details (optional)",
+    "endsOn": "Endet am (optional)",
+    "likeGlobal": "Wie global ({mode})",
+    "modeCalm": "ruhig",
+    "modeStrict": "streng",
+    "addSubmit": "Plan hinzufügen",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen",
+    "waterChangeAmount": "Wassermenge beim Wechsel",
+    "waterChangeApprox": "≈ {liters} L von {total} L",
+    "topUpAmount": "Nachfüllmenge",
+    "nutrientDose": "Dosierung je Nährstoff (gegen die Produktangabe prüfen)",
+    "nutrientHint": "Makro (oben): CO₂, NO₃, PO₄, K, Mg, Ca · Mikro: Fe, Mn, Zn, B, Mo, Cu — freier Text je Nährstoff, z. B. „10 ml“",
+    "foodAmount": "Menge je Futter",
+    "foodPlaceholder": "z. B. {amount} {unit}",
+    "foodPlaceholderEmpty": "z. B. 1 Prise",
+    "noFoodsYet": "Lege zuerst Futtersorten am Becken an (Becken bearbeiten → „Futter“) — dann lassen sich hier Mengen je Sorte planen.",
+    "detailsPlaceholder": "z. B. „Medien im Beckenwasser ausspülen“"
   },
   "water": {
     "tests": "Wasserwerte",
@@ -115,7 +160,16 @@
     "lastTest": "Letzte Messung",
     "allOk": "✓ Alle gemessenen Werte im Zielbereich",
     "enterOne": "Mindestens einen Wert eingeben",
-    "saved": "✓ Gespeichert"
+    "saved": "✓ Gespeichert",
+    "chooseValue": "{label} auswählen",
+    "typePlaceholder": "eingeben",
+    "editMeasurement": "Messung bearbeiten",
+    "deleteMeasurement": "Messung löschen",
+    "deleteConfirm": "Messung vom {date} löschen? Das lässt sich nicht rückgängig machen.",
+    "savedShort": "gespeichert",
+    "historyCount": "Verlauf ({n})",
+    "formTitle": "Wassermessung",
+    "filledCount": "{n}/{total} Werte"
   },
   "more": {
     "title": "Mehr",
@@ -164,6 +218,54 @@
   },
   "tankFilter": {
     "allTanks": "Alle Becken"
+  },
+  "tankDetail": {
+    "nh3Alert": "Freies NH₃ {value} mg/l — über der Giftschwelle von 0,020",
+    "lastWaterTest": "Letzte Messung · {date}",
+    "allInRange": "Alle gemessenen Werte im Zielbereich",
+    "waterLastTests": "Wasser · letzte {n} Messungen",
+    "noPlansHint": "Noch keine Pflegepläne — leg unten deine erste Routine an. Jeder Plan bekommt einen Soll-Termin, landet nur auf den Wochentagen, die du wählst, und taucht in Kalender und Feed auf.",
+    "intervalTooTight": "Intervall zu eng? ({n} verpasste Termine)",
+    "logAllActivity": "Verlauf aller Aktivitäten",
+    "nothingLogged": "Noch nichts erfasst.",
+    "waterTestEntry": "Wassermessung",
+    "valuesCount": {
+      "one": "{n} Wert",
+      "other": "{n} Werte"
+    },
+    "outsideBand": " · {n} außerhalb",
+    "daysLate": "{n} T. zu spät",
+    "early": "früh"
+  },
+  "tankForm": {
+    "name": "Name",
+    "namePlaceholder": "z. B. 240L Gesellschaftsbecken",
+    "volume": "Volumen (Liter)",
+    "waterType": "Wasserart",
+    "state": "Zustand",
+    "established": "Eingefahren",
+    "cyclingOption": "Einfahrphase (NO₂/NH₃-Spitzen toleriert)",
+    "equipment": "Ausstattung",
+    "filter": "Filter",
+    "heater": "Heizer",
+    "co2": "CO₂-Anlage",
+    "filterTypePlaceholder": "Filtertyp (optional)",
+    "plants": "Pflanzen",
+    "plantsPlaceholder": "z. B. Vallisneria",
+    "addPlant": "+ Pflanze hinzufügen",
+    "fish": "Fische",
+    "fishPlaceholder": "z. B. Neonsalmler",
+    "addFish": "+ Fisch hinzufügen",
+    "foods": "Futter (für den Fütterungsplan)",
+    "foodNamePlaceholder": "z. B. Flocken",
+    "foodAmountPlaceholder": "z. B. 1",
+    "foodUnitPlaceholder": "z. B. Prise",
+    "addFood": "+ Futter hinzufügen",
+    "remove": "entfernen",
+    "deleteConfirm": "Aquarium „{name}“ löschen? Einträge und Messungen bleiben erhalten (Soft-Delete)."
+  },
+  "editTank": {
+    "aria": "{name} bearbeiten"
   },
   "help": {
     "topics": {

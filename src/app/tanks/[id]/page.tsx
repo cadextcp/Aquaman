@@ -7,6 +7,8 @@ import { EditTankButton } from "@/components/edit-tank-button";
 import { Sparkline } from "@/components/sparkline";
 import { scheduleAdherence } from "@/lib/stats";
 import { STANDARD_PLAN_TYPES } from "@/lib/domain/plan-structure";
+import { t as translate, plural } from "@/i18n";
+import { getLocale } from "@/lib/settings";
 import { PlanRecommendBanner } from "@/components/plan-recommend-banner";
 import { ScheduleForm } from "@/components/schedule-form";
 import { ScheduleCard } from "@/components/schedule-card";
@@ -24,6 +26,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
   const tank = getTank(Number(id));
   if (!tank) notFound();
 
+  const locale = getLocale();
   const tanks = listTanks();
   const schedules = listSchedules(tank.id);
   const logs = recentLogs(tank.id, 10);
@@ -62,15 +65,15 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         adornment={<EditTankButton tank={tank} />}
         subtitle={
           <>
-            {tank.volumeL} L · {tank.waterType === "fresh" ? "Freshwater" : "Saltwater"} ·{" "}
-            {tank.tankState === "cycling" ? "cycling" : "established"}
-            {tank.hasCo2 ? " · CO₂" : ""}{tank.hasHeater ? " · heater" : ""}
-            {tank.hasFilter ? (tank.filterType ? ` · ${tank.filterType}` : " · filter") : ""}
+            {tank.volumeL} L · {tank.waterType === "fresh" ? translate("tanks.fresh", locale) : translate("tanks.salt", locale)} ·{" "}
+            {tank.tankState === "cycling" ? translate("tanks.cycling", locale) : translate("tanks.established", locale)}
+            {tank.hasCo2 ? " · CO₂" : ""}{tank.hasHeater ? ` · ${translate("tanks.heater", locale)}` : ""}
+            {tank.hasFilter ? (tank.filterType ? ` · ${tank.filterType}` : ` · ${translate("tanks.filter", locale)}`) : ""}
           </>
         }
         action={
           <Link href="/tanks" className="btn-ghost inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm" style={{ minHeight: 44 }}>
-            <i aria-hidden className="ph ph-caret-left" /> Tanks
+            <i aria-hidden className="ph ph-caret-left" /> {translate("tanks.title", locale)}
           </Link>
         }
       />
@@ -80,7 +83,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         <div key="nh3" className="rounded-lg px-3.5 py-2.5 mb-3 flex items-center gap-2.5" style={{ background: "var(--destructive-soft)", boxShadow: "0 0 0 1px var(--destructive-edge)" }}>
           <i aria-hidden className="ph-fill ph-warning" style={{ color: "var(--destructive)" }} />
           <span className="text-sm tnum" style={{ color: "var(--foreground)" }}>
-            {p.message ?? `Free NH₃ ${p.value} mg/l — above 0.020 toxic threshold`}
+            {p.message ?? translate("tankDetail.nh3Alert", locale, { value: p.value })}
           </span>
           <HelpDot id="nh3" />
         </div>
@@ -90,11 +93,11 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
       {lastTest && (
         <div className="rounded-xl p-4 mb-6 edge-card">
           <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-            Last water test · {lastTest.measuredAt.slice(0, 10)}
+            {translate("tankDetail.lastWaterTest", locale, { date: lastTest.measuredAt.slice(0, 10) })}
           </div>
           <HelpNote id="valuesOff" className="mb-2 mt-0.5" />
           {problems.length === 0 ? (
-            <StatusNote tone="success">All measured values in range</StatusNote>
+            <StatusNote tone="success">{translate("tankDetail.allInRange", locale)}</StatusNote>
           ) : (
             <ul className="space-y-1.5 text-sm">
               {problems.map((p) => (
@@ -116,7 +119,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
       {tests.length >= 2 && (
         <div className="rounded-xl p-4 mb-6 edge-card">
           <div className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
-            Water · last {Math.min(6, tests.length)} tests
+            {translate("tankDetail.waterLastTests", locale, { n: Math.min(6, tests.length) })}
           </div>
           <HelpNote id="sparkline" className="mb-3 mt-0.5" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-3">
@@ -143,12 +146,11 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
 
       {/* Schedules */}
       <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Care schedule</h2>
+        <h2 className="text-lg font-semibold mb-3">{translate("schedule.title", locale)}</h2>
         {schedules.length === 0 ? (
           <div className="rounded-xl p-5 mb-3 edge-card">
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-              No care plans yet — add your first routine below. Each plan gets a target date,
-              lands only on the weekdays you pick, and shows up in the calendar and the feed.
+              {translate("tankDetail.noPlansHint", locale)}
             </p>
           </div>
         ) : (
@@ -166,7 +168,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                   />
                   {missed >= MISSED_SLOTS_HINT && (
                     <p className="text-xs mt-1 mb-2 flex items-center gap-1" style={{ color: "var(--warning)" }}>
-                      interval too tight? ({missed} missed slots)
+                      {translate("tankDetail.intervalTooTight", locale, { n: missed })}
                       <HelpDot id="tightInterval" />
                     </p>
                   )}
@@ -176,7 +178,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
           </div>
         )}
         <details className="rounded-xl p-4 edge-card">
-          <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>+ Add schedule</summary>
+          <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>{translate("schedule.add", locale)}</summary>
           <div className="pt-4">
             <ScheduleForm tankId={tank.id} />
           </div>
@@ -185,9 +187,9 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
 
       {/* Water test */}
       <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Water tests</h2>
+        <h2 className="text-lg font-semibold mb-3">{translate("water.tests", locale)}</h2>
         <details className="rounded-xl p-4 mb-3 edge-card">
-          <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>+ Log water test</summary>
+          <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>{translate("water.log", locale)}</summary>
           <div className="pt-4">
             <WaterTestForm tankId={tank.id} ranges={ranges} lastValues={tests[1]?.values} />
           </div>
@@ -197,9 +199,9 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
 
       {/* Log all activity (design): unified feed of care actions + water tests */}
       <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Log all activity</h2>
+        <h2 className="text-lg font-semibold mb-3">{translate("tankDetail.logAllActivity", locale)}</h2>
         {(logs.length === 0 && tests.length === 0) ? (
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Nothing logged yet.</p>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>{translate("tankDetail.nothingLogged", locale)}</p>
         ) : (
           <div className="space-y-2">
             {[
@@ -213,8 +215,8 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                 return {
                   key: `t-${tst.id}`,
                   date: tst.measuredAt.slice(0, 10),
-                  title: "Water test",
-                  note: `${filled} value${filled === 1 ? "" : "s"}${off > 0 ? ` · ${off} outside band` : ""}`,
+                  title: translate("tankDetail.waterTestEntry", locale),
+                  note: plural("tankDetail.valuesCount", filled, locale) + (off > 0 ? translate("tankDetail.outsideBand", locale, { n: off }) : ""),
                   color: off > 0 ? "var(--warning)" : "var(--success)",
                 };
               }),
@@ -228,8 +230,8 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                   if (prev && sch) {
                     const gap = Math.round((new Date(l.doneAt).getTime() - new Date(prev.doneAt).getTime()) / 86400000);
                     const late = gap - sch.intervalDays;
-                    if (late > 1) { note = note || `${late} d late`; color = "var(--warning)"; }
-                    else if (late < -1) { note = note || "early"; }
+                    if (late > 1) { note = note || translate("tankDetail.daysLate", locale, { n: late }); color = "var(--warning)"; }
+                    else if (late < -1) { note = note || translate("tankDetail.early", locale); }
                   }
                 }
                 return {

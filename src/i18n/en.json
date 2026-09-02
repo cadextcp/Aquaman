@@ -81,7 +81,33 @@
     "cycling": "cycling",
     "fishCount": "{n} fish",
     "plantsCount": "{n} plant species",
-    "backToList": "← Tanks"
+    "backToList": "← Tanks",
+    "subtitle": {
+      "one": "{n} tank · {actions} care actions logged",
+      "other": "{n} tanks · {actions} care actions logged"
+    },
+    "established": "established",
+    "cyclingDay": "cycling day {n}",
+    "heat": "heat",
+    "filter": "filter",
+    "heater": "heater",
+    "statDue": "due today",
+    "statBehind": "behind",
+    "statPlans": "plans",
+    "nextUp": "next: {action} {date}",
+    "noPlansYet": "no plans yet",
+    "nothingThisWeek": "nothing this week",
+    "valuesOff": {
+      "one": "{n} value off",
+      "other": "{n} values off"
+    },
+    "valuesOk": "values ok",
+    "noWaterTest": "no water test yet",
+    "acrossTanks": {
+      "one": "Across tank · 30 d",
+      "other": "Across all tanks · 30 d"
+    },
+    "careActions": "{n} care actions"
   },
   "schedule": {
     "title": "Care schedule",
@@ -104,7 +130,26 @@
     "policySuppress": "Calm — skip too-soon repeats",
     "policyFixed": "Strict — keep exact grid",
     "skipWithin": "Skip if next date is within",
-    "pctOfInterval": "% of the interval"
+    "pctOfInterval": "% of the interval",
+    "tank": "Tank",
+    "details": "Details (optional)",
+    "endsOn": "Ends on (optional)",
+    "likeGlobal": "Like global ({mode})",
+    "modeCalm": "calm",
+    "modeStrict": "strict",
+    "addSubmit": "Add schedule",
+    "pause": "Pause",
+    "resume": "Resume",
+    "waterChangeAmount": "Water change amount",
+    "waterChangeApprox": "≈ {liters} L of {total} L",
+    "topUpAmount": "Top-up amount",
+    "nutrientDose": "Dosage per nutrient (verify against the product label)",
+    "nutrientHint": "Macro (top): CO₂, NO₃, PO₄, K, Mg, Ca · Micro: Fe, Mn, Zn, B, Mo, Cu — free text per nutrient, e.g. “10 ml”",
+    "foodAmount": "Amount per food",
+    "foodPlaceholder": "e.g. {amount} {unit}",
+    "foodPlaceholderEmpty": "e.g. 1 pinch",
+    "noFoodsYet": "Add food types to this tank first (edit tank → “Foods”) — then doses per food can be planned here.",
+    "detailsPlaceholder": "e.g. \"rinse media in tank water\""
   },
   "water": {
     "tests": "Water tests",
@@ -115,7 +160,16 @@
     "lastTest": "Last water test",
     "allOk": "✓ All measured values in range",
     "enterOne": "Enter at least one value",
-    "saved": "✓ Saved"
+    "saved": "✓ Saved",
+    "chooseValue": "Choose {label} value",
+    "typePlaceholder": "type",
+    "editMeasurement": "Edit measurement",
+    "deleteMeasurement": "Delete measurement",
+    "deleteConfirm": "Delete the measurement from {date}? This cannot be undone.",
+    "savedShort": "saved",
+    "historyCount": "History ({n})",
+    "formTitle": "Water test",
+    "filledCount": "{n}/{total} values"
   },
   "more": {
     "title": "More",
@@ -164,6 +218,54 @@
   },
   "tankFilter": {
     "allTanks": "All tanks"
+  },
+  "tankDetail": {
+    "nh3Alert": "Free NH₃ {value} mg/l — above 0.020 toxic threshold",
+    "lastWaterTest": "Last water test · {date}",
+    "allInRange": "All measured values in range",
+    "waterLastTests": "Water · last {n} tests",
+    "noPlansHint": "No care plans yet — add your first routine below. Each plan gets a target date, lands only on the weekdays you pick, and shows up in the calendar and the feed.",
+    "intervalTooTight": "interval too tight? ({n} missed slots)",
+    "logAllActivity": "Log all activity",
+    "nothingLogged": "Nothing logged yet.",
+    "waterTestEntry": "Water test",
+    "valuesCount": {
+      "one": "{n} value",
+      "other": "{n} values"
+    },
+    "outsideBand": " · {n} outside band",
+    "daysLate": "{n} d late",
+    "early": "early"
+  },
+  "tankForm": {
+    "name": "Name",
+    "namePlaceholder": "e.g. 240L Community Tank",
+    "volume": "Volume (liters)",
+    "waterType": "Water type",
+    "state": "State",
+    "established": "Established",
+    "cyclingOption": "Cycling (NO₂/NH₃ peaks tolerated)",
+    "equipment": "Equipment",
+    "filter": "Filter",
+    "heater": "Heater",
+    "co2": "CO₂ system",
+    "filterTypePlaceholder": "Filter type (optional)",
+    "plants": "Plants",
+    "plantsPlaceholder": "e.g. Vallisneria",
+    "addPlant": "+ add plant",
+    "fish": "Fish",
+    "fishPlaceholder": "e.g. Neon tetra",
+    "addFish": "+ add fish",
+    "foods": "Foods (for the feed plan)",
+    "foodNamePlaceholder": "e.g. Flakes",
+    "foodAmountPlaceholder": "e.g. 1",
+    "foodUnitPlaceholder": "e.g. pinch",
+    "addFood": "+ Add food",
+    "remove": "remove",
+    "deleteConfirm": "Delete tank \"{name}\"? Logs and tests are kept (soft delete)."
+  },
+  "editTank": {
+    "aria": "Edit {name}"
   },
   "help": {
     "topics": {
