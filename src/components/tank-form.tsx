@@ -21,6 +21,10 @@ const EMPTY: TankInput = {
   tankState: "established",
 };
 
+/** Mirrors tankInputSchema: plants/fish max 50, foods max 20. */
+const MAX_LIST_ITEMS = 50;
+const MAX_FOODS = 20;
+
 export function TankForm({ tank }: { tank?: Tank }) {
   const router = useRouter();
   const { t, errorText } = useI18n();
@@ -90,7 +94,7 @@ export function TankForm({ tank }: { tank?: Tank }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="name">{t("tankForm.name")}</label>
-          <input id="name" className={field} style={input} value={form.name}
+          <input id="name" className={field} style={input} value={form.name} maxLength={60}
             onChange={(e) => set("name", e.target.value)} placeholder={t("tankForm.namePlaceholder")} required />
         </div>
         <div>
@@ -131,7 +135,7 @@ export function TankForm({ tank }: { tank?: Tank }) {
             </label>
           ))}
           <div>
-            <input className={field} style={input} value={form.filterType ?? ""} placeholder={t("tankForm.filterTypePlaceholder")}
+            <input className={field} style={input} value={form.filterType ?? ""} maxLength={60} placeholder={t("tankForm.filterTypePlaceholder")}
               onChange={(e) => set("filterType", e.target.value)} />
           </div>
         </div>
@@ -145,6 +149,7 @@ export function TankForm({ tank }: { tank?: Tank }) {
         placeholder={t("tankForm.plantsPlaceholder")}
         addLabel={t("tankForm.addPlant")}
         removeLabel={t("tankForm.remove")}
+        max={MAX_LIST_ITEMS}
       />
       <ListEditor
         title={t("tankForm.fish")}
@@ -154,6 +159,7 @@ export function TankForm({ tank }: { tank?: Tank }) {
         placeholder={t("tankForm.fishPlaceholder")}
         addLabel={t("tankForm.addFish")}
         removeLabel={t("tankForm.remove")}
+        max={MAX_LIST_ITEMS}
       />
 
       {/* issue #42: food types at the tank (used by the feed plan's structured details) */}
@@ -185,6 +191,7 @@ function ListEditor({
   placeholder,
   addLabel,
   removeLabel,
+  max,
 }: {
   title: string;
   items: { name?: string; species?: string; qty: number }[];
@@ -194,6 +201,8 @@ function ListEditor({
   /** explicit, not derived from `title` — English strips a trailing "s", German cannot */
   addLabel: string;
   removeLabel: string;
+  /** plantSchema/fishSchema cap the array at 50 — stop offering a row the save would reject */
+  max: number;
 }) {
   const input = { background: "var(--secondary)", border: "1px solid var(--border)", color: "inherit" };
   function update(i: number, patch: Partial<{ name: string; species: string; qty: number }>) {
@@ -206,18 +215,20 @@ function ListEditor({
       <div className="space-y-2">
         {items.map((it, i) => (
           <div key={i} className="flex gap-2">
+            {/* the caps mirror plantSchema/fishSchema — the form must not offer
+                what the action will reject (see AGENTS.md: same schema both sides) */}
             <input className="flex-1 rounded-lg px-3 py-2 text-sm" style={input}
-              value={it[nameKey] ?? ""} placeholder={placeholder}
+              value={it[nameKey] ?? ""} placeholder={placeholder} maxLength={80}
               onChange={(e) => update(i, { [nameKey]: e.target.value } as never)} />
-            <input type="number" min={0} className="w-20 rounded-lg px-3 py-2 text-sm" style={input}
+            <input type="number" min={0} max={999} className="w-20 rounded-lg px-3 py-2 text-sm" style={input}
               value={it.qty} onChange={(e) => update(i, { qty: Number(e.target.value) })} />
             <button type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i) as never[])}
               className="rounded-lg px-3" style={{ color: "var(--destructive)" }} aria-label={removeLabel}>×</button>
           </div>
         ))}
-        <button type="button"
+        <button type="button" disabled={items.length >= max}
           onClick={() => onChange([...items, { [nameKey]: "", qty: 1 }] as never[])}
-          className="text-sm underline" style={{ color: "var(--accent)" }}>
+          className="text-sm underline" style={{ color: "var(--accent)", opacity: items.length >= max ? 0.4 : 1 }}>
           {addLabel}
         </button>
       </div>
@@ -246,11 +257,11 @@ function FoodEditor({
       <legend className="text-xs uppercase tracking-wide px-2">{t("tankForm.foods")}</legend>
       {foods.map((f, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5">
-          <input className={`${field} flex-1`} style={input} value={f.name} placeholder={t("tankForm.foodNamePlaceholder")}
+          <input className={`${field} flex-1`} style={input} value={f.name} maxLength={60} placeholder={t("tankForm.foodNamePlaceholder")}
             onChange={(e) => update(i, { name: e.target.value })} />
-          <input className={`${field} w-24`} style={input} value={f.amount} placeholder={t("tankForm.foodAmountPlaceholder")}
+          <input className={`${field} w-24`} style={input} value={f.amount} maxLength={30} placeholder={t("tankForm.foodAmountPlaceholder")}
             onChange={(e) => update(i, { amount: e.target.value })} />
-          <input className={`${field} w-28`} style={input} value={f.unit} placeholder={t("tankForm.foodUnitPlaceholder")}
+          <input className={`${field} w-28`} style={input} value={f.unit} maxLength={20} placeholder={t("tankForm.foodUnitPlaceholder")}
             onChange={(e) => update(i, { unit: e.target.value })} />
           <button type="button" onClick={() => onChange(foods.filter((_, idx) => idx !== i))}
             className="icon-btn icon-btn-sm icon-btn-danger"><i aria-hidden className="ph ph-x text-sm" /></button>
@@ -258,9 +269,10 @@ function FoodEditor({
       ))}
       <button
         type="button"
+        disabled={foods.length >= MAX_FOODS}
         onClick={() => onChange([...foods, { name: "", amount: "", unit: "" }])}
         className="btn-outline rounded-lg px-3 py-1.5 text-xs"
-        style={{ minHeight: 36 }}
+        style={{ minHeight: 36, opacity: foods.length >= MAX_FOODS ? 0.4 : 1 }}
       >
         {t("tankForm.addFood")}
       </button>

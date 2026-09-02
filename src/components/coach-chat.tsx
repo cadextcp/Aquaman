@@ -307,6 +307,7 @@ export function CoachChat({
             }
           }}
           rows={2}
+          maxLength={2000} // MAX_QUESTION_CHARS in api/coach/route.ts
           placeholder={t("coach.placeholder")}
           disabled={!aiConfigured}
           className="flex-1 rounded-lg px-3 py-2.5 text-sm resize-none"

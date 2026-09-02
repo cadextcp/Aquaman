@@ -303,6 +303,7 @@ export function WaterTestForm({
         className="w-full rounded-lg px-3 py-2.5 text-sm"
         style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
         placeholder={t("water.note")}
+        maxLength={500}
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />

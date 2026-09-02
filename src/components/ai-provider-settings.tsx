@@ -193,6 +193,8 @@ export function AiProviderSettings({
             {t("settings.ai.baseUrl")}
           </label>
           <input
+            type="url"
+            maxLength={200}
             className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
             style={input}
             value={draft.baseUrl}
@@ -207,6 +209,7 @@ export function AiProviderSettings({
             </label>
             <input
               list="model-suggestions"
+              maxLength={80}
               className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
               style={input}
               value={draft.model}

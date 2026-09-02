@@ -95,6 +95,9 @@ export function StructuredDetailsEditor({
               <input
                 className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs"
                 style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
+                // a dose is "10 ml", not an essay: every entry is rendered into
+                // `details`, which scheduleInputSchema caps at 300 characters
+                maxLength={20}
                 placeholder={n.group === "macro" ? "—" : "—"}
                 value={nutrients[n.key] ?? ""}
                 onChange={(e) => setNutrient(n.key, e.target.value)}
@@ -135,6 +138,7 @@ export function StructuredDetailsEditor({
               <input
                 className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs"
                 style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
+                maxLength={20}
                 placeholder={f.amount ? t("schedule.foodPlaceholder", { amount: f.amount, unit: f.unit }) : t("schedule.foodPlaceholderEmpty")}
                 value={foods[f.name] ?? ""}
                 onChange={(e) => setFood(f.name, e.target.value)}
