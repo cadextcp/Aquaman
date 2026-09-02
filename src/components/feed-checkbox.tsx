@@ -12,6 +12,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adjustFeedOn } from "@/app/actions";
+import { useI18n } from "@/i18n/provider";
 
 type Bubble = { id: number; left: string; size: string; dx: string; dur: string; delay: string };
 
@@ -27,6 +28,7 @@ export function FeedControl({
   day: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [pending, startTransition] = useTransition();
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -92,9 +94,9 @@ export function FeedControl({
         <span
           className="text-xs tnum"
           style={{ color: fed ? "var(--due)" : "var(--faint)", minWidth: 62 }}
-          aria-label={fed ? `${tankName}: fed ${timesFed} times` : `${tankName}: not fed`}
+          aria-label={fed ? t("feed.ariaFed", { tank: tankName, n: timesFed }) : t("feed.ariaNotFed", { tank: tankName })}
         >
-          {fed ? `fed ${timesFed}×` : "not fed"}
+          {fed ? t("feed.fedTimes", { n: timesFed }) : t("feed.notFed")}
         </span>
 
         {/* stepper */}
@@ -103,7 +105,7 @@ export function FeedControl({
             type="button"
             onClick={() => adjust(-1)}
             disabled={pending || timesFed === 0}
-            aria-label={`Undo feeding for ${tankName}`}
+            aria-label={t("feed.undoFeeding", { tank: tankName })}
             className="icon-btn icon-btn-sm"
           >
             <i aria-hidden className="ph ph-minus text-base" />
@@ -112,7 +114,7 @@ export function FeedControl({
             type="button"
             onClick={() => adjust(1)}
             disabled={pending || timesFed >= 5}
-            aria-label={`Feed ${tankName} once more`}
+            aria-label={t("feed.feedOnceMore", { tank: tankName })}
             className="icon-btn icon-btn-sm relative overflow-visible"
             style={
               timesFed >= 5

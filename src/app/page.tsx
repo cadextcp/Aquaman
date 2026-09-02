@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
 import { StatusNote } from "@/components/ui/status-note";
 import { TankFilterBar } from "@/components/tank-filter-bar";
-import { formatDateLong, formatDateShort } from "@/i18n";
+import { formatDateLong, formatDateShort, t, plural } from "@/i18n";
 import { getLocale } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   // whole fishroom, not one tank, so the tank filter below never touches it.
   const streak = careStreak(schedules, allLogs);
 
-  // Tank filter (?tank=<id>): a value that doesn't match a live tank falls
+  // Tank filter (?tank=<id>): a value that doesn'today match a live tank falls
   // back to "all", same defensive pattern as the feeding day param below.
   const selectedTankId = tankParam && tanks.some((tk) => String(tk.id) === tankParam) ? Number(tankParam) : null;
   const visibleTanks = selectedTankId === null ? tanks : tanks.filter((tk) => tk.id === selectedTankId);
@@ -51,24 +51,24 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     .filter((a) => a.pct !== null);
   const avgAdherence =
     adherences.length > 0 ? Math.round(adherences.reduce((acc, a) => acc + (a.pct ?? 0), 0) / adherences.length) : null;
-  const t = todayStr();
-  const weekEnd = addDays(t, 7);
+  const today = todayStr();
+  const weekEnd = addDays(today, 7);
   // feeding day navigation (?day=YYYY-MM-DD): anything the feed action would
   // reject — non-dates, the future, beyond the backfill window — falls back to
   // today, so the arrows never render a day whose stepper would fail
-  const minDay = feedMinDay(t);
-  const day = resolveFeedDay(dayParam, t);
+  const minDay = feedMinDay(today);
+  const day = resolveFeedDay(dayParam, today);
   const prevDay = day > minDay ? addDays(day, -1) : null;
-  const nextDay = day < t ? addDays(day, 1) : null;
+  const nextDay = day < today ? addDays(day, 1) : null;
   const feeds = feedAllToday(day);
 
-  // Preserve whichever of ?day=/?tank= isn't being changed by a given link —
+  // Preserve whichever of ?day=/?tank= isn'today being changed by a given link —
   // day navigation must not reset the tank filter and vice versa.
   const hrefFor = (overrides: { day?: string; tank?: string | null }) => {
     const params = new URLSearchParams();
     const nextDayVal = overrides.day ?? day;
     const nextTankVal = overrides.tank !== undefined ? overrides.tank : selectedTankId !== null ? String(selectedTankId) : null;
-    if (nextDayVal !== t) params.set("day", nextDayVal);
+    if (nextDayVal !== today) params.set("day", nextDayVal);
     if (nextTankVal !== null) params.set("tank", nextTankVal);
     const qs = params.toString();
     return qs ? `/?${qs}` : "/";
@@ -80,7 +80,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   // triggers — and a reload. Computed over the VISIBLE schedules, not `tasks`:
   // a task on a long interval is pushed past the one-week window the moment
   // it is closed, and would otherwise vanish outright.
-  const doneTodayIds = new Set(visibleSchedules.filter((s) => doneOn(s, t)).map((s) => s.id));
+  const doneTodayIds = new Set(visibleSchedules.filter((s) => doneOn(s, today)).map((s) => s.id));
 
   // projection for every visible schedule
   const tasks = visibleSchedules
@@ -93,9 +93,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   const closedToday = tasks.filter(({ s }) => doneTodayIds.has(s.id));
   const open = tasks.filter(({ s }) => !doneTodayIds.has(s.id));
-  const dueToday = open.filter(({ due }) => due.plannedFor <= t);
-  const behind = open.filter(({ due }) => due.plannedFor > t && due.overdueDays > 0);
-  const upcoming = open.filter(({ due }) => due.plannedFor > t && due.overdueDays === 0);
+  const dueToday = open.filter(({ due }) => due.plannedFor <= today);
+  const behind = open.filter(({ due }) => due.plannedFor > today && due.overdueDays > 0);
+  const upcoming = open.filter(({ due }) => due.plannedFor > today && due.overdueDays === 0);
   const catchUpCandidate = behind.length > 5 ? behind.sort((a, b) => b.weight - a.weight)[0] : null;
 
   const kpi = (label: string, value: number | string, color?: string, help?: string) => (
@@ -111,15 +111,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const card = (item: (typeof tasks)[number]) => {
     const { s, due } = item;
     // Tank name only in the "All tanks" view — filtered to one tank it's redundant.
-    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: t }} tanks={tanks} doneToday={doneTodayIds.has(s.id)} showTankName={selectedTankId === null} />;
+    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: today }} tanks={tanks} doneToday={doneTodayIds.has(s.id)} showTankName={selectedTankId === null} />;
   };
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       {/* Page header (design): date label + "Today" + streak badge */}
       <PageHeader
-        eyebrow={formatDateLong(t, locale)}
-        title="Today"
+        eyebrow={formatDateLong(today, locale)}
+        title={t("dashboard.today", locale)}
         action={
           tanks.length > 0 && (
             <span
@@ -128,7 +128,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             >
               <i aria-hidden className="ph-fill ph-drop text-sm" style={{ color: "var(--due)" }} />
               <span className="text-sm font-medium tnum" style={{ color: "var(--foreground)" }}>{streak}</span>
-              <span style={{ color: "var(--muted-foreground)" }}>day streak</span>
+              <span style={{ color: "var(--muted-foreground)" }}>{plural("dashboard.streakLabel", streak, locale)}</span>
               <HelpDot id="streak" />
             </span>
           )
@@ -140,6 +140,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         tanks={tanks}
         selectedTankId={selectedTankId}
         hrefFor={(id) => hrefFor({ tank: id === null ? null : String(id) })}
+        locale={locale}
       />
 
       {/* Feeding (daily habit) — day navigation lets you backfill past days */}
@@ -148,11 +149,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <div className="rounded-xl p-4 edge-card">
             <div className="flex items-center justify-between mb-3">
               <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-                Feeding{day === t ? " today" : " · backfill"}
+                {day === today ? t("dashboard.feedingToday", locale) : t("dashboard.feedingBackfill", locale)}
               </div>
               <div className="flex items-center gap-1">
                 {prevDay ? (
-                  <Link href={hrefFor({ day: prevDay })} aria-label="Previous day" className="icon-btn icon-btn-sm">
+                  <Link href={hrefFor({ day: prevDay })} aria-label={t("dashboard.previousDay", locale)} className="icon-btn icon-btn-sm">
                     <i aria-hidden className="ph ph-caret-left text-sm" />
                   </Link>
                 ) : (
@@ -162,13 +163,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 )}
                 <span
                   className="text-xs tnum text-center"
-                  style={{ minWidth: 92, color: day === t ? "var(--muted-foreground)" : "var(--due)" }}
-                  aria-label={day === t ? "Showing today" : `Showing ${day}`}
+                  style={{ minWidth: 92, color: day === today ? "var(--muted-foreground)" : "var(--due)" }}
+                  aria-label={day === today ? t("dashboard.showingToday", locale) : t("dashboard.showingDay", locale, { date: day })}
                 >
-                  {day === t ? "Today" : formatDateShort(day, locale)}
+                  {day === today ? t("dashboard.today", locale) : formatDateShort(day, locale)}
                 </span>
                 {nextDay ? (
-                  <Link href={hrefFor({ day: nextDay })} aria-label="Next day" className="icon-btn icon-btn-sm">
+                  <Link href={hrefFor({ day: nextDay })} aria-label={t("dashboard.nextDay", locale)} className="icon-btn icon-btn-sm">
                     <i aria-hidden className="ph ph-caret-right text-sm" />
                   </Link>
                 ) : (
@@ -195,7 +196,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <div className="panel-card rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase tracking-widest mb-1 flex items-center gap-0.5" style={{ color: "var(--muted-foreground)" }}>
-              Adherence · 30 d
+              {t("dashboard.adherenceTitle", locale)}
               <HelpDot id="adherence" />
             </div>
             <div className="flex items-baseline gap-2">
@@ -204,8 +205,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
             <div className="text-xs tnum mt-1" style={{ color: "var(--faint)" }}>
               {selectedTankId === null
-                ? `${cross.actions} care actions across ${visibleTanks.length} tank${visibleTanks.length === 1 ? "" : "s"}`
-                : `${cross.actions} care actions in ${visibleTanks[0].name}`}
+                ? plural("dashboard.actionsAcrossTanks", visibleTanks.length, locale, { actions: cross.actions })
+                : t("dashboard.actionsInTank", locale, { actions: cross.actions, tank: visibleTanks[0].name })}
             </div>
           </div>
           <span
@@ -215,27 +216,27 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               "--chip-fg": avgAdherence >= 80 ? "var(--success)" : "var(--warning)",
             } as React.CSSProperties}
           >
-            {avgAdherence >= 80 ? "on track" : "catching up"}
+            {avgAdherence >= 80 ? t("dashboard.onTrack", locale) : t("dashboard.catchingUp", locale)}
           </span>
         </div>
       )}
 
       {/* KPIs */}
       <section className="grid grid-cols-3 gap-3 mb-6">
-        {kpi("Due today", dueToday.length, dueToday.length > 0 ? "var(--accent)" : "var(--success)")}
-        {kpi("Behind", behind.length, behind.length > 0 ? "var(--warning)" : undefined, "behindKpi")}
-        {kpi("This week", upcoming.length)}
+        {kpi(t("dashboard.dueToday", locale), dueToday.length, dueToday.length > 0 ? "var(--accent)" : "var(--success)")}
+        {kpi(t("dashboard.behind", locale), behind.length, behind.length > 0 ? "var(--warning)" : undefined, "behindKpi")}
+        {kpi(t("dashboard.thisWeek", locale), upcoming.length)}
       </section>
 
       {/* Catch-up */}
       {catchUpCandidate && (
         <div className="rounded-xl p-5 mb-6" style={{ background: "var(--warning-soft)", boxShadow: "inset 0 0 0 1px var(--warning-edge)" }}>
           <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-            If you only do one thing today
+            {t("dashboard.catchUpTitle", locale)}
           </div>
-          <ScheduleCard schedule={{ ...catchUpCandidate.s, due: catchUpCandidate.due, today: t }} tanks={tanks} showTankName={selectedTankId === null} />
+          <ScheduleCard schedule={{ ...catchUpCandidate.s, due: catchUpCandidate.due, today: today }} tanks={tanks} showTankName={selectedTankId === null} />
           <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
-            {behind.length - 1} more tasks behind — they keep rescheduling to your preferred days, no rush.
+            {plural("dashboard.catchUpMore", behind.length - 1, locale)}
           </div>
           <HelpNote id="catchUp" />
         </div>
@@ -244,13 +245,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {/* Care queue (design: "tap a card to edit") */}
       <section className="mb-6">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-lg font-semibold">Care queue</h2>
-          <span className="text-xs" style={{ color: "var(--faint)" }}>tap a card to edit</span>
+          <h2 className="text-lg font-semibold">{t("dashboard.careQueue", locale)}</h2>
+          <span className="text-xs" style={{ color: "var(--faint)" }}>{t("dashboard.tapToEdit", locale)}</span>
         </div>
         {dueToday.length === 0 && (
           <div className="panel-card rounded-xl p-4 mb-3">
             <StatusNote tone="success">
-              Queue clear — {week.closed} task{week.closed === 1 ? "" : "s"} closed this week, zero behind.
+              {plural("dashboard.queueClear", week.closed, locale)}
             </StatusNote>
           </div>
         )}
@@ -258,7 +259,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         {closedToday.length > 0 && (
           <div className="mt-3">
             <div className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
-              Done today ({closedToday.length})
+              {t("dashboard.doneTodayHeading", locale, { n: closedToday.length })}
             </div>
             <HelpNote id="doneToday" className="mb-2 mt-0.5" />
             <div className="space-y-3">{closedToday.map(card)}</div>
@@ -269,7 +270,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {/* Behind */}
       {behind.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold mb-3">Behind ({behind.length})</h2>
+          <h2 className="text-lg font-semibold mb-3">{t("dashboard.behindHeading", locale, { n: behind.length })}</h2>
           <div className="space-y-3">{behind.map(card)}</div>
         </section>
       )}
@@ -277,7 +278,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {/* Upcoming */}
       {upcoming.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold mb-3">Coming up this week</h2>
+          <h2 className="text-lg font-semibold mb-3">{t("dashboard.upcomingHeading", locale)}</h2>
           <div className="space-y-3">{upcoming.map(card)}</div>
         </section>
       )}
@@ -287,14 +288,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <div className="rounded-xl p-8 text-center edge-card">
           <i aria-hidden className="ph ph-fish text-4xl" style={{ color: "var(--faint)" }} />
           <p className="mb-4 mt-3" style={{ color: "var(--muted-foreground)" }}>
-            No tanks yet — create your first tank to get started.
+            {t("dashboard.emptyTanks", locale)}
           </p>
           <Link
             href="/tanks/new"
             className="btn-outline inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium"
             style={{ minHeight: 44 }}
           >
-            <i aria-hidden className="ph ph-plus" /> Create tank
+            <i aria-hidden className="ph ph-plus" /> {t("dashboard.createTank", locale)}
           </Link>
         </div>
       )}

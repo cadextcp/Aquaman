@@ -21,7 +21,39 @@
     "behindHint": "im Rückstand seit {date}",
     "plannedFor": "geplant für {date}",
     "emptyTanks": "Noch keine Aquarien — leg dein erstes Becken an.",
-    "createTank": "Aquarium anlegen"
+    "createTank": "Aquarium anlegen",
+    "today": "Heute",
+    "streakLabel": {
+      "one": "Tag in Folge",
+      "other": "Tage in Folge"
+    },
+    "feedingToday": "Fütterung heute",
+    "feedingBackfill": "Fütterung · nachtragen",
+    "previousDay": "Vorheriger Tag",
+    "nextDay": "Nächster Tag",
+    "showingToday": "Zeigt heute",
+    "showingDay": "Zeigt {date}",
+    "adherenceTitle": "Einhaltung · 30 T.",
+    "actionsAcrossTanks": {
+      "one": "{actions} Pflegeaktionen in {n} Becken",
+      "other": "{actions} Pflegeaktionen in {n} Becken"
+    },
+    "actionsInTank": "{actions} Pflegeaktionen in {tank}",
+    "onTrack": "im Plan",
+    "catchingUp": "am Aufholen",
+    "catchUpMore": {
+      "one": "{n} weitere Aufgabe im Rückstand — sie verschiebt sich weiter auf deine Wunschtage, keine Eile.",
+      "other": "{n} weitere Aufgaben im Rückstand — sie verschieben sich weiter auf deine Wunschtage, keine Eile."
+    },
+    "careQueue": "Anstehende Pflege",
+    "tapToEdit": "zum Bearbeiten antippen",
+    "queueClear": {
+      "one": "Alles erledigt — {n} Aufgabe diese Woche geschafft, nichts im Rückstand.",
+      "other": "Alles erledigt — {n} Aufgaben diese Woche geschafft, nichts im Rückstand."
+    },
+    "doneTodayHeading": "Heute erledigt ({n})",
+    "behindHeading": "Im Rückstand ({n})",
+    "upcomingHeading": "Diese Woche geplant"
   },
   "health": {
     "ok": "ok",
@@ -98,6 +130,40 @@
       "title": "Sprache",
       "description": "Gilt für die gesamte App: Oberfläche, Kalender-Termintitel und die Antworten des Coaches."
     }
+  },
+  "card": {
+    "clickToEdit": "Zum Ansehen und Bearbeiten klicken",
+    "editTitle": "Pflegeplan bearbeiten",
+    "deleteSchedule": "Pflegeplan löschen",
+    "deleteConfirm": "„{action}“ ({tank}) löschen?\nEinträge und Verlauf bleiben — nur der Plan verschwindet.",
+    "markDone": "{action} als erledigt markieren",
+    "undoDone": "Rückgängig",
+    "doneEarly": "vorzeitig erledigt",
+    "later": "später",
+    "snoozeDays": {
+      "one": "+{n} Tag",
+      "other": "+{n} Tage"
+    },
+    "until": "· bis {date}",
+    "onTimePct": "· {n}% pünktlich",
+    "doneToday": "heute erledigt",
+    "next": "nächster",
+    "dueToday": "heute fällig",
+    "dueInDays": {
+      "one": "fällig in {n} Tag",
+      "other": "fällig in {n} Tagen"
+    }
+  },
+  "feed": {
+    "fedTimes": "{n}× gefüttert",
+    "notFed": "nicht gefüttert",
+    "ariaFed": "{tank}: {n}× gefüttert",
+    "ariaNotFed": "{tank}: nicht gefüttert",
+    "undoFeeding": "Fütterung für {tank} zurücknehmen",
+    "feedOnceMore": "{tank} noch einmal füttern"
+  },
+  "tankFilter": {
+    "allTanks": "Alle Becken"
   },
   "help": {
     "topics": {

@@ -96,6 +96,7 @@ export default async function CalendarPage({
         tanks={tanks}
         selectedTankId={selectedTankId}
         hrefFor={(id) => hrefFor({ tank: id === null ? null : String(id) })}
+        locale={locale}
       />
 
       <CalendarLegend locale={locale} />

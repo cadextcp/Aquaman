@@ -21,7 +21,39 @@
     "behindHint": "behind since {date}",
     "plannedFor": "planned for {date}",
     "emptyTanks": "No tanks yet — create your first tank to get started.",
-    "createTank": "Create tank"
+    "createTank": "Create tank",
+    "today": "Today",
+    "streakLabel": {
+      "one": "day streak",
+      "other": "day streak"
+    },
+    "feedingToday": "Feeding today",
+    "feedingBackfill": "Feeding · backfill",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "showingToday": "Showing today",
+    "showingDay": "Showing {date}",
+    "adherenceTitle": "Adherence · 30 d",
+    "actionsAcrossTanks": {
+      "one": "{actions} care actions across {n} tank",
+      "other": "{actions} care actions across {n} tanks"
+    },
+    "actionsInTank": "{actions} care actions in {tank}",
+    "onTrack": "on track",
+    "catchingUp": "catching up",
+    "catchUpMore": {
+      "one": "{n} more task behind — it keeps rescheduling to your preferred days, no rush.",
+      "other": "{n} more tasks behind — they keep rescheduling to your preferred days, no rush."
+    },
+    "careQueue": "Care queue",
+    "tapToEdit": "tap a card to edit",
+    "queueClear": {
+      "one": "Queue clear — {n} task closed this week, zero behind.",
+      "other": "Queue clear — {n} tasks closed this week, zero behind."
+    },
+    "doneTodayHeading": "Done today ({n})",
+    "behindHeading": "Behind ({n})",
+    "upcomingHeading": "Coming up this week"
   },
   "health": {
     "ok": "ok",
@@ -98,6 +130,40 @@
       "title": "Language",
       "description": "Applies to the whole app: interface, calendar event titles and the coach's answers."
     }
+  },
+  "card": {
+    "clickToEdit": "Click to view & edit this schedule",
+    "editTitle": "Edit schedule",
+    "deleteSchedule": "Delete schedule",
+    "deleteConfirm": "Delete \"{action}\" ({tank})?\nLogs and history stay — only the schedule disappears.",
+    "markDone": "Mark {action} done",
+    "undoDone": "Undo done",
+    "doneEarly": "done early",
+    "later": "later",
+    "snoozeDays": {
+      "one": "+{n} day",
+      "other": "+{n} days"
+    },
+    "until": "· until {date}",
+    "onTimePct": "· {n}% on time",
+    "doneToday": "done today",
+    "next": "next",
+    "dueToday": "due today",
+    "dueInDays": {
+      "one": "due in {n} day",
+      "other": "due in {n} days"
+    }
+  },
+  "feed": {
+    "fedTimes": "fed {n}×",
+    "notFed": "not fed",
+    "ariaFed": "{tank}: fed {n} times",
+    "ariaNotFed": "{tank}: not fed",
+    "undoFeeding": "Undo feeding for {tank}",
+    "feedOnceMore": "Feed {tank} once more"
+  },
+  "tankFilter": {
+    "allTanks": "All tanks"
   },
   "help": {
     "topics": {
