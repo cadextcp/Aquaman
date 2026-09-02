@@ -47,7 +47,7 @@ export function ScheduleForm({
   globalThreshold?: number;
 }) {
   const router = useRouter();
-  const { t, weekdayLabels, errorText } = useI18n();
+  const { t, actionLabel, weekdayLabels, errorText } = useI18n();
   const editing = !!schedule;
   const [selectedTankId, setSelectedTankId] = useState(tankId);
   const [actionType, setActionType] = useState(schedule?.actionType ?? "water_change");
@@ -123,9 +123,22 @@ export function ScheduleForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-xs uppercase tracking-wide mb-1">{t("schedule.action")}</label>
-          <input list="action-list" className={field} style={input} value={actionType}
-            onChange={(e) => setActionType(e.target.value)} required />
-          <datalist id="action-list">{ACTIONS.map((a) => <option key={a} value={a} />)}</datalist>
+          {/*
+            A real select, not a text input with a datalist: the catalog is
+            closed (zod enum + a DB CHECK reject anything else), and a browser
+            filters datalist suggestions by what the field already contains —
+            with "water_change" prefilled, the list offered exactly that one
+            entry and the other nine were unreachable without clearing it.
+          */}
+          <select className={field} style={input} value={actionType}
+            onChange={(e) => setActionType(e.target.value)} required>
+            {!ACTIONS.includes(actionType as (typeof ACTIONS)[number]) && (
+              // a plan predating the catalog: keep its value selectable rather
+              // than silently rewriting it to whatever comes first
+              <option value={actionType}>{actionLabel(actionType)}</option>
+            )}
+            {ACTIONS.map((a) => <option key={a} value={a}>{actionLabel(a)}</option>)}
+          </select>
         </div>
         <div>
           <label className="block text-xs uppercase tracking-wide mb-1">{t("schedule.interval")}</label>
