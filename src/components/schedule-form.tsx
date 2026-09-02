@@ -6,32 +6,45 @@ import { useRouter } from "next/navigation";
 import { createSchedule, markDone, snooze, setScheduleActive } from "@/app/actions";
 import { ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } from "@/lib/schemas";
 import type { ScheduleInput } from "@/lib/schemas";
-import type { Schedule } from "@/lib/db/schema";
+import type { Food, Schedule } from "@/lib/db/schema";
 import { StructuredDetailsEditor } from "./structured-details-editor";
 import { SCHEDULABLE_ACTION_TYPES, actionTypeDef } from "@/lib/domain/action-types";
 import { useI18n } from "@/i18n/provider";
 
 const ACTIONS = SCHEDULABLE_ACTION_TYPES;
 
+/**
+ * What the plan editor needs to know about a tank: the label for the move
+ * selector, plus the data the structured detail editor computes with. The
+ * pages already hand whole tank rows down — the prop types just used to
+ * narrow them to {id, name}, which is why every feed plan claimed the tank
+ * had no food types and every water change was measured against 60 L.
+ */
+export type ScheduleFormTank = { id: number; name: string; volumeL: number; foods: Food[] };
+
+/** Only reachable if a caller passes a list without the tank it names — the percentage still needs SOME denominator. */
+const FALLBACK_VOLUME_L = 60;
+
 export function ScheduleForm({
   tankId,
-  tanks = [],
+  tanks,
   schedule,
   globalPolicy = "suppress",
   globalThreshold = 50,
-  tankVolumeL = 60,
-  tankFoods = [],
 }: {
   tankId: number;
-  /** other tanks to move this schedule to (issue: move event between aquariums) — only shown when editing */
-  tanks?: { id: number; name: string }[];
+  /**
+   * The tanks this form may point at — the move selector's options AND where
+   * volume/foods come from. REQUIRED (and must contain `tankId`): it used to
+   * be optional next to `tankVolumeL`/`tankFoods` props that defaulted to
+   * 60 L and no foods, so a call site that forgot them compiled fine and
+   * silently mis-computed every water change. Now there is nothing to forget.
+   */
+  tanks: ScheduleFormTank[];
   schedule?: Schedule & { tankName: string };
   /** global default from /more (issue #39) — "default" means "like global" */
   globalPolicy?: "fixed" | "suppress";
   globalThreshold?: number;
-  /** issue #42: for structured detail rendering (% → liters, feed foods) */
-  tankVolumeL?: number;
-  tankFoods?: { name: string; amount: string; unit: string }[];
 }) {
   const router = useRouter();
   const { t, weekdayLabels, errorText } = useI18n();
@@ -50,6 +63,14 @@ export function ScheduleForm({
     (schedule?.detailData as Record<string, unknown> | null) ?? null,
   );
   const [endsOn, setEndsOn] = useState(schedule?.endsOn ?? "");
+  /**
+   * Volume and foods come from the tank the form is CURRENTLY pointed at, not
+   * from the one it opened on: moving a plan to another aquarium has to move
+   * the percentage→liters maths and the food list with it.
+   */
+  const selectedTank = tanks.find((tk) => tk.id === selectedTankId);
+  const volumeL = selectedTank?.volumeL ?? FALLBACK_VOLUME_L;
+  const foods = selectedTank?.foods ?? [];
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -116,8 +137,8 @@ export function ScheduleForm({
       {actionTypeDef(actionType)?.detailKind ? (
         <StructuredDetailsEditor
           actionType={actionType}
-          tankVolumeL={tankVolumeL}
-          tankFoods={tankFoods}
+          tankVolumeL={volumeL}
+          tankFoods={foods}
           value={detailData}
           onChange={(data, rendered) => {
             setDetailData(data);

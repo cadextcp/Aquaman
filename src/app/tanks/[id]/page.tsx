@@ -181,7 +181,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         <details className="rounded-xl p-4 edge-card">
           <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>{translate("schedule.add", locale)}</summary>
           <div className="pt-4">
-            <ScheduleForm tankId={tank.id} />
+            <ScheduleForm tankId={tank.id} tanks={tanks} />
           </div>
         </details>
       </section>

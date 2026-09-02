@@ -14,7 +14,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteSchedule } from "@/app/actions";
 import { Modal, ModalDeleteButton } from "./ui/modal";
-import { ScheduleForm } from "./schedule-form";
+import { ScheduleForm, type ScheduleFormTank } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 import { useI18n } from "@/i18n/provider";
 
@@ -26,13 +26,13 @@ const STRIPE_COLOR = {
 
 export function CalendarChip({
   schedule,
-  tanks = [],
+  tanks,
   label,
   variant,
 }: {
   schedule: Schedule & { tankName: string };
-  /** other tanks to move this schedule to — threaded into the edit popup's tank selector */
-  tanks?: { id: number; name: string }[];
+  /** The tanks the edit popup may point at — see ScheduleCard for why this is required. */
+  tanks: ScheduleFormTank[];
   label: string;
   variant: "behind" | "due" | "upcoming";
 }) {

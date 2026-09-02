@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { markDone, snooze, undoLastDone, deleteSchedule } from "@/app/actions";
 import { Modal, ModalDeleteButton } from "./ui/modal";
 import { HelpDot } from "./ui/help";
-import { ScheduleForm } from "./schedule-form";
+import { ScheduleForm, type ScheduleFormTank } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 import { actionTypeDef } from "@/lib/domain/action-types";
 import { useI18n } from "@/i18n/provider";
@@ -49,14 +49,18 @@ function daysUntil(dateStr: string, today: string): number {
 
 export function ScheduleCard({
   schedule,
-  tanks = [],
+  tanks,
   adherence = null,
   doneToday = false,
   showTankName = false,
 }: {
   schedule: ScheduleCardData;
-  /** other tanks to move this schedule to — threaded into the edit popup's tank selector */
-  tanks?: { id: number; name: string }[];
+  /**
+   * The tanks the edit popup may point at — its selector options, and the
+   * volume/foods the structured detail editor computes with. Required, so a
+   * page cannot hand the dialog an empty list by omission.
+   */
+  tanks: ScheduleFormTank[];
   adherence?: number | null;
   /**
    * The schedule was closed today (derived from lastDoneAt by the page).
