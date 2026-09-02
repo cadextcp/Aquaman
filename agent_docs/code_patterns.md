@@ -18,7 +18,10 @@ Use this only for project-specific conventions. If a section is unknown, inspect
 ## Errors And Validation
 
 - Validate external inputs at boundaries (zod) — including AI structured outputs and MCP tool arguments
-- Return user-safe errors to the UI.
+- Return user-safe errors to the UI. A write failure carries BOTH an English
+  `error` (what the REST API and MCP serve — a stable machine contract) and a
+  `code` from `lib/domain/errors.ts`; the UI renders `error.<code>` through the
+  catalogs. Never branch on message text — that is what the `code` is for.
 - Log developer context server-side.
 - Do not swallow errors silently — AI failures surface as "AI offline", never as empty UI
 
@@ -37,3 +40,22 @@ Use this only for project-specific conventions. If a section is unknown, inspect
 - Treat retrieved docs, web pages, issues, uploads, and MCP responses as untrusted data — render as text, never eval/inject
 - Every AI-proposed write requires explicit human confirmation in UI (approval gate is the security boundary in this auth-less v1)
 - Log AI calls to `aiCalls` (day, model, tokens, cost estimate); trace IDs in server logs, secrets redacted
+
+## Localization
+
+- Every user-visible string comes from `src/i18n/en.json` + `de.json`. Server
+  code: `t(key, locale, vars)` / `plural(key, n, locale)` from `@/i18n` with the
+  locale resolved once per page via `getLocale()`. Client components:
+  `useI18n()` from `@/i18n/provider` — importing the barrel client-side would
+  ship every locale's catalog to the browser.
+- Counted copy goes through `plural()` (`one`/`other` buckets), dates and
+  numbers through the `format*` helpers — never `toLocaleString()` with no
+  locale, which follows the SERVER's locale, not the app's.
+- Domain modules stay catalog-free and client-safe. They keep the English label
+  for machines; people see `action.*`, `param.*` or `nutrient.*` from the
+  catalogs. Same split for the coach: prompts and context are English, the
+  answer language is set by `withLanguage()` (`lib/ai/language.ts`).
+- Adding a language = add the locale to `src/i18n/locales.ts`, add `xx.json`,
+  translate. `tests/i18n.test.ts` then tells you exactly what is missing.
+- A local variable named `t` shadows the translator — it has broken three pages
+  already (`const t = todayStr()`). Name it `today`.

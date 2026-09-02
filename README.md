@@ -20,6 +20,7 @@ and an ICS calendar feed for Google Calendar.
 - **Statistics** — monthly care activity, median care delay, "interval too tight?" indicators, AI usage/cost retrospective
 - **Export / import** — all data as JSON, secrets never included. Your data is yours.
 - **MCP endpoint** — remote agents (e.g. OpenClaw) read tank state and record care via the Model Context Protocol at `/api/mcp`; fully bearer-token gated (token shown/rotated under *More*), write tools can log care but **nothing can be deleted or rewritten remotely**, `ask_coach` shares the in-app AI budget
+- **English & German** — one setting under *More* switches the whole app: interface, calendar event titles in the ICS feed, and the coach's answers. Adding a language means one JSON file, no code
 - **Docker** — one container, one SQLite file, zero cloud
 
 ## Quick start (Docker)
@@ -59,6 +60,7 @@ All configuration is environment variables (see [`.env.example`](.env.example)):
 | Variable | Default | What |
 |---|---|---|
 | `AQUAMAN_TIMEZONE` | `Europe/Berlin` | Governs **all** "today"/midnight logic (due dates, ICS days, AI budget reset) |
+| `AQUAMAN_LOCALE` | `en` | Language of a **fresh** install (`en` / `de`). Once set under *More → Language* the stored setting wins |
 | `AQUAMAN_AI_BASE_URL` | *(empty → coach off)* | Anthropic-compatible endpoint: `https://api.z.ai/api/anthropic` or `https://api.anthropic.com` |
 | `AQUAMAN_AI_API_KEY` | *(empty)* | Provider key — without it everything except the coach works |
 | `AQUAMAN_AI_MODEL` | *(empty)* | e.g. `glm-4.6` (z.ai) or `claude-sonnet-4-5` |
@@ -146,6 +148,10 @@ change water-parameter ranges, cite a source (animals live in these numbers).
   projection (clean plan) — see TechDesign §4.2
 - AI proposals flow through one approval-gated action (`applyProposal`) —
   zod-validated against live data before anything is written
+- i18n is homegrown (no next-intl): dot-key catalogs in `src/i18n/`, one global
+  language setting, and a test that scans the source so a hardcoded string
+  cannot quietly ship. Machine surfaces (REST API, MCP, OpenAPI) stay English
+  and serve a stable failure `code` the UI translates
 
 ## License
 

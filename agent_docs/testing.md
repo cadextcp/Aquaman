@@ -27,6 +27,7 @@
 | Token endpoints (`/api/calendar.ics`, later `/api/mcp`) | Tested with missing/wrong/valid token → 404/404/200; rate limit triggers 429 |
 | Migrations, deployment, CI | Human review plus focused test |
 | AI/tool behavior | Prompt/tool eval plus data-boundary check (see below) |
+| Any user-visible string | `npm test -- tests/i18n.test.ts` (both catalogs, and every key the source uses) + a browser check in BOTH languages |
 
 ## Critical Unit-Test Cases (write these FIRST)
 
@@ -38,6 +39,11 @@
 - `ics.ts`: identical inputs (schedule rows + injected `today`) → byte-identical feed · **snooze changes `DTSTART` but NOT the `UID`** (event moves, no delete+recreate, no duplicate) · `SEQUENCE` grows on snooze and on reschedule drift · `DTSTAMP` does not change between two calls on the same data · UID format `{scheduleId}-{originalDueAtISO}@aquaman`
 - Token compare: wrong-length token returns 404 and does NOT throw (SHA-256 before `timingSafeEqual`)
 - Rate limiter: 30 failures/h → 429, success resets
+- i18n: both catalogs carry the same keys with the same `{placeholders}` · every
+  key the source asks for resolves in EVERY locale (the source scan) · action
+  types, water parameters, nutrients and failure codes are covered in both
+  directions (nothing missing, nothing stale) · the English catalog equals the
+  machine-facing domain labels, so API and UI cannot drift apart
 
 ## AI Checks
 
@@ -50,3 +56,4 @@
 - Cost guard: exceeding calls OR tokens limit → AI paused message; counters in Settings reflect usage; reset at local midnight
 - Tool/action check: `propose_schedule` → zod-validated JSON renders in approval UI; DB unchanged until confirm; after confirm schedule exists and ICS reflects it
 - Data check: API keys, tokens, `.env` values never appear in coach answers or logs; `aiCalls` contains only counters/cost estimates
+- Language check: with the app set to German, an ENGLISH question must still get a German answer (the directive in `lib/ai/language.ts` overrides the question's language); suggestion chips and the plan-review summary follow the setting too, and switching language discards cached chips instead of showing them in the wrong one
