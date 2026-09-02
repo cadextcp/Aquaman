@@ -70,7 +70,7 @@ export function ScheduleCard({
   showTankName?: boolean;
 }) {
   const router = useRouter();
-  const { t, plural, errorText } = useI18n();
+  const { t, plural, actionLabel, errorText } = useI18n();
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   // optimistic flag, only bridging the gap until the revalidation lands
@@ -108,7 +108,7 @@ export function ScheduleCard({
   }
 
   async function remove() {
-    if (!confirm(t("card.deleteConfirm", { action: schedule.actionType.replace(/_/g, " "), tank: schedule.tankName }))) return;
+    if (!confirm(t("card.deleteConfirm", { action: actionLabel(schedule.actionType), tank: schedule.tankName }))) return;
     setEditOpen(false);
     await deleteSchedule(schedule.id);
     startTransition(() => router.refresh());
@@ -145,7 +145,7 @@ export function ScheduleCard({
               </div>
             )}
             <div className="font-medium" style={{ textDecoration: showDone ? "line-through" : "none" }}>
-              {schedule.actionType.replace(/_/g, " ")}
+              {actionLabel(schedule.actionType)}
               <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}>
                 {" "}· {t("schedule.every", { n: schedule.intervalDays })}
                 {schedule.endsOn ? ` ${t("card.until", { date: schedule.endsOn })}` : ""}
@@ -221,7 +221,7 @@ export function ScheduleCard({
               <button
                 onClick={done}
                 disabled={pending}
-                aria-label={t("card.markDone", { action: schedule.actionType.replace(/_/g, " ") })}
+                aria-label={t("card.markDone", { action: actionLabel(schedule.actionType) })}
                 className="btn-outline flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
                 style={{ minHeight: 40 }}
               >

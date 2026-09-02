@@ -7,7 +7,7 @@ import { EditTankButton } from "@/components/edit-tank-button";
 import { Sparkline } from "@/components/sparkline";
 import { scheduleAdherence } from "@/lib/stats";
 import { STANDARD_PLAN_TYPES } from "@/lib/domain/plan-structure";
-import { t as translate, plural, paramLabelFor } from "@/i18n";
+import { t as translate, plural, paramLabelFor, actionLabelFor } from "@/i18n";
 import { getLocale } from "@/lib/settings";
 import { PlanRecommendBanner } from "@/components/plan-recommend-banner";
 import { ScheduleForm } from "@/components/schedule-form";
@@ -238,7 +238,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                 return {
                   key: `l-${l.id}`,
                   date: l.doneAt.slice(0, 10),
-                  title: l.actionType.replace(/_/g, " "),
+                  title: actionLabelFor(l.actionType, locale),
                   note,
                   color,
                 };

@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { maintenanceLogs } from "@/lib/db/schema";
 import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
-import { t, plural } from "@/i18n";
+import { t, plural, actionLabelFor } from "@/i18n";
 import { getLocale } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,9 @@ export default async function TanksPage() {
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-5xl">
       <PageHeader
         title={t("tanks.title", locale)}
-        subtitle={tanks.length > 0 ? plural("tanks.subtitle", tanks.length, locale, { actions: cross.actions }) : undefined}
+        subtitle={tanks.length > 0 ? plural("tanks.subtitle", tanks.length, locale, {
+              actions: plural("tanks.careActionsLogged", cross.actions, locale),
+            }) : undefined}
         action={
           <Link
             href="/tanks/new"
@@ -137,7 +139,7 @@ export default async function TanksPage() {
                 <div className="flex items-center justify-between gap-2 text-xs" style={{ color: "var(--muted-foreground)" }}>
                   <span>
                     {nextUp
-                      ? t("tanks.nextUp", locale, { action: nextUp.s.actionType.replace(/_/g, " "), date: nextUp.due.plannedFor })
+                      ? t("tanks.nextUp", locale, { action: actionLabelFor(nextUp.s.actionType, locale), date: nextUp.due.plannedFor })
                       : schedules.length === 0
                         ? t("tanks.noPlansYet", locale)
                         : t("tanks.nothingThisWeek", locale)}
@@ -184,7 +186,7 @@ export default async function TanksPage() {
           </div>
           <div className="flex items-center justify-between mt-2 text-[9px] tnum" style={{ color: "var(--faint)" }}>
             <span>{activity[0]?.date.slice(5)}</span>
-            <span>{t("tanks.careActions", locale, { n: cross.actions })}</span>
+            <span>{plural("tanks.careActions", cross.actions, locale)}</span>
             <span>{activity[activity.length - 1]?.date.slice(5)}</span>
           </div>
         </div>

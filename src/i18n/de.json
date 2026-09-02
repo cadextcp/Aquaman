@@ -40,10 +40,10 @@
     "showingDay": "Zeigt {date}",
     "adherenceTitle": "Einhaltung · 30 T.",
     "actionsAcrossTanks": {
-      "one": "{actions} Pflegeaktionen in {n} Becken",
-      "other": "{actions} Pflegeaktionen in {n} Becken"
+      "one": "{actions} in {n} Becken",
+      "other": "{actions} in {n} Becken"
     },
-    "actionsInTank": "{actions} Pflegeaktionen in {tank}",
+    "actionsInTank": "{actions} in {tank}",
     "onTrack": "im Plan",
     "catchingUp": "am Aufholen",
     "catchUpMore": {
@@ -58,7 +58,11 @@
     },
     "doneTodayHeading": "Heute erledigt ({n})",
     "behindHeading": "Im Rückstand ({n})",
-    "upcomingHeading": "Diese Woche geplant"
+    "upcomingHeading": "Diese Woche geplant",
+    "careActions": {
+      "one": "{n} Pflegeaktion",
+      "other": "{n} Pflegeaktionen"
+    }
   },
   "health": {
     "ok": "ok",
@@ -94,8 +98,8 @@
     "plantsCount": "{n} Pflanzenarten",
     "backToList": "← Aquarien",
     "subtitle": {
-      "one": "{n} Aquarium · {actions} Pflegeaktionen erfasst",
-      "other": "{n} Aquarien · {actions} Pflegeaktionen erfasst"
+      "one": "{n} Aquarium · {actions}",
+      "other": "{n} Aquarien · {actions}"
     },
     "established": "eingefahren",
     "cyclingDay": "Einfahrtag {n}",
@@ -118,7 +122,14 @@
       "one": "Im Becken · 30 T.",
       "other": "Über alle Becken · 30 T."
     },
-    "careActions": "{n} Pflegeaktionen"
+    "careActions": {
+      "one": "{n} Pflegeaktion",
+      "other": "{n} Pflegeaktionen"
+    },
+    "careActionsLogged": {
+      "one": "{n} Pflegeaktion erfasst",
+      "other": "{n} Pflegeaktionen erfasst"
+    }
   },
   "schedule": {
     "title": "Pflegeplan",
@@ -452,7 +463,13 @@
     "recommendManual": "oder manuell anlegen ({n})",
     "recommendManualHint": "Zu „Pflegepläne“ scrollen → + Plan hinzufügen: {plans}",
     "promptInitial": "Bitte erstelle einen ersten Pflegeplan für \"{tank}\" (Aquarium {id}) — schlage Pläne für Düngen, Füttern, Filterwechsel, Wasserwechsel und Wassertest mit konkreten Details vor.",
-    "promptUpdate": "Mein Aquarium \"{tank}\" (Aquarium {id}) hat sich geändert — bitte prüfe und aktualisiere den Pflegeplan ({plans} fehlen)."
+    "promptUpdate": "Mein Aquarium \"{tank}\" (Aquarium {id}) hat sich geändert — bitte prüfe und aktualisiere den Pflegeplan ({plans} fehlen).",
+    "skipTankGone": "Aquarium existiert nicht mehr",
+    "skipDuplicate": "für dieses Aquarium gibt es schon einen Plan „{action}“ (einer je Typ)",
+    "skipScheduleGone": "Plan existiert nicht mehr (oder ist pausiert)",
+    "skipWriteFailed": "Schreiben fehlgeschlagen",
+    "changeCreate": "{action} anlegen, alle {n} T. (Aquarium {tank})",
+    "changeAdjust": "Plan #{id} ändern → alle {n} T."
   },
   "debug": {
     "title": "Debug",

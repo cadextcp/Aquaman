@@ -205,8 +205,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
             <div className="text-xs tnum mt-1" style={{ color: "var(--faint)" }}>
               {selectedTankId === null
-                ? plural("dashboard.actionsAcrossTanks", visibleTanks.length, locale, { actions: cross.actions })
-                : t("dashboard.actionsInTank", locale, { actions: cross.actions, tank: visibleTanks[0].name })}
+                ? plural("dashboard.actionsAcrossTanks", visibleTanks.length, locale, {
+                    actions: plural("dashboard.careActions", cross.actions, locale),
+                  })
+                : t("dashboard.actionsInTank", locale, {
+                    actions: plural("dashboard.careActions", cross.actions, locale),
+                    tank: visibleTanks[0].name,
+                  })}
             </div>
           </div>
           <span

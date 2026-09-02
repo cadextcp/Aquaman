@@ -40,10 +40,10 @@
     "showingDay": "Showing {date}",
     "adherenceTitle": "Adherence · 30 d",
     "actionsAcrossTanks": {
-      "one": "{actions} care actions across {n} tank",
-      "other": "{actions} care actions across {n} tanks"
+      "one": "{actions} across {n} tank",
+      "other": "{actions} across {n} tanks"
     },
-    "actionsInTank": "{actions} care actions in {tank}",
+    "actionsInTank": "{actions} in {tank}",
     "onTrack": "on track",
     "catchingUp": "catching up",
     "catchUpMore": {
@@ -58,7 +58,11 @@
     },
     "doneTodayHeading": "Done today ({n})",
     "behindHeading": "Behind ({n})",
-    "upcomingHeading": "Coming up this week"
+    "upcomingHeading": "Coming up this week",
+    "careActions": {
+      "one": "{n} care action",
+      "other": "{n} care actions"
+    }
   },
   "health": {
     "ok": "ok",
@@ -94,8 +98,8 @@
     "plantsCount": "{n} plant species",
     "backToList": "← Tanks",
     "subtitle": {
-      "one": "{n} tank · {actions} care actions logged",
-      "other": "{n} tanks · {actions} care actions logged"
+      "one": "{n} tank · {actions}",
+      "other": "{n} tanks · {actions}"
     },
     "established": "established",
     "cyclingDay": "cycling day {n}",
@@ -118,7 +122,14 @@
       "one": "Across tank · 30 d",
       "other": "Across all tanks · 30 d"
     },
-    "careActions": "{n} care actions"
+    "careActions": {
+      "one": "{n} care action",
+      "other": "{n} care actions"
+    },
+    "careActionsLogged": {
+      "one": "{n} care action logged",
+      "other": "{n} care actions logged"
+    }
   },
   "schedule": {
     "title": "Care schedule",
@@ -452,7 +463,13 @@
     "recommendManual": "or add manually ({n})",
     "recommendManualHint": "Scroll to “Care plans” → + add plan: {plans}",
     "promptInitial": "Please create an initial care plan for \"{tank}\" (tank {id}) — suggest fertilize, feed, filter change, water change and water test schedules with concrete details.",
-    "promptUpdate": "My tank \"{tank}\" (tank {id}) changed — please review and update the care plan ({plans} missing)."
+    "promptUpdate": "My tank \"{tank}\" (tank {id}) changed — please review and update the care plan ({plans} missing).",
+    "skipTankGone": "tank no longer exists",
+    "skipDuplicate": "a {action} plan already exists for this tank (one per type)",
+    "skipScheduleGone": "schedule no longer exists (or is inactive)",
+    "skipWriteFailed": "write failed",
+    "changeCreate": "create {action}, every {n} d (tank {tank})",
+    "changeAdjust": "adjust plan #{id} → every {n} d"
   },
   "debug": {
     "title": "Debug",
