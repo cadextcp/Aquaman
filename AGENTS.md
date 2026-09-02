@@ -80,7 +80,25 @@ live in PRD/TechDesign. `docs/plan-review.md` documents why v1.2/v1.1 differ.
 
 ### Misc
 
-- All UI strings via next-intl keys (`src/i18n/en.json`, `de.json` from end of Phase 2). A hardcoded English string breaks the German locale silently.
+- **i18n is homegrown, not next-intl** (the dependency was never added): dot-key
+  catalogs in `src/i18n/en.json` / `de.json`, `{placeholder}` interpolation, and
+  `one`/`other` plural buckets. Server code calls `t(key, locale, vars)` from
+  `@/i18n`; client components call `useI18n()` from `@/i18n/provider` — never the
+  barrel, which would pull every locale's JSON into the client bundle.
+- A hardcoded string breaks the other locale silently, so `tests/i18n.test.ts`
+  scans the source for the keys it actually uses and fails when one does not
+  resolve in EVERY locale. Both catalogs must carry the same keys with the same
+  placeholders.
+- The language is ONE global setting (`/more`, stored in `appSettings`;
+  `AQUAMAN_LOCALE` only bootstraps a fresh install) — it drives the UI, ICS event
+  titles and the coach's answers alike.
+- Domain modules (`action-types.ts`, `ranges.ts`, `plan-structure.ts`) keep an
+  English label for machines (REST API, exports, MCP) and are looked up through
+  `action.*` / `param.* `/ `nutrient.*` for people. Write failures carry a
+  `code` (`lib/domain/errors.ts`) next to the English `error`: the UI translates
+  the code, the API keeps serving the message.
+- Beware `const t = todayStr()` — a local `t` shadows the translator and has done
+  so on three pages already.
 - `.claude/skills/` is canonical; `.agents/skills/` mirrors it — update BOTH or only `.claude` and sync, never let them drift.
 
 ## Protected areas — ask before changing

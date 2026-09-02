@@ -14,12 +14,24 @@ import { PlanReviewBanner } from "./plan-review-banner";
 import { MAX_HISTORY_MESSAGES } from "@/lib/ai/constants";
 import type { Proposal } from "@/lib/ai/proposal";
 import { StatusNote } from "./ui/status-note";
+import { useI18n } from "@/i18n/provider";
 
 type Msg = { role: "user" | "assistant"; content: string; proposal?: Proposal; tone?: "error" | "warning" };
 
 type UsageInfo = { calls: number; totalTokens: number; maxCalls: number; maxTokens: number } | null;
 
 type Suggestion = { label: string; prompt: string };
+
+/**
+ * Render the env-var names inside a translated sentence as <code>. The names
+ * are interpolated, so the catalog string stays one translatable sentence
+ * instead of three fragments a translator would have to reassemble.
+ */
+function withCode(text: string): React.ReactNode[] {
+  return text.split(/(AQUAMAN_[A-Z_]+)/).map((part, i) =>
+    /^AQUAMAN_[A-Z_]+$/.test(part) ? <code key={i}>{part}</code> : <span key={i}>{part}</span>,
+  );
+}
 
 export function CoachChat({
   aiConfigured,
@@ -31,6 +43,7 @@ export function CoachChat({
   /** The one tank this conversation is scoped to (Coach page's tank selector) — sent with every /api/coach call. */
   tankId: number;
 }) {
+  const { t, formatNumber } = useI18n();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -115,7 +128,7 @@ export function CoachChat({
           const copy = [...prev];
           copy[copy.length - 1] = {
             role: "assistant",
-            content: data?.error ?? "AI is offline — core features are fully working without it.",
+            content: data?.error ?? t("coach.offline"),
           };
           return copy;
         });
@@ -150,7 +163,7 @@ export function CoachChat({
           const copy = [...prev];
           copy[copy.length - 1] = {
             role: "assistant",
-            content: "No answer received — please send your question again.",
+            content: t("coach.noAnswer"),
             tone: "warning",
           };
           return copy;
@@ -159,7 +172,7 @@ export function CoachChat({
     } catch {
       setMessages((prev) => {
         const copy = [...prev];
-        copy[copy.length - 1] = { role: "assistant", content: "AI is unreachable — core features are fully working without it." };
+        copy[copy.length - 1] = { role: "assistant", content: t("coach.unreachable") };
         return copy;
       });
     } finally {
@@ -203,7 +216,7 @@ export function CoachChat({
         // The message belongs IN the bubble where the answer was expected —
         // a separate banner alone left the bubble empty and easy to miss.
         saw.output = true;
-        const message = String(ev.message ?? "AI error");
+        const message = String(ev.message ?? t("coach.aiError"));
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = { role: "assistant", content: message, tone: "error" };
@@ -222,15 +235,19 @@ export function CoachChat({
     <div className="flex flex-col gap-4">
       {!aiConfigured && (
         <div className="rounded-xl p-4 text-sm" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
-          AI is not configured — set <code>AQUAMAN_AI_API_KEY</code> (and optionally <code>AQUAMAN_AI_BASE_URL</code> /{" "}
-          <code>AQUAMAN_AI_MODEL</code>) to enable the coach. Everything else works without it.
+          {withCode(
+            t("coach.notConfigured", {
+              key: "AQUAMAN_AI_API_KEY",
+              baseUrl: "AQUAMAN_AI_BASE_URL",
+              model: "AQUAMAN_AI_MODEL",
+            }),
+          )}
         </div>
       )}
 
       {messages.length === 0 && (
         <div className="rounded-xl p-4 text-sm edge-card" style={{ color: "var(--muted-foreground)" }}>
-          Ask about your tanks, values or plan — e.g. <em>&quot;Nitrite is 0.3, what should I do?&quot;</em> or{" "}
-          <em>&quot;Set up a care plan for my new tank&quot;</em>. Schedule changes arrive as proposals you approve.
+          {t("coach.intro")}
         </div>
       )}
 
@@ -290,7 +307,7 @@ export function CoachChat({
             }
           }}
           rows={2}
-          placeholder="Ask the coach…"
+          placeholder={t("coach.placeholder")}
           disabled={!aiConfigured}
           className="flex-1 rounded-lg px-3 py-2.5 text-sm resize-none"
           style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "inherit", minHeight: 44 }}
@@ -301,16 +318,22 @@ export function CoachChat({
           className="btn-outline rounded-lg px-5 text-sm font-medium"
           style={{ minHeight: 44, opacity: busy || !aiConfigured ? 0.6 : 1 }}
         >
-          {busy ? "…" : "Ask"}
+          {busy ? "…" : t("coach.send")}
         </button>
       </div>
 
       <p className="text-xs" style={{ color: "var(--faint)" }}>
-        Advice, not medication dosages — every schedule change waits for your approval.
+        {t("coach.disclaimer")}
         {usage && (
           <>
             {" "}
-            · Today: {usage.calls}/{usage.maxCalls} calls, {usage.totalTokens.toLocaleString()}/{usage.maxTokens.toLocaleString()} tokens
+            ·{" "}
+            {t("coach.budget", {
+              calls: usage.calls,
+              maxCalls: usage.maxCalls,
+              tokens: formatNumber(usage.totalTokens),
+              maxTokens: formatNumber(usage.maxTokens),
+            })}
           </>
         )}
       </p>
@@ -319,6 +342,7 @@ export function CoachChat({
 }
 
 function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
+  const { t, actionLabel, errorText } = useI18n();
   const [state, setState] = useState<"pending" | "applied" | "failed" | "partial">("pending");
   const [result, setResult] = useState<string>("");
   // issue #36: editable approval card — the user can correct AI-suggested
@@ -339,15 +363,17 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
       setState(skipped.length > 0 ? (res.data.applied.length > 0 ? "partial" : "failed") : "applied");
       setResult(
         [
-          res.data.applied.length > 0 ? `Applied: ${res.data.applied.join("; ")}` : "",
-          skipped.length > 0 ? `Skipped: ${skipped.map((s) => `${s.change} (${s.reason})`).join("; ")}` : "",
+          res.data.applied.length > 0 ? t("coach.appliedList", { items: res.data.applied.join("; ") }) : "",
+          skipped.length > 0
+            ? t("coach.skippedList", { items: skipped.map((s) => `${s.change} (${s.reason})`).join("; ") })
+            : "",
         ]
           .filter(Boolean)
           .join(" · "),
       );
     } else {
       setState("failed");
-      setResult(res.ok ? "" : res.error);
+      setResult(res.ok ? "" : errorText(res));
     }
   }
 
@@ -356,7 +382,7 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
       <div className="flex items-center gap-2 mb-2">
         <i aria-hidden className="ph ph-seal-check text-sm" style={{ color: "var(--accent)" }} />
         <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--accent)" }}>
-          Proposal · needs your approval
+          {t("coach.proposalTitle")}
         </span>
       </div>
       <textarea
@@ -370,11 +396,13 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
         {proposal.changes.map((c, i) => (
           <div key={i} className="rounded-lg p-2.5 text-sm" style={{ background: "var(--secondary)" }}>
             <div className="mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-              {c.kind === "create" ? `+ ${c.actionType.replace(/_/g, " ")}` : `~ schedule #${c.scheduleId}`}
+              {c.kind === "create"
+                ? t("coach.proposalCreate", { action: actionLabel(c.actionType) })
+                : t("coach.proposalAdjust", { id: c.scheduleId })}
             </div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="flex-1 text-xs" style={{ color: "var(--secondary-foreground)" }}>
-                {c.kind === "adjust" ? "interval" : "every"}
+                {c.kind === "adjust" ? t("coach.proposalInterval") : t("coach.proposalEvery")}
               </span>
               {c.kind === "adjust" && (
                 <span className="text-xs tnum" style={{ color: "var(--faint)", textDecoration: "line-through" }}>
@@ -402,7 +430,7 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
             <input
               className="w-full rounded px-2 py-1.5 text-sm"
               style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit" }}
-              placeholder='Details, e.g. "30 L of 60 L (50 %)" — verify dosages against the product label'
+              placeholder={t("coach.proposalDetailsPlaceholder")}
               defaultValue={c.details ?? ""}
               onChange={(e) => updateChange(i, { details: e.target.value || undefined })}
               maxLength={300}
@@ -416,13 +444,13 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
           className="btn-outline rounded-lg px-4 py-2 text-sm font-medium"
           style={{ minHeight: 44 }}
         >
-          Approve &amp; apply
+          {t("coach.approve")}
         </button>
       ) : (
         <div className="text-sm">
-          {state === "applied" && <StatusNote tone="success">{result || "Applied"}</StatusNote>}
+          {state === "applied" && <StatusNote tone="success">{result || t("coach.applied")}</StatusNote>}
           {state === "partial" && <StatusNote tone="warning">{result}</StatusNote>}
-          {state === "failed" && <StatusNote tone="error">{result || "Failed — nothing was written"}</StatusNote>}
+          {state === "failed" && <StatusNote tone="error">{result || t("coach.failed")}</StatusNote>}
         </div>
       )}
     </div>

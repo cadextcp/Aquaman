@@ -44,6 +44,32 @@ describe("suggestion cache (issue #41)", () => {
     expect(getDailySuggestions(new Date(now.getTime() - 86400000))).toBeNull();
   });
 
+  it("a cache entry from another language is a miss (chips are coach output)", async () => {
+    const { saveDailySuggestions, getDailySuggestions, saveGlobalSettings } = await import("../src/lib/settings");
+    saveGlobalSettings({ locale: "en" });
+    saveDailySuggestions([{ label: "Suggest a fertilization plan", prompt: "Please suggest a fertilization plan." }]);
+    expect(getDailySuggestions(new Date())).not.toBeNull();
+
+    saveGlobalSettings({ locale: "de" });
+    // English chips must not linger in a German UI — a miss regenerates them
+    expect(getDailySuggestions(new Date())).toBeNull();
+
+    saveGlobalSettings({ locale: "en" });
+    expect(getDailySuggestions(new Date())).not.toBeNull();
+  });
+
+  it("a pre-i18n cache entry (no locale) is a miss rather than a crash", async () => {
+    const { db } = await import("../src/lib/db");
+    const { appSettings } = await import("../src/lib/db/schema");
+    const { getDailySuggestions } = await import("../src/lib/settings");
+    const day = new Date().toISOString().slice(0, 10);
+    db.insert(appSettings)
+      .values({ key: "coachSuggestions.v1", value: { day, items: [{ label: "old chip", prompt: "old prompt" }] } as never })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value: { day, items: [{ label: "old chip", prompt: "old prompt" }] } as never } })
+      .run();
+    expect(getDailySuggestions(new Date())).toBeNull();
+  });
+
   it("malformed model output rejected by zod", async () => {
     const { parseSuggestions } = await import("../src/lib/ai/proposal");
     expect(parseSuggestions({ day: "2026-08-24", items: [] })).toBeNull();

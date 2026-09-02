@@ -8,7 +8,7 @@
 import { NextRequest } from "next/server";
 import { logActionCore } from "@/lib/repo";
 import { apiGate } from "@/lib/api/v1-auth";
-import { ok, fail } from "@/lib/api/respond";
+import { ok, failFor } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +18,6 @@ export async function POST(req: NextRequest) {
   if (denied) return denied;
   const body = await req.json().catch(() => null);
   const res = logActionCore(body ?? {});
-  if (!res.ok) return fail(res.error === "Tank not found" ? 404 : 400, res.error);
+  if (!res.ok) return failFor(res);
   return ok({ tankId: res.tankId }, 201);
 }

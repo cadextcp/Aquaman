@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { snoozeScheduleCore } from "@/lib/repo";
 import { apiGate } from "@/lib/api/v1-auth";
-import { ok, fail } from "@/lib/api/respond";
+import { ok, fail, failFor } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +16,6 @@ export async function POST(req: NextRequest, { params }: Params) {
   const body = (await req.json().catch(() => null)) as { until?: string } | null;
   if (!body?.until) return fail(400, "until (YYYY-MM-DD) is required");
   const res = snoozeScheduleCore(id, body.until);
-  if (!res.ok) return fail(res.error === "Schedule not found" ? 404 : 400, res.error);
+  if (!res.ok) return failFor(res);
   return ok({ tankId: res.tankId });
 }

@@ -1,13 +1,18 @@
 {
   "app": {
     "name": "Aquaman",
-    "tagline": "Self-hosted aquarium care"
+    "tagline": "Self-hosted aquarium care",
+    "pageTitle": "{page} — Aquaman",
+    "description": "Self-hosted aquarium care & water tracking with flexible scheduling and ICS calendar",
+    "title": "Aquaman — Aquarium Care"
   },
   "nav": {
-    "dashboard": "Dashboard",
     "tanks": "Tanks",
-    "calendar": "Calendar",
-    "more": "More"
+    "more": "More",
+    "today": "Today",
+    "plan": "Plan",
+    "coach": "Coach",
+    "aria": "Main navigation"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -21,7 +26,43 @@
     "behindHint": "behind since {date}",
     "plannedFor": "planned for {date}",
     "emptyTanks": "No tanks yet — create your first tank to get started.",
-    "createTank": "Create tank"
+    "createTank": "Create tank",
+    "today": "Today",
+    "streakLabel": {
+      "one": "day streak",
+      "other": "day streak"
+    },
+    "feedingToday": "Feeding today",
+    "feedingBackfill": "Feeding · backfill",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "showingToday": "Showing today",
+    "showingDay": "Showing {date}",
+    "adherenceTitle": "Adherence · 30 d",
+    "actionsAcrossTanks": {
+      "one": "{actions} across {n} tank",
+      "other": "{actions} across {n} tanks"
+    },
+    "actionsInTank": "{actions} in {tank}",
+    "onTrack": "on track",
+    "catchingUp": "catching up",
+    "catchUpMore": {
+      "one": "{n} more task behind — it keeps rescheduling to your preferred days, no rush.",
+      "other": "{n} more tasks behind — they keep rescheduling to your preferred days, no rush."
+    },
+    "careQueue": "Care queue",
+    "tapToEdit": "tap a card to edit",
+    "queueClear": {
+      "one": "Queue clear — {n} task closed this week, zero behind.",
+      "other": "Queue clear — {n} tasks closed this week, zero behind."
+    },
+    "doneTodayHeading": "Done today ({n})",
+    "behindHeading": "Behind ({n})",
+    "upcomingHeading": "Coming up this week",
+    "careActions": {
+      "one": "{n} care action",
+      "other": "{n} care actions"
+    }
   },
   "health": {
     "ok": "ok",
@@ -33,7 +74,13 @@
     "cancel": "Cancel",
     "save": "Save",
     "loading": "Loading…",
-    "aiOffline": "AI offline — core features fully working"
+    "aiOffline": "AI offline — core features fully working",
+    "dismiss": "Dismiss",
+    "saved": "Saved",
+    "copy": "Copy",
+    "copied": "Copied",
+    "back": "More",
+    "close": "Close"
   },
   "tanks": {
     "title": "Tanks",
@@ -49,7 +96,40 @@
     "cycling": "cycling",
     "fishCount": "{n} fish",
     "plantsCount": "{n} plant species",
-    "backToList": "← Tanks"
+    "backToList": "← Tanks",
+    "subtitle": {
+      "one": "{n} tank · {actions}",
+      "other": "{n} tanks · {actions}"
+    },
+    "established": "established",
+    "cyclingDay": "cycling day {n}",
+    "heat": "heat",
+    "filter": "filter",
+    "heater": "heater",
+    "statDue": "due today",
+    "statBehind": "behind",
+    "statPlans": "plans",
+    "nextUp": "next: {action} {date}",
+    "noPlansYet": "no plans yet",
+    "nothingThisWeek": "nothing this week",
+    "valuesOff": {
+      "one": "{n} value off",
+      "other": "{n} values off"
+    },
+    "valuesOk": "values ok",
+    "noWaterTest": "no water test yet",
+    "acrossTanks": {
+      "one": "Across tank · 30 d",
+      "other": "Across all tanks · 30 d"
+    },
+    "careActions": {
+      "one": "{n} care action",
+      "other": "{n} care actions"
+    },
+    "careActionsLogged": {
+      "one": "{n} care action logged",
+      "other": "{n} care actions logged"
+    }
   },
   "schedule": {
     "title": "Care schedule",
@@ -72,7 +152,26 @@
     "policySuppress": "Calm — skip too-soon repeats",
     "policyFixed": "Strict — keep exact grid",
     "skipWithin": "Skip if next date is within",
-    "pctOfInterval": "% of the interval"
+    "pctOfInterval": "% of the interval",
+    "tank": "Tank",
+    "details": "Details (optional)",
+    "endsOn": "Ends on (optional)",
+    "likeGlobal": "Like global ({mode})",
+    "modeCalm": "calm",
+    "modeStrict": "strict",
+    "addSubmit": "Add schedule",
+    "pause": "Pause",
+    "resume": "Resume",
+    "waterChangeAmount": "Water change amount",
+    "waterChangeApprox": "≈ {liters} L of {total} L",
+    "topUpAmount": "Top-up amount",
+    "nutrientDose": "Dosage per nutrient (verify against the product label)",
+    "nutrientHint": "Macro (top): CO₂, NO₃, PO₄, K, Mg, Ca · Micro: Fe, Mn, Zn, B, Mo, Cu — free text per nutrient, e.g. “10 ml”",
+    "foodAmount": "Amount per food",
+    "foodPlaceholder": "e.g. {amount} {unit}",
+    "foodPlaceholderEmpty": "e.g. 1 pinch",
+    "noFoodsYet": "Add food types to this tank first (edit tank → “Foods”) — then doses per food can be planned here.",
+    "detailsPlaceholder": "e.g. \"rinse media in tank water\""
   },
   "water": {
     "tests": "Water tests",
@@ -83,15 +182,369 @@
     "lastTest": "Last water test",
     "allOk": "✓ All measured values in range",
     "enterOne": "Enter at least one value",
-    "saved": "✓ Saved"
+    "saved": "✓ Saved",
+    "chooseValue": "Choose {label} value",
+    "typePlaceholder": "type",
+    "editMeasurement": "Edit measurement",
+    "deleteMeasurement": "Delete measurement",
+    "deleteConfirm": "Delete the measurement from {date}? This cannot be undone.",
+    "savedShort": "saved",
+    "historyCount": "History ({n})",
+    "formTitle": "Water test",
+    "filledCount": "{n}/{total} values",
+    "statusWarn": "warn",
+    "statusCritical": "critical",
+    "statusOk": "ok",
+    "bandIn": "in band",
+    "bandOff": "off band",
+    "bandCritical": "critical",
+    "nh3Message": "Free NH₃ {nh3} mg/l (from NH₄ {nh4} at pH {ph}, {temp}°C)"
   },
   "more": {
     "title": "More",
-    "comingSoon": "Settings, AI coach and calendar follow in the next phases."
+    "comingSoon": "Settings, AI coach and calendar follow in the next phases.",
+    "conceptsTitle": "How Aquaman plans",
+    "conceptsDesc": "Target dates, re-planning and why your backlog stays honest",
+    "debugTitle": "Debug",
+    "debugDesc": "Raw request/response of the last AI calls",
+    "thisMonth": "This month ({month})",
+    "statWaterChanges": "Water changes",
+    "statFeedings": "Feedings",
+    "statWaterTests": "Water tests",
+    "statOtherCare": "Other care",
+    "medianTitle": "Median delay by plan",
+    "medianTarget": "target < 2 d water change · < 1 d fertilize",
+    "medianEmpty": "No completed tasks yet — check tasks off and this fills in.",
+    "medianValue": "{n} d median",
+    "medianCount": "({n}×)",
+    "overloadTitle": "Interval too tight? ({n})",
+    "overloadRow": "{tank} · {action} — {n} missed slots",
+    "aiTitle": "AI coach",
+    "aiOnline": "Online",
+    "aiOnlineDetail": "today: {calls} calls · {tokens} tokens. Daily limits reset at local midnight.",
+    "aiOffline": "Offline",
+    "aiOfflineDetail": "no API key configured yet (set one in the AI provider section below). The app works fully without it.",
+    "aiCost": "Last 30 days: {calls} calls · {tokens} tokens · ≈{cost} cost units"
   },
   "calendarPage": {
     "title": "Calendar",
-    "phase3": "In-app calendar view and the ICS feed for Google Calendar arrive in Phase 3."
+    "phase3": "In-app calendar view and the ICS feed for Google Calendar arrive in Phase 3.",
+    "planned": {
+      "one": "{n} planned",
+      "other": "{n} planned"
+    },
+    "behind": {
+      "one": "{n} behind",
+      "other": "{n} behind"
+    },
+    "today": "Today",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "taskWithTank": "{action} — {tank}",
+    "empty": "No schedules yet — add care plans on a tank's page and their dates appear here.",
+    "emptyHint": "You can subscribe to this plan from any calendar app.",
+    "todayHeading": "Today",
+    "chipBehind": "behind",
+    "chipDue": "due",
+    "icsHint": "Subscribe to this plan from a calendar app",
+    "icsManage": "manage",
+    "chipEdit": "{label} — click to edit",
+    "icsSummary": "Aquaman: {action} — {tank}"
+  },
+  "settings": {
+    "language": {
+      "title": "Language",
+      "description": "Applies to the whole app: interface, calendar event titles and the coach's answers."
+    },
+    "ics": {
+      "title": "Calendar feed (ICS)",
+      "description": "Subscribe to this URL in Google Calendar (“Other calendars → From URL”). It updates automatically — Google refreshes external feeds roughly once a day.",
+      "rotate": "Rotate token (invalidates the current URL)",
+      "rotateConfirm": "Rotate the ICS token? The current subscribe URL will stop working immediately."
+    },
+    "mcp": {
+      "title": "MCP endpoint (for agents like OpenClaw)",
+      "description": "Remote agents read tank state and record care via the Model Context Protocol. Configure the URL and send the token as {header} header. Write tools can log care — nothing can be deleted or rewritten remotely.",
+      "copyUrl": "Copy URL",
+      "copyToken": "Copy token",
+      "rotate": "Rotate token (invalidates the current one)",
+      "rotateConfirm": "Rotate the MCP token? Every configured agent loses access immediately until you update it."
+    },
+    "api": {
+      "title": "REST API (for scripts, displays, Home Assistant, ...)",
+      "description": "A generic control surface for tanks, plans, maintenance history, feedings and water tests — send the token as {header} header. Full API reference with a try-it-out console:",
+      "copyDocs": "Copy docs URL",
+      "copyToken": "Copy token",
+      "rotate": "Rotate token (invalidates the current one)",
+      "rotateConfirm": "Rotate the API token? Every configured client (an ESPHome display, a script, ...) loses access immediately until you update it."
+    },
+    "data": {
+      "title": "Data — export / import",
+      "description": "Your data is yours: export everything as JSON, or move a snapshot into a fresh instance. Secrets (tokens, API keys) are never part of an export.",
+      "export": "Download JSON export",
+      "import": "Import snapshot…",
+      "importing": "Importing…",
+      "tooLarge": "File too large (max 20 MB)",
+      "importConfirm": "Import \"{file}\"?\n\nThis REPLACES all current data (tanks, schedules, logs, water tests, feeding history). There is no undo — export first if unsure.",
+      "imported": "Imported: {tanks} tanks · {schedules} schedules · {logs} logs · {waterTests} water tests · {feedDays} feed days · {aiCalls} AI call records",
+      "importFailed": "Import failed",
+      "readFailed": "Could not read file"
+    },
+    "tightGap": {
+      "title": "Scheduling — after catching up",
+      "description": "After a busy week, several tasks can pile up and get done on one day. The next regular date can then land very soon after — e.g. a water change due again just 3 days later. This setting controls what happens:",
+      "calmTitle": "Calm (recommended)",
+      "calmDesc": "Skip the next regular date if it falls within the threshold of the interval — you just did the task, after all. Exactly one date is skipped, the grid continues normally afterwards.",
+      "strictTitle": "Strict",
+      "strictDesc": "Keep every regular date exactly on the grid, even shortly after a catch-up. Choose this if you want maximum consistency.",
+      "skipWithin": "Skip when the next date is within",
+      "pctOfInterval": "% of the interval",
+      "footnote": "Applies to all plans. Individual plans can still override this in their edit dialog."
+    },
+    "ai": {
+      "title": "AI provider",
+      "noKey": "No API key set yet — the coach stays offline until one is added below.",
+      "apiKey": "API key",
+      "saveKey": "Save key",
+      "clear": "Clear",
+      "keyPlaceholderSet": "•••••••••••••• (set — enter a new value to replace)",
+      "keyPlaceholderNew": "sk-...",
+      "keyNote": "Stored in the app's data directory, never in the database or exports, and never shown again after saving.",
+      "envFallback": "An {envVar} environment variable is also set and will be used as a fallback.",
+      "keySaveFailed": "Could not save key",
+      "saveFailed": "Could not save",
+      "custom": "Custom",
+      "customEndpoint": "custom endpoint",
+      "baseUrl": "Base URL (Anthropic-compatible)",
+      "model": "Model (free text)",
+      "provider": "Provider",
+      "maxCalls": "Max calls / day",
+      "maxTokens": "Max tokens / day",
+      "save": "Save AI settings",
+      "footnote": "These settings override the environment variables."
+    }
+  },
+  "card": {
+    "clickToEdit": "Click to view & edit this schedule",
+    "editTitle": "Edit schedule",
+    "deleteSchedule": "Delete schedule",
+    "deleteConfirm": "Delete \"{action}\" ({tank})?\nLogs and history stay — only the schedule disappears.",
+    "markDone": "Mark {action} done",
+    "undoDone": "Undo done",
+    "doneEarly": "done early",
+    "later": "later",
+    "snoozeDays": {
+      "one": "+{n} day",
+      "other": "+{n} days"
+    },
+    "until": "· until {date}",
+    "onTimePct": "· {n}% on time",
+    "doneToday": "done today",
+    "next": "next",
+    "dueToday": "due today",
+    "dueInDays": {
+      "one": "due in {n} day",
+      "other": "due in {n} days"
+    }
+  },
+  "feed": {
+    "fedTimes": "fed {n}×",
+    "notFed": "not fed",
+    "ariaFed": "{tank}: fed {n} times",
+    "ariaNotFed": "{tank}: not fed",
+    "undoFeeding": "Undo feeding for {tank}",
+    "feedOnceMore": "Feed {tank} once more"
+  },
+  "tankFilter": {
+    "allTanks": "All tanks"
+  },
+  "tankDetail": {
+    "nh3Alert": "Free NH₃ {value} mg/l — above 0.020 toxic threshold",
+    "lastWaterTest": "Last water test · {date}",
+    "allInRange": "All measured values in range",
+    "waterLastTests": "Water · last {n} tests",
+    "noPlansHint": "No care plans yet — add your first routine below. Each plan gets a target date, lands only on the weekdays you pick, and shows up in the calendar and the feed.",
+    "intervalTooTight": "interval too tight? ({n} missed slots)",
+    "logAllActivity": "Log all activity",
+    "nothingLogged": "Nothing logged yet.",
+    "waterTestEntry": "Water test",
+    "valuesCount": {
+      "one": "{n} value",
+      "other": "{n} values"
+    },
+    "outsideBand": " · {n} outside band",
+    "daysLate": "{n} d late",
+    "early": "early"
+  },
+  "tankForm": {
+    "name": "Name",
+    "namePlaceholder": "e.g. 240L Community Tank",
+    "volume": "Volume (liters)",
+    "waterType": "Water type",
+    "state": "State",
+    "established": "Established",
+    "cyclingOption": "Cycling (NO₂/NH₃ peaks tolerated)",
+    "equipment": "Equipment",
+    "filter": "Filter",
+    "heater": "Heater",
+    "co2": "CO₂ system",
+    "filterTypePlaceholder": "Filter type (optional)",
+    "plants": "Plants",
+    "plantsPlaceholder": "e.g. Vallisneria",
+    "addPlant": "+ add plant",
+    "fish": "Fish",
+    "fishPlaceholder": "e.g. Neon tetra",
+    "addFish": "+ add fish",
+    "foods": "Foods (for the feed plan)",
+    "foodNamePlaceholder": "e.g. Flakes",
+    "foodAmountPlaceholder": "e.g. 1",
+    "foodUnitPlaceholder": "e.g. pinch",
+    "addFood": "+ Add food",
+    "remove": "remove",
+    "deleteConfirm": "Delete tank \"{name}\"? Logs and tests are kept (soft delete)."
+  },
+  "editTank": {
+    "aria": "Edit {name}"
+  },
+  "action": {
+    "water_change": "Water change",
+    "feed": "Feed",
+    "fertilize": "Fertilize",
+    "water_test": "Water test",
+    "substrate_vacuum": "Substrate vacuum",
+    "filter_change": "Filter change",
+    "filter_clean": "Filter clean",
+    "water_top_up": "Water top up",
+    "glass_clean": "Glass clean",
+    "plant_trim": "Plant trim"
+  },
+  "coach": {
+    "title": "Coach",
+    "usage": {
+      "one": "{n} call today · {tokens} tokens",
+      "other": "{n} calls today · {tokens} tokens"
+    },
+    "noTanks": "No tanks yet — create a tank first so the coach has something to talk about.",
+    "createTank": "Create tank",
+    "notConfigured": "AI is not configured — set {key} (and optionally {baseUrl} / {model}) to enable the coach. Everything else works without it.",
+    "intro": "Ask about your tanks, values or plan — e.g. “Nitrite is 0.3, what should I do?” or “Set up a care plan for my new tank”. Schedule changes arrive as proposals you approve.",
+    "placeholder": "Ask the coach…",
+    "send": "Ask",
+    "disclaimer": "Advice, not medication dosages — every schedule change waits for your approval.",
+    "budget": "Today: {calls}/{maxCalls} calls, {tokens}/{maxTokens} tokens",
+    "offline": "AI is offline — core features are fully working without it.",
+    "unreachable": "AI is unreachable — core features are fully working without it.",
+    "noAnswer": "No answer received — please send your question again.",
+    "aiError": "AI error",
+    "proposalTitle": "Proposal · needs your approval",
+    "proposalCreate": "+ {action}",
+    "proposalAdjust": "~ schedule #{id}",
+    "proposalInterval": "interval",
+    "proposalEvery": "every",
+    "proposalDetailsPlaceholder": "Details, e.g. “30 L of 60 L (50 %)” — verify dosages against the product label",
+    "approve": "Approve & apply",
+    "applied": "Applied",
+    "appliedList": "Applied: {items}",
+    "skippedList": "Skipped: {items}",
+    "failed": "Failed — nothing was written",
+    "reviewThinking": "The coach is reviewing your plan due to {why}…",
+    "reviewWhyWaterTest": "new water test results",
+    "reviewWhyParams": "changed tank parameters",
+    "reviewReady": "Plan review finished",
+    "badgeRecommendations": "{n} plan recommendations",
+    "recommendInitialTitle": "Create an initial care plan",
+    "recommendUpdateTitle": "Update the care plan",
+    "recommendInitialBody": "Set up the five standard plans — fertilizer, feed, filter change, water change and water test.",
+    "recommendUpdateBody": {
+      "one": "Master data changed — the {plans} plan is missing or may need an update.",
+      "other": "Master data changed — the {plans} plans are missing or may need an update."
+    },
+    "recommendAsk": "Ask the coach to draft it",
+    "recommendManual": "or add manually ({n})",
+    "recommendManualHint": "Scroll to “Care plans” → + add plan: {plans}",
+    "promptInitial": "Please create an initial care plan for \"{tank}\" (tank {id}) — suggest fertilize, feed, filter change, water change and water test schedules with concrete details.",
+    "promptUpdate": "My tank \"{tank}\" (tank {id}) changed — please review and update the care plan ({plans} missing).",
+    "skipTankGone": "tank no longer exists",
+    "skipDuplicate": "a {action} plan already exists for this tank (one per type)",
+    "skipScheduleGone": "schedule no longer exists (or is inactive)",
+    "skipWriteFailed": "write failed",
+    "changeCreate": "create {action}, every {n} d (tank {tank})",
+    "changeAdjust": "adjust plan #{id} → every {n} d"
+  },
+  "debug": {
+    "title": "Debug",
+    "subtitle": "Raw request/response of the last AI calls — coach, plan review, daily suggestions.",
+    "empty": "No AI calls logged yet. This fills in as soon as the coach, plan review, or daily suggestions talk to the provider.",
+    "showing": "Showing the {n} most recent of up to 200 kept calls — oldest are dropped automatically.",
+    "error": "error",
+    "request": "Request",
+    "response": "Response",
+    "noResponse": "(no response — call failed before completion)"
+  },
+  "param": {
+    "temp": "Temperature",
+    "ph": "pH",
+    "kh": "KH (carbonate hardness)",
+    "gh": "GH (total hardness)",
+    "co2": "CO₂",
+    "no2": "Nitrite (NO₂)",
+    "no3": "Nitrate (NO₃)",
+    "nh4": "Ammonium (NH₄ total)",
+    "po4": "Phosphate (PO₄)",
+    "fe": "Iron (Fe)",
+    "cl2": "Chlorine (Cl₂)",
+    "o2": "Oxygen (O₂)",
+    "salinity": "Salinity",
+    "ca": "Calcium (Ca)",
+    "mg": "Magnesium (Mg)",
+    "alkalinity": "Alkalinity (KH)"
+  },
+  "nutrient": {
+    "c_co2": "Carbon (C) / CO₂",
+    "n_no3": "Nitrogen (N) / nitrate",
+    "p_po4": "Phosphorus (P) / phosphate",
+    "k": "Potassium (K)",
+    "mg": "Magnesium (Mg)",
+    "ca": "Calcium (Ca)",
+    "fe": "Iron (Fe)",
+    "mn": "Manganese (Mn)",
+    "zn": "Zinc (Zn)",
+    "b": "Boron (B)",
+    "mo": "Molybdenum (Mo)",
+    "cu": "Copper (Cu)"
+  },
+  "error": {
+    "validation": "Please check your entries: {detail}",
+    "tank.notFound": "Tank not found",
+    "tank.createFailed": "Could not create tank",
+    "tank.updateFailed": "Could not update tank",
+    "tank.deleteFailed": "Could not delete tank",
+    "schedule.notFound": "Schedule not found",
+    "schedule.createFailed": "Could not create schedule",
+    "schedule.updateFailed": "Could not update schedule",
+    "schedule.deleteFailed": "Could not delete schedule",
+    "schedule.duplicateType": "This tank already has a {action} plan (one per type) — edit that one instead",
+    "schedule.doneFailed": "Could not mark done",
+    "snooze.pastDate": "Cannot move a task to a past date",
+    "snooze.failed": "Could not move the task",
+    "undo.nothing": "Nothing to undo",
+    "undo.failed": "Could not undo",
+    "waterTest.notFound": "Water test not found",
+    "waterTest.saveFailed": "Could not save water test",
+    "waterTest.updateFailed": "Could not update water test",
+    "waterTest.deleteFailed": "Could not delete water test",
+    "values.invalid": "Invalid values: {detail}",
+    "feed.failed": "Could not change the feeding count",
+    "feed.invalidDate": "Not a valid date",
+    "feed.futureDate": "Feeding cannot be logged for a future date",
+    "feed.backfillLimit": "Feeding can only be filled in 30 days back",
+    "log.failed": "Could not log the action",
+    "log.notLoggable": "Action type must be one of: {types}",
+    "log.feedIsCounter": "Feeding is a daily count, not a logged action — use the feeding control on the dashboard",
+    "token.rotateFailed": "Could not rotate the token",
+    "settings.invalid": "Invalid settings",
+    "proposal.invalid": "The proposal did not validate — nothing was written",
+    "import.failed": "Import failed — nothing was changed. {detail}"
   },
   "help": {
     "topics": {
@@ -268,6 +721,8 @@
           ]
         }
       ]
-    }
+    },
+    "whatDoesThisMean": "What does “{term}” mean?",
+    "howAquamanPlans": "How Aquaman plans"
   }
 }

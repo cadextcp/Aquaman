@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   const tankIdParam = Number(url.searchParams.get("tankId"));
   const tankId = Number.isInteger(tankIdParam) && tankIdParam > 0 ? tankIdParam : undefined;
   const res = getPendingMaintenance({ tankId });
+  // MCP tool outcomes carry no failure code (machine-facing surface only)
   if (!res.ok) return fail(400, res.error);
   return ok(res.payload);
 }

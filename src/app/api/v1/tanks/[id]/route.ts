@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { getTank, updateTankCore, deleteTankCore } from "@/lib/repo";
 import { apiGate } from "@/lib/api/v1-auth";
 import { serializeTank } from "@/lib/api/serialize";
-import { ok, fail, notFound } from "@/lib/api/respond";
+import { ok, notFound, failFor } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!getTank(id)) return notFound("Tank not found");
   const body = await req.json().catch(() => null);
   const res = updateTankCore(id, body ?? {});
-  if (!res.ok) return fail(400, res.error);
+  if (!res.ok) return failFor(res);
   return ok(serializeTank(getTank(id)!));
 }
 
@@ -46,6 +46,6 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const id = parseId((await params).id);
   if (id === null) return notFound("Tank not found");
   const res = deleteTankCore(id);
-  if (!res.ok) return fail(400, res.error);
+  if (!res.ok) return failFor(res);
   return new Response(null, { status: 204 });
 }

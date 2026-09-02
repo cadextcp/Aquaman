@@ -19,7 +19,7 @@
  * DELETE (session teardown) are meaningless without sessions → 405.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { McpServer, WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
 import { createAquamanMcpServer } from "@/lib/mcp/server";
 import { getOrCreateMcpToken, safeTokenEqual } from "@/lib/mcp-token";
 import { bearerGate } from "@/lib/api/guard";

@@ -4,12 +4,12 @@ import { useState, useTransition } from "react";
 import { HelpNote } from "./ui/help";
 import { useRouter } from "next/navigation";
 import { createSchedule, markDone, snooze, setScheduleActive } from "@/app/actions";
-import { WEEKDAY_LABELS, ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } from "@/lib/schemas";
+import { ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } from "@/lib/schemas";
 import type { ScheduleInput } from "@/lib/schemas";
 import type { Schedule } from "@/lib/db/schema";
 import { StructuredDetailsEditor } from "./structured-details-editor";
-import { formatDetailData } from "@/lib/domain/plan-structure";
 import { SCHEDULABLE_ACTION_TYPES, actionTypeDef } from "@/lib/domain/action-types";
+import { useI18n } from "@/i18n/provider";
 
 const ACTIONS = SCHEDULABLE_ACTION_TYPES;
 
@@ -34,6 +34,7 @@ export function ScheduleForm({
   tankFoods?: { name: string; amount: string; unit: string }[];
 }) {
   const router = useRouter();
+  const { t, weekdayLabels, errorText } = useI18n();
   const editing = !!schedule;
   const [selectedTankId, setSelectedTankId] = useState(tankId);
   const [actionType, setActionType] = useState(schedule?.actionType ?? "water_change");
@@ -75,7 +76,7 @@ export function ScheduleForm({
       ? await (await import("@/app/actions")).updateSchedule(schedule.id, input)
       : await createSchedule(input);
     if (!res.ok) {
-      setError(res.error);
+      setError(errorText(res));
       return;
     }
     startTransition(() => router.refresh());
@@ -90,7 +91,7 @@ export function ScheduleForm({
 
       {editing && tanks.length > 0 && (
         <div>
-          <label className="block text-xs uppercase tracking-wide mb-1">Tank</label>
+          <label className="block text-xs uppercase tracking-wide mb-1">{t("schedule.tank")}</label>
           <select className={field} style={input} value={selectedTankId}
             onChange={(e) => setSelectedTankId(Number(e.target.value))}>
             {tanks.map((tk) => <option key={tk.id} value={tk.id}>{tk.name}</option>)}
@@ -100,13 +101,13 @@ export function ScheduleForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-xs uppercase tracking-wide mb-1">Action</label>
+          <label className="block text-xs uppercase tracking-wide mb-1">{t("schedule.action")}</label>
           <input list="action-list" className={field} style={input} value={actionType}
             onChange={(e) => setActionType(e.target.value)} required />
           <datalist id="action-list">{ACTIONS.map((a) => <option key={a} value={a} />)}</datalist>
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-wide mb-1">Every … days</label>
+          <label className="block text-xs uppercase tracking-wide mb-1">{t("schedule.interval")}</label>
           <input type="number" min={1} max={365} className={field} style={input} value={intervalDays}
             onChange={(e) => setIntervalDays(Number(e.target.value))} required />
         </div>
@@ -125,9 +126,9 @@ export function ScheduleForm({
         />
       ) : (
         <div>
-          <label className="block text-xs uppercase tracking-wide mb-1">Details (optional)</label>
+          <label className="block text-xs uppercase tracking-wide mb-1">{t("schedule.details")}</label>
           <input className={field} style={input} value={details}
-            placeholder='e.g. "rinse media in tank water"'
+            placeholder={t("schedule.detailsPlaceholder")}
             onChange={(e) => setDetails(e.target.value)} maxLength={300} />
         </div>
       )}
@@ -136,16 +137,16 @@ export function ScheduleForm({
       )}
 
       <div>
-        <label className="block text-xs uppercase tracking-wide mb-1">Ends on (optional)</label>
+        <label className="block text-xs uppercase tracking-wide mb-1">{t("schedule.endsOn")}</label>
         <input type="date" className={field} style={input} value={endsOn}
           onChange={(e) => setEndsOn(e.target.value)} />
         <HelpNote id="endsOn" />
       </div>
 
       <div>
-        <label className="block text-xs uppercase tracking-wide mb-1.5">Preferred days</label>
+        <label className="block text-xs uppercase tracking-wide mb-1.5">{t("schedule.preferred")}</label>
         <div className="flex flex-wrap gap-1.5">
-          {WEEKDAY_LABELS.map((d, i) => (
+          {weekdayLabels().map((d, i) => (
             <button key={d} type="button" onClick={() => toggleDay(i)}
               className="rounded-lg px-3 py-2 text-xs font-medium"
               style={{
@@ -159,9 +160,9 @@ export function ScheduleForm({
           ))}
         </div>
         <div className="flex gap-3 mt-2 text-xs">
-          <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(ALL_DAYS))}>every day</button>
-          <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(WEEKEND))}>weekends</button>
-          <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(WEEKDAYS))}>weekdays</button>
+          <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(ALL_DAYS))}>{t("schedule.everyDay")}</button>
+          <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(WEEKEND))}>{t("schedule.weekends")}</button>
+          <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => setDays(maskToDays(WEEKDAYS))}>{t("schedule.weekdays")}</button>
         </div>
         <HelpNote id="preferredDays" />
       </div>
@@ -169,16 +170,16 @@ export function ScheduleForm({
       <label className="flex items-center gap-3 text-sm py-1">
         <input type="checkbox" checked={autoReschedule} onChange={(e) => setAutoReschedule(e.target.checked)}
           className="h-5 w-5" style={{ accentColor: "var(--primary)" }} />
-        Auto-reschedule overdue tasks to the next preferred day
+        {t("schedule.autoResched")}
       </label>
 
       <fieldset className="rounded-lg p-3" style={{ border: "1px solid var(--border)" }}>
-        <legend className="text-xs uppercase tracking-wide px-2">After catching up</legend>
+        <legend className="text-xs uppercase tracking-wide px-2">{t("schedule.afterCatchup")}</legend>
         <div className="flex flex-wrap gap-2 mb-2">
           {([
-            ["default", `Like global (${globalPolicy === "suppress" ? "calm" : "strict"})`],
-            ["suppress", "Calm — skip too-soon repeats"],
-            ["fixed", "Strict — keep exact grid"],
+            ["default", t("schedule.likeGlobal", { mode: globalPolicy === "suppress" ? t("schedule.modeCalm") : t("schedule.modeStrict") })],
+            ["suppress", t("schedule.policySuppress")],
+            ["fixed", t("schedule.policyFixed")],
           ] as const).map(([v, labelText]) => (
             <button key={v} type="button" onClick={() => setPolicy(v)}
               className="rounded-lg px-3 py-2 text-xs"
@@ -193,11 +194,11 @@ export function ScheduleForm({
         </div>
         {policy === "suppress" && (
           <label className="flex items-center gap-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
-            Skip if next date is within
+            {t("schedule.skipWithin")}
             <input type="number" min={1} max={99} value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))} className="w-16 rounded px-2 py-1"
               style={input} />
-            % of the interval
+            {t("schedule.pctOfInterval")}
           </label>
         )}
       </fieldset>
@@ -206,13 +207,13 @@ export function ScheduleForm({
         <button type="submit" disabled={pending}
           className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
           style={{ minHeight: 44 }}>
-          {editing ? "Save" : "Add schedule"}
+          {editing ? t("common.save") : t("schedule.addSubmit")}
         </button>
         {editing && (
           <button type="button" disabled={pending}
             onClick={async () => { await setScheduleActive(schedule.id, !schedule.active); startTransition(() => router.refresh()); }}
             className="rounded-lg px-5 py-2.5 text-sm" style={{ border: "1px solid var(--border)", minHeight: 44 }}>
-            {schedule.active ? "Pause" : "Resume"}
+            {schedule.active ? t("schedule.pause") : t("schedule.resume")}
           </button>
         )}
       </div>

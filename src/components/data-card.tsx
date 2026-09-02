@@ -10,8 +10,10 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { importDataAction } from "@/app/actions-data";
 import { StatusNote } from "./ui/status-note";
+import { useI18n } from "@/i18n/provider";
 
 export function DataCard() {
+  const { t, errorText } = useI18n();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -23,12 +25,12 @@ export function DataCard() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 20 * 1024 * 1024) {
-      setResult("File too large (max 20 MB)");
+      setResult(t("settings.data.tooLarge"));
       setIsError(true);
       return;
     }
     // first confirm: explicit "replace everything" wording
-    if (!confirm(`Import "${file.name}"?\n\nThis REPLACES all current data (tanks, schedules, logs, water tests, feeding history). There is no undo — export first if unsure.`)) {
+    if (!confirm(t("settings.data.importConfirm", { file: file.name }))) {
       e.target.value = "";
       return;
     }
@@ -40,16 +42,23 @@ export function DataCard() {
       if (res.ok && res.data) {
         const d = res.data;
         setResult(
-          `Imported: ${d.tanks} tanks · ${d.schedules} schedules · ${d.maintenanceLogs} logs · ${d.waterTests} water tests · ${d.feedLogs} feed days · ${d.aiCalls} AI call records`,
+          t("settings.data.imported", {
+            tanks: d.tanks,
+            schedules: d.schedules,
+            logs: d.maintenanceLogs,
+            waterTests: d.waterTests,
+            feedDays: d.feedLogs,
+            aiCalls: d.aiCalls,
+          }),
         );
         setIsError(false);
         router.refresh();
       } else {
-        setResult(res.ok ? "Import failed" : res.error);
+        setResult(res.ok ? t("settings.data.importFailed") : errorText(res));
         setIsError(true);
       }
     } catch (err) {
-      setResult(err instanceof Error ? err.message : "Could not read file");
+      setResult(err instanceof Error ? err.message : t("settings.data.readFailed"));
       setIsError(true);
     } finally {
       setBusy(false);
@@ -60,11 +69,10 @@ export function DataCard() {
   return (
     <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-        Data — export / import
+        {t("settings.data.title")}
       </div>
       <p className="text-sm mb-3" style={{ color: "var(--muted-foreground)" }}>
-        Your data is yours: export everything as JSON, or move a snapshot into a fresh instance. Secrets (tokens, API keys)
-        are never part of an export.
+        {t("settings.data.description")}
       </p>
       <div className="flex flex-col sm:flex-row gap-2">
         <a
@@ -73,13 +81,13 @@ export function DataCard() {
           className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
           style={{ minHeight: 44 }}
         >
-          <i aria-hidden className="ph ph-download-simple" /> Download JSON export
+          <i aria-hidden className="ph ph-download-simple" /> {t("settings.data.export")}
         </a>
         <label
           className="btn-ghost inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
           style={{ minHeight: 44, opacity: busy ? 0.6 : 1 }}
         >
-          {busy ? "Importing…" : <><i aria-hidden className="ph ph-upload-simple" /> Import snapshot…</>}
+          {busy ? t("settings.data.importing") : <><i aria-hidden className="ph ph-upload-simple" /> {t("settings.data.import")}</>}
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFile} disabled={busy} />
         </label>
       </div>

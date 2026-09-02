@@ -4,10 +4,15 @@ import { revalidatePath } from "next/cache";
 import type { TankInput, ScheduleInput } from "@/lib/schemas";
 import { today as todayStr } from "@/lib/domain/dates";
 import { feedDayError } from "@/lib/domain/feed-window";
+import { failure, type ErrorCode, type ErrorVars } from "@/lib/domain/errors";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
-  | { ok: false; error: string; fieldErrors?: Record<string, string> };
+  /**
+   * `error` stays English (it is what the REST API serves); `code`/`vars` are
+   * what the UI renders through the catalogs — see lib/domain/errors.ts.
+   */
+  | { ok: false; error: string; code: ErrorCode; vars?: ErrorVars; fieldErrors?: Record<string, string> };
 
 // ==================== Tanks ====================
 //
@@ -27,7 +32,7 @@ export async function createTank(input: TankInput, photoPath?: string | null): P
     return { ok: true, data: { id: res.id } };
   } catch (err) {
     console.error("[createTank]", err);
-    return { ok: false, error: "Could not create tank" };
+    return failure("tank.createFailed", "Could not create tank");
   }
 }
 
@@ -48,7 +53,7 @@ export async function updateTank(id: number, input: TankInput, photoPath?: strin
     return { ok: true };
   } catch (err) {
     console.error("[updateTank]", err);
-    return { ok: false, error: "Could not update tank" };
+    return failure("tank.updateFailed", "Could not update tank");
   }
 }
 
@@ -62,7 +67,7 @@ export async function deleteTank(id: number): Promise<ActionResult> {
     return { ok: true };
   } catch (err) {
     console.error("[deleteTank]", err);
-    return { ok: false, error: "Could not delete tank" };
+    return failure("tank.deleteFailed", "Could not delete tank");
   }
 }
 
@@ -78,7 +83,7 @@ export async function createSchedule(input: ScheduleInput): Promise<ActionResult
     return { ok: true, data: { id: res.id } };
   } catch (err) {
     console.error("[createSchedule]", err);
-    return { ok: false, error: "Could not create schedule" };
+    return failure("schedule.createFailed", "Could not create schedule");
   }
 }
 
@@ -92,7 +97,7 @@ export async function updateSchedule(id: number, input: ScheduleInput): Promise<
     return { ok: true };
   } catch (err) {
     console.error("[updateSchedule]", err);
-    return { ok: false, error: "Could not update schedule" };
+    return failure("schedule.updateFailed", "Could not update schedule");
   }
 }
 
@@ -112,7 +117,7 @@ export async function deleteSchedule(id: number): Promise<ActionResult> {
     return { ok: true };
   } catch (err) {
     console.error("[deleteSchedule]", err);
-    return { ok: false, error: "Could not delete schedule" };
+    return failure("schedule.deleteFailed", "Could not delete schedule");
   }
 }
 
@@ -125,7 +130,7 @@ export async function setScheduleActive(id: number, active: boolean): Promise<Ac
     return { ok: true };
   } catch (err) {
     console.error("[setScheduleActive]", err);
-    return { ok: false, error: "Could not update schedule" };
+    return failure("schedule.updateFailed", "Could not update schedule");
   }
 }
 
@@ -141,7 +146,7 @@ export async function markDone(scheduleId: number, note?: string): Promise<Actio
     return { ok: true };
   } catch (err) {
     console.error("[markDone]", err);
-    return { ok: false, error: "Could not mark done" };
+    return failure("schedule.doneFailed", "Could not mark done");
   }
 }
 
@@ -155,7 +160,7 @@ export async function snooze(scheduleId: number, until: string): Promise<ActionR
     return { ok: true };
   } catch (err) {
     console.error("[snooze]", err);
-    return { ok: false, error: "Could not snooze" };
+    return failure("snooze.failed", "Could not snooze");
   }
 }
 
@@ -174,7 +179,7 @@ export async function logWaterTest(input: unknown): Promise<ActionResult> {
     return { ok: true };
   } catch (err) {
     console.error("[logWaterTest]", err);
-    return { ok: false, error: "Could not save water test" };
+    return failure("waterTest.saveFailed", "Could not save water test");
   }
 }
 
@@ -190,7 +195,7 @@ export async function markFedToday(tankId: number): Promise<ActionResult> {
     return { ok: true };
   } catch (err) {
     console.error("[markFedToday]", err);
-    return { ok: false, error: "Could not mark fed" };
+    return failure("feed.failed", "Could not mark fed");
   }
 }
 
@@ -205,7 +210,7 @@ export async function rotateIcsTokenAction(): Promise<ActionResult<{ token: stri
     return { ok: true, data: { token } };
   } catch (err) {
     console.error("[rotateIcsTokenAction]", err);
-    return { ok: false, error: "Could not rotate token" };
+    return failure("token.rotateFailed", "Could not rotate token");
   }
 }
 
@@ -220,7 +225,7 @@ export async function rotateMcpTokenAction(): Promise<ActionResult<{ token: stri
     return { ok: true, data: { token } };
   } catch (err) {
     console.error("[rotateMcpTokenAction]", err);
-    return { ok: false, error: "Could not rotate token" };
+    return failure("token.rotateFailed", "Could not rotate token");
   }
 }
 
@@ -235,7 +240,7 @@ export async function rotateApiTokenAction(): Promise<ActionResult<{ token: stri
     return { ok: true, data: { token } };
   } catch (err) {
     console.error("[rotateApiTokenAction]", err);
-    return { ok: false, error: "Could not rotate token" };
+    return failure("token.rotateFailed", "Could not rotate token");
   }
 }
 
@@ -251,7 +256,7 @@ export async function undoLastDone(scheduleId: number): Promise<ActionResult> {
     return { ok: true };
   } catch (err) {
     console.error("[undoLastDone]", err);
-    return { ok: false, error: "Could not undo" };
+    return failure("undo.failed", "Could not undo");
   }
 }
 
@@ -270,7 +275,7 @@ export async function adjustFeedToday(tankId: number, delta: 1 | -1): Promise<Ac
     return { ok: true, data: { timesFed: res.timesFed } };
   } catch (err) {
     console.error("[adjustFeedToday]", err);
-    return { ok: false, error: "Could not adjust feeding" };
+    return failure("feed.failed", "Could not adjust feeding");
   }
 }
 
@@ -281,7 +286,7 @@ export async function adjustFeedOn(
   delta: 1 | -1,
 ): Promise<ActionResult<{ timesFed: number }>> {
   const dayErr = feedDayError(day);
-  if (dayErr) return { ok: false, error: dayErr };
+  if (dayErr) return failure(dayErr.code, dayErr.error);
   try {
     const { adjustFeedCore } = await import("@/lib/repo");
     const res = adjustFeedCore(tankId, day, delta);
@@ -289,7 +294,7 @@ export async function adjustFeedOn(
     return { ok: true, data: { timesFed: res.timesFed } };
   } catch (err) {
     console.error("[adjustFeedOn]", err);
-    return { ok: false, error: "Could not adjust feeding" };
+    return failure("feed.failed", "Could not adjust feeding");
   }
 }
 
@@ -308,7 +313,7 @@ export async function updateWaterTest(input: unknown): Promise<ActionResult> {
     return { ok: true };
   } catch (err) {
     console.error("[updateWaterTest]", err);
-    return { ok: false, error: "Could not update water test" };
+    return failure("waterTest.updateFailed", "Could not update water test");
   }
 }
 
@@ -322,7 +327,7 @@ export async function deleteWaterTest(id: number): Promise<ActionResult> {
     return { ok: true };
   } catch (err) {
     console.error("[deleteWaterTest]", err);
-    return { ok: false, error: "Could not delete water test" };
+    return failure("waterTest.deleteFailed", "Could not delete water test");
   }
 }
 
@@ -332,11 +337,12 @@ export async function saveGlobalSettingsAction(input: unknown): Promise<ActionRe
   try {
     const { saveGlobalSettings } = await import("@/lib/settings");
     saveGlobalSettings(input);
-    revalidatePath("/more");
-    revalidatePath("/");
+    // "layout" scope, not just these two pages: the language lives in the ROOT
+    // layout, so a switch has to repaint every route, not only /more and /.
+    revalidatePath("/", "layout");
     return { ok: true };
   } catch (err) {
     console.error("[saveGlobalSettingsAction]", err);
-    return { ok: false, error: "Invalid settings" };
+    return failure("settings.invalid", "Invalid settings");
   }
 }

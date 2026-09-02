@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (delta !== 1 && delta !== -1) return fail(400, "delta must be 1 or -1");
   const day = body?.day ?? todayStr();
   const dayErr = feedDayError(day);
-  if (dayErr) return fail(400, dayErr);
+  if (dayErr) return fail(400, dayErr.error);
 
   const res = adjustFeedCore(id, day, delta);
   return ok({ day, timesFed: res.timesFed });

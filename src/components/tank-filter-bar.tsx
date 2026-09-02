@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { t, DEFAULT_LOCALE, type Locale } from "@/i18n";
 
 /**
  * Shared tank filter chip row — "All tanks" + one chip per tank. Used by the
@@ -15,11 +16,14 @@ export function TankFilterBar({
   selectedTankId,
   hrefFor,
   allowAll = true,
+  locale = DEFAULT_LOCALE,
 }: {
   tanks: { id: number; name: string }[];
   selectedTankId: number | null;
   hrefFor: (tankId: number | null) => string;
   allowAll?: boolean;
+  /** Server component — the page resolves the locale once and passes it down. */
+  locale?: Locale;
 }) {
   if (tanks.length <= 1) return null;
 
@@ -44,7 +48,7 @@ export function TankFilterBar({
 
   return (
     <div className="flex flex-wrap gap-1.5 mb-6">
-      {allowAll && chip(null, "All tanks")}
+      {allowAll && chip(null, t("tankFilter.allTanks", locale))}
       {tanks.map((tk) => chip(tk.id, tk.name))}
     </div>
   );

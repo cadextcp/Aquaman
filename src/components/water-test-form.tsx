@@ -10,6 +10,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/i18n/provider";
 import { logWaterTest, updateWaterTest } from "@/app/actions";
 import { StatusNote } from "./ui/status-note";
 import { HelpNote } from "./ui/help";
@@ -73,6 +74,7 @@ export function WaterTestForm({
   onDone?: () => void;
 }) {
   const router = useRouter();
+  const { t, paramLabel, errorText } = useI18n();
   const [values, setValues] = useState<Record<string, string>>(
     edit
       ? Object.fromEntries(Object.entries(edit.values).filter(([, v]) => v !== null).map(([k, v]) => [k, String(v)]))
@@ -117,14 +119,14 @@ export function WaterTestForm({
       cleaned[k] = n;
     }
     if (Object.keys(cleaned).length === 0) {
-      setError("Enter at least one value");
+      setError(t("water.enterOne"));
       return;
     }
     const res = edit
       ? await updateWaterTest({ id: edit.id, tankId, values: cleaned, note: note || undefined, measuredAt: edit.measuredAt })
       : await logWaterTest({ tankId, values: cleaned, note: note || undefined });
     if (!res.ok) {
-      setError(res.error);
+      setError(errorText(res));
       return;
     }
     setSaved(true);
@@ -138,10 +140,10 @@ export function WaterTestForm({
     <form onSubmit={handleSubmit} className="space-y-2.5">
       <div className="flex items-baseline justify-between">
         <span className="text-xs uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
-          Water test
+          {t("water.formTitle")}
         </span>
         <span className="text-xs tnum" style={{ color: "var(--faint)" }}>
-          {filled}/{ranges.length} values
+          {t("water.filledCount", { n: filled, total: ranges.length })}
         </span>
       </div>
       <HelpNote id="waterRanges" className="mt-0" />
@@ -182,7 +184,9 @@ export function WaterTestForm({
               }}
             >
               <div className="flex items-baseline justify-between gap-1">
-                <span className="text-[11px] font-medium" style={{ color: "var(--control-foreground)" }}>{r.label}</span>
+                <span className="text-[11px] font-medium" style={{ color: "var(--control-foreground)" }}>
+                  {paramLabel(r.key, r.label)}
+                </span>
                 <span className="text-[9px]" style={{ color: "var(--faint)" }}>{r.unit}</span>
               </div>
 
@@ -200,7 +204,7 @@ export function WaterTestForm({
                   cursor: "pointer",
                   textAlign: "left",
                 }}
-                aria-label={`Choose ${r.label} value`}
+                aria-label={t("water.chooseValue", { label: paramLabel(r.key, r.label) })}
               >
                 <span className="text-base font-medium tnum" style={{ color: num === null ? "var(--faint)" : "var(--foreground)" }}>
                   {num === null ? "—" : num}
@@ -249,7 +253,7 @@ export function WaterTestForm({
                     <input
                       className="flex-1 min-w-0 text-sm tnum bg-transparent border-0 outline-none"
                       style={{ color: "inherit" }}
-                      placeholder="type"
+                      placeholder={t("water.typePlaceholder")}
                       inputMode="decimal"
                       value={draft}
                       onChange={(e) => typeValue(r.key, e.target.value)}
@@ -273,7 +277,7 @@ export function WaterTestForm({
                         >
                           {o}
                           <span className="flex items-center gap-1">
-                            <span style={{ fontSize: 9, color: COL[ost] }}>{ost === "ok" ? "in band" : ost === "warn" ? "off band" : "critical"}</span>
+                            <span style={{ fontSize: 9, color: COL[ost] }}>{ost === "ok" ? t("water.bandIn") : ost === "warn" ? t("water.bandOff") : t("water.bandCritical")}</span>
                             <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: COL[ost] }} />
                           </span>
                         </button>
@@ -298,7 +302,7 @@ export function WaterTestForm({
       <input
         className="w-full rounded-lg px-3 py-2.5 text-sm"
         style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
-        placeholder="Note (optional)"
+        placeholder={t("water.note")}
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
@@ -310,12 +314,12 @@ export function WaterTestForm({
           className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
           style={{ minHeight: 44 }}
         >
-          {edit ? "Save changes" : "Save test"}
+          {edit ? t("tanks.save") : t("water.save")}
         </button>
-        {saved && <StatusNote tone="success">saved</StatusNote>}
+        {saved && <StatusNote tone="success">{t("water.savedShort")}</StatusNote>}
         {edit && onDone && (
           <button type="button" onClick={onDone} className="btn-outline rounded-lg px-4 py-2.5 text-sm" style={{ minHeight: 44 }}>
-            Cancel
+            {t("common.cancel")}
           </button>
         )}
       </div>

@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { rotateApiTokenAction } from "@/app/actions";
+import { useI18n } from "@/i18n/provider";
+import { withInlineCode, BEARER_HEADER } from "./ui/inline-code";
 
 /**
  * v1 REST API settings — same shape as McpSettings, separate token. Kept
@@ -10,6 +12,7 @@ import { rotateApiTokenAction } from "@/app/actions";
  * (e.g. an ESPHome display) never locks out the other (an MCP agent).
  */
 export function ApiSettings({ docsUrl, token }: { docsUrl: string; token: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [currentToken, setCurrentToken] = useState(token);
   const [copied, setCopied] = useState<"url" | "token" | null>(null);
@@ -26,7 +29,7 @@ export function ApiSettings({ docsUrl, token }: { docsUrl: string; token: string
   }
 
   async function rotate() {
-    if (!confirm("Rotate the API token? Every configured client (an ESPHome display, a script, ...) loses access immediately until you update it.")) return;
+    if (!confirm(t("settings.api.rotateConfirm"))) return;
     const res = await rotateApiTokenAction();
     if (res.ok && res.data) setCurrentToken(res.data.token);
     startTransition(() => router.refresh());
@@ -37,11 +40,10 @@ export function ApiSettings({ docsUrl, token }: { docsUrl: string; token: string
   return (
     <div className="rounded-xl p-5 mb-4 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-        REST API (for scripts, displays, Home Assistant, ...)
+        {t("settings.api.title")}
       </div>
       <p className="text-sm mb-3" style={{ color: "var(--muted-foreground)" }}>
-        A generic control surface for tanks, plans, maintenance history, feedings and water tests — send the token as{" "}
-        <code className="text-xs">Authorization: Bearer</code> header. Full API reference with a try-it-out console:
+        {withInlineCode(t("settings.api.description", { header: BEARER_HEADER }), BEARER_HEADER)}
       </p>
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
         <input
@@ -57,7 +59,7 @@ export function ApiSettings({ docsUrl, token }: { docsUrl: string; token: string
           className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied === "url" ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy docs URL"}
+          {copied === "url" ? <><i aria-hidden className="ph ph-check" /> {t("common.copied")}</> : t("settings.api.copyDocs")}
         </button>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
@@ -74,7 +76,7 @@ export function ApiSettings({ docsUrl, token }: { docsUrl: string; token: string
           className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied === "token" ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy token"}
+          {copied === "token" ? <><i aria-hidden className="ph ph-check" /> {t("common.copied")}</> : t("settings.api.copyToken")}
         </button>
       </div>
       <button
@@ -84,7 +86,7 @@ export function ApiSettings({ docsUrl, token }: { docsUrl: string; token: string
         className="text-xs underline"
         style={{ color: "var(--destructive)" }}
       >
-        Rotate token (invalidates the current one)
+        {t("settings.api.rotate")}
       </button>
     </div>
   );

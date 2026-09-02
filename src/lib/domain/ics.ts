@@ -27,7 +27,7 @@ import {
   type ScheduleLike,
 } from "./scheduler";
 import { today as todayStr, addDays, toIcsDate } from "./dates";
-import { actionLabel } from "./action-types";
+import { actionLabelFor, t, DEFAULT_LOCALE, type Locale } from "@/i18n";
 
 export const ICS_HORIZON_DAYS = 90;
 
@@ -81,13 +81,22 @@ function buildVEvent(
   schedule: IcsSchedule,
   occ: { originalDueAt: string; plannedFor: string },
   now: Date,
-  tz?: string,
+  tz: string | undefined,
+  locale: Locale,
 ): string {
   const uid = `${schedule.id}-${occ.originalDueAt}@aquaman`;
   // must pass the SAME (now, tz) used for occurrence expansion — otherwise
   // SEQUENCE reads real wall-clock time and the byte-identity contract breaks
   const sequence = schedule.scheduleVersion + missedSlots(schedule, now, tz);
-  const summary = escapeText(`Aquaman: ${actionLabel(schedule.actionType)} — ${schedule.tankName}`);
+  // localized (the feed is read by a person, unlike the REST API) — English
+  // resolves to the same text the catalog labels carried before, so the
+  // byte-identity contract for the default locale is unchanged
+  const summary = escapeText(
+    t("calendarPage.icsSummary", locale, {
+      action: actionLabelFor(schedule.actionType, locale),
+      tank: schedule.tankName,
+    }),
+  );
   const dtstart = toIcsDate(occ.plannedFor);
   const dtend = toIcsDate(addDays(occ.plannedFor, 1)); // exclusive end, per RFC 5545 all-day convention
   // issue #30: concrete instructions (dosage, liters) travel in DESCRIPTION
@@ -116,6 +125,7 @@ export function buildIcsFeed(
   schedules: IcsSchedule[],
   now: Date = new Date(),
   tz?: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): string {
   const from = todayStr(tz, now);
   const to = addDays(from, ICS_HORIZON_DAYS);
@@ -126,7 +136,7 @@ export function buildIcsFeed(
   for (const s of schedules) {
     if (!s.active) continue;
     for (const occ of occurrenceDetailsInRange(s, from, to, now, tz)) {
-      rows.push({ scheduleId: s.id, originalDueAt: occ.originalDueAt, block: buildVEvent(s, occ, now, tz) });
+      rows.push({ scheduleId: s.id, originalDueAt: occ.originalDueAt, block: buildVEvent(s, occ, now, tz, locale) });
     }
   }
 

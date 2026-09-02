@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { undoLastDoneCore } from "@/lib/repo";
 import { apiGate } from "@/lib/api/v1-auth";
-import { ok, fail } from "@/lib/api/respond";
+import { ok, failFor } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +14,6 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (denied) return denied;
   const id = Number((await params).id);
   const res = undoLastDoneCore(id);
-  if (!res.ok) return fail(res.error === "Schedule not found" ? 404 : 400, res.error);
+  if (!res.ok) return failFor(res);
   return ok({ tankId: res.tankId });
 }

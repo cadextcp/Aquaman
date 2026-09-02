@@ -197,3 +197,32 @@ describe("trigger wiring (actions)", () => {
     markPlanReviewed();
   });
 });
+
+describe("plan review — language", () => {
+  it("a ready result from another language is dropped instead of shown", async () => {
+    const { requestPlanReview, getPlanReviewState, PLAN_REVIEW_KEY } = await import("../src/lib/ai/plan-review");
+    const { saveGlobalSettings } = await import("../src/lib/settings");
+    const { db } = await import("../src/lib/db");
+    const { appSettings } = await import("../src/lib/db/schema");
+
+    saveGlobalSettings({ locale: "de" });
+    requestPlanReview("water_test");
+    const ready = {
+      state: "ready",
+      reason: "water_test",
+      since: new Date().toISOString(),
+      summary: "Nitrat steigt — Wasserwechsel häufiger einplanen.",
+      prompts: [{ label: "Intervall anpassen", prompt: "Bitte passe den Wasserwechsel-Plan an." }],
+      locale: "de",
+    };
+    db.insert(appSettings)
+      .values({ key: PLAN_REVIEW_KEY, value: ready as never })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value: ready as never } })
+      .run();
+    expect(getPlanReviewState().state).toBe("ready");
+
+    // switching the app to English must not leave German chips in the coach tab
+    saveGlobalSettings({ locale: "en" });
+    expect(getPlanReviewState().state).toBe("idle");
+  });
+});

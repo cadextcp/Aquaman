@@ -11,6 +11,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PROVIDER_PRESETS, type AiProviderSettingsData } from "@/lib/ai/provider-presets";
 import { StatusNote } from "./ui/status-note";
+import { useI18n } from "@/i18n/provider";
+import { withInlineCode } from "./ui/inline-code";
+
+const ENV_KEY = "AQUAMAN_AI_API_KEY";
 
 type Draft = {
   provider: AiProviderSettingsData["provider"];
@@ -29,6 +33,7 @@ export function AiProviderSettings({
   envConfigured: boolean;
   keyConfigured: boolean;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(
     initial ?? {
@@ -62,7 +67,7 @@ export function AiProviderSettings({
       startKeyTransition(() => router.refresh());
     } else {
       const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setKeyError(data?.error ?? "Could not save key");
+      setKeyError(data?.error ?? t("settings.ai.keySaveFailed"));
     }
   }
 
@@ -88,7 +93,7 @@ export function AiProviderSettings({
       startTransition(() => router.refresh());
     } else {
       const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setError(data?.error ?? "Could not save");
+      setError(data?.error ?? t("settings.ai.saveFailed"));
     }
   }
 
@@ -97,17 +102,17 @@ export function AiProviderSettings({
   return (
     <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-        AI provider
+        {t("settings.ai.title")}
       </div>
       {!keyConfigured && (
         <p className="text-sm mb-3 rounded-lg p-2.5" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
-          No API key set yet — the coach stays offline until one is added below.
+          {t("settings.ai.noKey")}
         </p>
       )}
 
       <div className="mb-4">
         <label className="block text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>
-          API key
+          {t("settings.ai.apiKey")}
         </label>
         <div className="flex gap-2">
           <input
@@ -117,7 +122,7 @@ export function AiProviderSettings({
             style={input}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={keyConfigured ? "•••••••••••••• (set — enter a new value to replace)" : "sk-..."}
+            placeholder={keyConfigured ? t("settings.ai.keyPlaceholderSet") : t("settings.ai.keyPlaceholderNew")}
           />
           <button
             type="button"
@@ -126,7 +131,7 @@ export function AiProviderSettings({
             className="btn-outline rounded-lg px-4 py-2.5 text-sm font-medium"
             style={{ minHeight: 44 }}
           >
-            Save key
+            {t("settings.ai.saveKey")}
           </button>
           {keyConfigured && (
             <button
@@ -136,16 +141,16 @@ export function AiProviderSettings({
               className="rounded-lg px-4 py-2.5 text-sm"
               style={{ minHeight: 44, background: "var(--secondary)", color: "var(--secondary-foreground)" }}
             >
-              Clear
+              {t("settings.ai.clear")}
             </button>
           )}
         </div>
         {keyError && <p className="mt-2"><StatusNote tone="error">{keyError}</StatusNote></p>}
-        {keySaved && <p className="mt-2"><StatusNote tone="success">Saved</StatusNote></p>}
+        {keySaved && <p className="mt-2"><StatusNote tone="success">{t("common.saved")}</StatusNote></p>}
         <p className="text-xs mt-2" style={{ color: "var(--muted-foreground)" }}>
-          Stored in the app&apos;s data directory, never in the database or exports, and never shown again after saving.
+          {t("settings.ai.keyNote")}
           {envConfigured && !keyConfigured && (
-            <> An <code>AQUAMAN_AI_API_KEY</code> environment variable is also set and will be used as a fallback.</>
+            <> {withInlineCode(t("settings.ai.envFallback", { envVar: ENV_KEY }), ENV_KEY)}</>
           )}
         </p>
       </div>
@@ -178,14 +183,14 @@ export function AiProviderSettings({
             cursor: "pointer",
           }}
         >
-          Custom
+          {t("settings.ai.custom")}
         </button>
       </div>
 
       <div className="space-y-3 mb-4">
         <div>
           <label className="block text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>
-            Base URL (Anthropic-compatible)
+            {t("settings.ai.baseUrl")}
           </label>
           <input
             className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
@@ -198,7 +203,7 @@ export function AiProviderSettings({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>
-              Model (free text)
+              {t("settings.ai.model")}
             </label>
             <input
               list="model-suggestions"
@@ -216,10 +221,10 @@ export function AiProviderSettings({
           </div>
           <div>
             <label className="block text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>
-              Provider
+              {t("settings.ai.provider")}
             </label>
             <div className="text-sm px-3 py-2.5 rounded-lg" style={{ background: "var(--secondary)" }}>
-              {draft.provider === "custom" ? "custom endpoint" : PROVIDER_PRESETS[draft.provider].label}
+              {draft.provider === "custom" ? t("settings.ai.customEndpoint") : PROVIDER_PRESETS[draft.provider].label}
             </div>
           </div>
         </div>
@@ -227,7 +232,7 @@ export function AiProviderSettings({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>
-              Max calls / day
+              {t("settings.ai.maxCalls")}
             </label>
             <input
               type="number" min={1} max={1000}
@@ -239,7 +244,7 @@ export function AiProviderSettings({
           </div>
           <div>
             <label className="block text-xs uppercase tracking-wide mb-1" style={{ color: "var(--muted-foreground)" }}>
-              Max tokens / day
+              {t("settings.ai.maxTokens")}
             </label>
             <input
               type="number" min={1000} max={10000000} step={1000}
@@ -261,12 +266,12 @@ export function AiProviderSettings({
           className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
           style={{ minHeight: 44 }}
         >
-          Save AI settings
+          {t("settings.ai.save")}
         </button>
-        {saved && <StatusNote tone="success">Saved</StatusNote>}
+        {saved && <StatusNote tone="success">{t("common.saved")}</StatusNote>}
       </div>
       <p className="text-xs mt-3" style={{ color: "var(--muted-foreground)" }}>
-        These settings override the environment variables.
+        {t("settings.ai.footnote")}
       </p>
     </div>
   );

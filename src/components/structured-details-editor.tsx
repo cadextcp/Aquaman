@@ -11,6 +11,7 @@
  */
 
 import { NUTRIENTS, formatDetailData } from "@/lib/domain/plan-structure";
+import { useI18n } from "@/i18n/provider";
 
 type DetailData = Record<string, unknown>;
 
@@ -27,12 +28,13 @@ export function StructuredDetailsEditor({
   value: DetailData | null;
   onChange: (data: DetailData | null, rendered: string) => void;
 }) {
+  const { t, nutrientLabel } = useI18n();
   if (actionType === "water_change") {
     const pct = Number(value?.percent ?? 30);
     return (
       <div>
         <label className="block text-xs uppercase tracking-wide mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-          Water change amount
+          {t("schedule.waterChangeAmount")}
         </label>
         <div className="flex items-center gap-3">
           <input
@@ -45,7 +47,7 @@ export function StructuredDetailsEditor({
           <span className="text-sm tnum w-28 text-right font-medium">{pct} %</span>
         </div>
         <p className="text-xs tnum mt-1" style={{ color: "var(--faint)" }}>
-          ≈ {Math.round((pct / 100) * tankVolumeL)} L of {tankVolumeL} L
+          {t("schedule.waterChangeApprox", { liters: Math.round((pct / 100) * tankVolumeL), total: tankVolumeL })}
         </p>
       </div>
     );
@@ -56,7 +58,7 @@ export function StructuredDetailsEditor({
     return (
       <div>
         <label className="block text-xs uppercase tracking-wide mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-          Top-up amount
+          {t("schedule.topUpAmount")}
         </label>
         <div className="flex items-center gap-3">
           <input
@@ -82,12 +84,12 @@ export function StructuredDetailsEditor({
     return (
       <div>
         <label className="block text-xs uppercase tracking-wide mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-          Dosage per nutrient (verify against the product label)
+          {t("schedule.nutrientDose")}
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
           {NUTRIENTS.map((n) => (
             <label key={n.key} className="flex items-center gap-1.5 text-xs">
-              <span className="w-9 shrink-0 font-medium" title={n.label} style={{ color: n.group === "macro" ? "var(--secondary-foreground)" : "var(--muted-foreground)" }}>
+              <span className="w-9 shrink-0 font-medium" title={nutrientLabel(n.key, n.label)} style={{ color: n.group === "macro" ? "var(--secondary-foreground)" : "var(--muted-foreground)" }}>
                 {n.symbol}
               </span>
               <input
@@ -101,7 +103,7 @@ export function StructuredDetailsEditor({
           ))}
         </div>
         <p className="text-xs mt-1.5" style={{ color: "var(--faint)" }}>
-          Macro (top): CO₂, NO₃, PO₄, K, Mg, Ca · Micro: Fe, Mn, Zn, B, Mo, Cu — free text per nutrient, e.g. “10 ml”
+          {t("schedule.nutrientHint")}
         </p>
       </div>
     );
@@ -117,14 +119,14 @@ export function StructuredDetailsEditor({
     if (tankFoods.length === 0) {
       return (
         <p className="text-xs rounded-lg p-2.5" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
-          Add food types to this tank first (edit tank → “Foods”) — then doses per food can be planned here.
+          {t("schedule.noFoodsYet")}
         </p>
       );
     }
     return (
       <div>
         <label className="block text-xs uppercase tracking-wide mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-          Amount per food
+          {t("schedule.foodAmount")}
         </label>
         <div className="space-y-1.5">
           {tankFoods.map((f) => (
@@ -133,7 +135,7 @@ export function StructuredDetailsEditor({
               <input
                 className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs"
                 style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
-                placeholder={f.amount ? `e.g. ${f.amount} ${f.unit}` : "e.g. 1 pinch"}
+                placeholder={f.amount ? t("schedule.foodPlaceholder", { amount: f.amount, unit: f.unit }) : t("schedule.foodPlaceholderEmpty")}
                 value={foods[f.name] ?? ""}
                 onChange={(e) => setFood(f.name, e.target.value)}
               />

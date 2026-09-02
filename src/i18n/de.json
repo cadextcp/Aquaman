@@ -1,13 +1,18 @@
 {
   "app": {
     "name": "Aquaman",
-    "tagline": "Selbstgehostete Aquariumpflege"
+    "tagline": "Selbstgehostete Aquariumpflege",
+    "pageTitle": "{page} — Aquaman",
+    "description": "Selbstgehostete Aquarienpflege & Wasserwerte mit flexibler Planung und ICS-Kalender",
+    "title": "Aquaman — Aquarienpflege"
   },
   "nav": {
-    "dashboard": "Übersicht",
     "tanks": "Aquarien",
-    "calendar": "Kalender",
-    "more": "Mehr"
+    "more": "Mehr",
+    "today": "Heute",
+    "plan": "Plan",
+    "coach": "Coach",
+    "aria": "Hauptnavigation"
   },
   "dashboard": {
     "title": "Übersicht",
@@ -21,7 +26,43 @@
     "behindHint": "im Rückstand seit {date}",
     "plannedFor": "geplant für {date}",
     "emptyTanks": "Noch keine Aquarien — leg dein erstes Becken an.",
-    "createTank": "Aquarium anlegen"
+    "createTank": "Aquarium anlegen",
+    "today": "Heute",
+    "streakLabel": {
+      "one": "Tag in Folge",
+      "other": "Tage in Folge"
+    },
+    "feedingToday": "Fütterung heute",
+    "feedingBackfill": "Fütterung · nachtragen",
+    "previousDay": "Vorheriger Tag",
+    "nextDay": "Nächster Tag",
+    "showingToday": "Zeigt heute",
+    "showingDay": "Zeigt {date}",
+    "adherenceTitle": "Einhaltung · 30 T.",
+    "actionsAcrossTanks": {
+      "one": "{actions} in {n} Becken",
+      "other": "{actions} in {n} Becken"
+    },
+    "actionsInTank": "{actions} in {tank}",
+    "onTrack": "im Plan",
+    "catchingUp": "am Aufholen",
+    "catchUpMore": {
+      "one": "{n} weitere Aufgabe im Rückstand — sie verschiebt sich weiter auf deine Wunschtage, keine Eile.",
+      "other": "{n} weitere Aufgaben im Rückstand — sie verschieben sich weiter auf deine Wunschtage, keine Eile."
+    },
+    "careQueue": "Anstehende Pflege",
+    "tapToEdit": "zum Bearbeiten antippen",
+    "queueClear": {
+      "one": "Alles erledigt — {n} Aufgabe diese Woche geschafft, nichts im Rückstand.",
+      "other": "Alles erledigt — {n} Aufgaben diese Woche geschafft, nichts im Rückstand."
+    },
+    "doneTodayHeading": "Heute erledigt ({n})",
+    "behindHeading": "Im Rückstand ({n})",
+    "upcomingHeading": "Diese Woche geplant",
+    "careActions": {
+      "one": "{n} Pflegeaktion",
+      "other": "{n} Pflegeaktionen"
+    }
   },
   "health": {
     "ok": "ok",
@@ -33,7 +74,13 @@
     "cancel": "Abbrechen",
     "save": "Speichern",
     "loading": "Lädt…",
-    "aiOffline": "AI offline — Kernfunktionen voll nutzbar"
+    "aiOffline": "AI offline — Kernfunktionen voll nutzbar",
+    "dismiss": "Schließen",
+    "saved": "Gespeichert",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "back": "Mehr",
+    "close": "Schließen"
   },
   "tanks": {
     "title": "Aquarien",
@@ -49,7 +96,40 @@
     "cycling": "Einfahrphase",
     "fishCount": "{n} Fische",
     "plantsCount": "{n} Pflanzenarten",
-    "backToList": "← Aquarien"
+    "backToList": "← Aquarien",
+    "subtitle": {
+      "one": "{n} Aquarium · {actions}",
+      "other": "{n} Aquarien · {actions}"
+    },
+    "established": "eingefahren",
+    "cyclingDay": "Einfahrtag {n}",
+    "heat": "Heizung",
+    "filter": "Filter",
+    "heater": "Heizer",
+    "statDue": "heute fällig",
+    "statBehind": "im Rückstand",
+    "statPlans": "Pläne",
+    "nextUp": "nächste: {action} {date}",
+    "noPlansYet": "noch keine Pläne",
+    "nothingThisWeek": "diese Woche nichts",
+    "valuesOff": {
+      "one": "{n} Wert außerhalb",
+      "other": "{n} Werte außerhalb"
+    },
+    "valuesOk": "Werte in Ordnung",
+    "noWaterTest": "noch keine Messung",
+    "acrossTanks": {
+      "one": "Im Becken · 30 T.",
+      "other": "Über alle Becken · 30 T."
+    },
+    "careActions": {
+      "one": "{n} Pflegeaktion",
+      "other": "{n} Pflegeaktionen"
+    },
+    "careActionsLogged": {
+      "one": "{n} Pflegeaktion erfasst",
+      "other": "{n} Pflegeaktionen erfasst"
+    }
   },
   "schedule": {
     "title": "Pflegeplan",
@@ -72,7 +152,26 @@
     "policySuppress": "Ruhig — zu schnelle Wiederholungen auslassen",
     "policyFixed": "Streng — exaktes Raster",
     "skipWithin": "Auslassen, wenn nächster Termin innerhalb von",
-    "pctOfInterval": "% des Intervalls liegt"
+    "pctOfInterval": "% des Intervalls liegt",
+    "tank": "Becken",
+    "details": "Details (optional)",
+    "endsOn": "Endet am (optional)",
+    "likeGlobal": "Wie global ({mode})",
+    "modeCalm": "ruhig",
+    "modeStrict": "streng",
+    "addSubmit": "Plan hinzufügen",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen",
+    "waterChangeAmount": "Wassermenge beim Wechsel",
+    "waterChangeApprox": "≈ {liters} L von {total} L",
+    "topUpAmount": "Nachfüllmenge",
+    "nutrientDose": "Dosierung je Nährstoff (gegen die Produktangabe prüfen)",
+    "nutrientHint": "Makro (oben): CO₂, NO₃, PO₄, K, Mg, Ca · Mikro: Fe, Mn, Zn, B, Mo, Cu — freier Text je Nährstoff, z. B. „10 ml“",
+    "foodAmount": "Menge je Futter",
+    "foodPlaceholder": "z. B. {amount} {unit}",
+    "foodPlaceholderEmpty": "z. B. 1 Prise",
+    "noFoodsYet": "Lege zuerst Futtersorten am Becken an (Becken bearbeiten → „Futter“) — dann lassen sich hier Mengen je Sorte planen.",
+    "detailsPlaceholder": "z. B. „Medien im Beckenwasser ausspülen“"
   },
   "water": {
     "tests": "Wasserwerte",
@@ -83,15 +182,369 @@
     "lastTest": "Letzte Messung",
     "allOk": "✓ Alle gemessenen Werte im Zielbereich",
     "enterOne": "Mindestens einen Wert eingeben",
-    "saved": "✓ Gespeichert"
+    "saved": "✓ Gespeichert",
+    "chooseValue": "{label} auswählen",
+    "typePlaceholder": "eingeben",
+    "editMeasurement": "Messung bearbeiten",
+    "deleteMeasurement": "Messung löschen",
+    "deleteConfirm": "Messung vom {date} löschen? Das lässt sich nicht rückgängig machen.",
+    "savedShort": "gespeichert",
+    "historyCount": "Verlauf ({n})",
+    "formTitle": "Wassermessung",
+    "filledCount": "{n}/{total} Werte",
+    "statusWarn": "auffällig",
+    "statusCritical": "kritisch",
+    "statusOk": "in Ordnung",
+    "bandIn": "im Zielbereich",
+    "bandOff": "außerhalb",
+    "bandCritical": "kritisch",
+    "nh3Message": "Freies NH₃ {nh3} mg/l (aus NH₄ {nh4} bei pH {ph}, {temp} °C)"
   },
   "more": {
     "title": "Mehr",
-    "comingSoon": "Einstellungen, AI-Coach und Kalender folgen in den nächsten Phasen."
+    "comingSoon": "Einstellungen, AI-Coach und Kalender folgen in den nächsten Phasen.",
+    "conceptsTitle": "Wie Aquaman plant",
+    "conceptsDesc": "Soll-Termine, Neuplanung und warum dein Rückstand ehrlich bleibt",
+    "debugTitle": "Debug",
+    "debugDesc": "Rohe Anfragen und Antworten der letzten KI-Aufrufe",
+    "thisMonth": "Diesen Monat ({month})",
+    "statWaterChanges": "Wasserwechsel",
+    "statFeedings": "Fütterungen",
+    "statWaterTests": "Wassertests",
+    "statOtherCare": "Sonstige Pflege",
+    "medianTitle": "Mittlere Verzögerung je Plan",
+    "medianTarget": "Ziel < 2 T Wasserwechsel · < 1 T Düngen",
+    "medianEmpty": "Noch nichts abgehakt — sobald du Aufgaben erledigst, füllt sich das hier.",
+    "medianValue": "{n} T im Median",
+    "medianCount": "({n}×)",
+    "overloadTitle": "Intervall zu eng? ({n})",
+    "overloadRow": "{tank} · {action} — {n} verpasste Termine",
+    "aiTitle": "KI-Coach",
+    "aiOnline": "Online",
+    "aiOnlineDetail": "heute: {calls} Anfragen · {tokens} Tokens. Die Tageslimits werden um Mitternacht zurückgesetzt.",
+    "aiOffline": "Offline",
+    "aiOfflineDetail": "noch kein API-Schlüssel hinterlegt (unten im Abschnitt KI-Anbieter). Die App funktioniert vollständig ohne ihn.",
+    "aiCost": "Letzte 30 Tage: {calls} Anfragen · {tokens} Tokens · ≈{cost} Kosteneinheiten"
   },
   "calendarPage": {
     "title": "Kalender",
-    "phase3": "In-App-Kalender und ICS-Feed für Google Calendar kommen in Phase 3."
+    "phase3": "In-App-Kalender und ICS-Feed für Google Calendar kommen in Phase 3.",
+    "planned": {
+      "one": "{n} geplant",
+      "other": "{n} geplant"
+    },
+    "behind": {
+      "one": "{n} im Rückstand",
+      "other": "{n} im Rückstand"
+    },
+    "today": "Heute",
+    "prevMonth": "Voriger Monat",
+    "nextMonth": "Nächster Monat",
+    "taskWithTank": "{action} — {tank}",
+    "empty": "Noch keine Pläne — lege Pflegepläne auf der Seite eines Aquariums an, dann erscheinen ihre Termine hier.",
+    "emptyHint": "Du kannst diesen Plan in jeder Kalender-App abonnieren.",
+    "todayHeading": "Heute",
+    "chipBehind": "im Rückstand",
+    "chipDue": "fällig",
+    "icsHint": "Diesen Plan in einer Kalender-App abonnieren",
+    "icsManage": "verwalten",
+    "chipEdit": "{label} — zum Bearbeiten klicken",
+    "icsSummary": "Aquaman: {action} — {tank}"
+  },
+  "settings": {
+    "language": {
+      "title": "Sprache",
+      "description": "Gilt für die gesamte App: Oberfläche, Kalender-Termintitel und die Antworten des Coaches."
+    },
+    "ics": {
+      "title": "Kalender-Feed (ICS)",
+      "description": "Abonniere diese URL in Google Kalender („Weitere Kalender → Per URL“). Sie aktualisiert sich automatisch — Google lädt externe Feeds etwa einmal täglich neu.",
+      "rotate": "Token neu erzeugen (macht die aktuelle URL ungültig)",
+      "rotateConfirm": "ICS-Token neu erzeugen? Die aktuelle Abo-URL funktioniert sofort nicht mehr."
+    },
+    "mcp": {
+      "title": "MCP-Endpunkt (für Agenten wie OpenClaw)",
+      "description": "Externe Agenten lesen den Beckenzustand und protokollieren Pflege über das Model Context Protocol. Trage die URL ein und schicke das Token als {header}-Header. Schreib-Tools können Pflege protokollieren — löschen oder überschreiben lässt sich nichts aus der Ferne.",
+      "copyUrl": "URL kopieren",
+      "copyToken": "Token kopieren",
+      "rotate": "Token neu erzeugen (macht das aktuelle ungültig)",
+      "rotateConfirm": "MCP-Token neu erzeugen? Jeder eingerichtete Agent verliert sofort den Zugriff, bis du ihn aktualisierst."
+    },
+    "api": {
+      "title": "REST-API (für Skripte, Displays, Home Assistant, …)",
+      "description": "Eine allgemeine Schnittstelle für Aquarien, Pläne, Pflegehistorie, Fütterungen und Wassertests — schicke das Token als {header}-Header. Vollständige API-Referenz mit Ausprobier-Konsole:",
+      "copyDocs": "Doku-URL kopieren",
+      "copyToken": "Token kopieren",
+      "rotate": "Token neu erzeugen (macht das aktuelle ungültig)",
+      "rotateConfirm": "API-Token neu erzeugen? Jeder eingerichtete Client (ESPHome-Display, Skript, …) verliert sofort den Zugriff, bis du ihn aktualisierst."
+    },
+    "data": {
+      "title": "Daten — Export / Import",
+      "description": "Deine Daten gehören dir: exportiere alles als JSON oder ziehe einen Stand in eine frische Instanz um. Geheimnisse (Tokens, API-Schlüssel) sind nie Teil eines Exports.",
+      "export": "JSON-Export herunterladen",
+      "import": "Stand importieren…",
+      "importing": "Importiere…",
+      "tooLarge": "Datei zu groß (max. 20 MB)",
+      "importConfirm": "\"{file}\" importieren?\n\nDas ERSETZT alle aktuellen Daten (Aquarien, Pläne, Einträge, Wassertests, Fütterungen). Es gibt kein Zurück — exportiere im Zweifel vorher.",
+      "imported": "Importiert: {tanks} Aquarien · {schedules} Pläne · {logs} Einträge · {waterTests} Wassertests · {feedDays} Fütterungstage · {aiCalls} KI-Aufrufe",
+      "importFailed": "Import fehlgeschlagen",
+      "readFailed": "Datei konnte nicht gelesen werden"
+    },
+    "tightGap": {
+      "title": "Planung — nach dem Aufholen",
+      "description": "Nach einer vollen Woche stapeln sich Aufgaben und werden an einem Tag erledigt. Der nächste reguläre Termin kann dann sehr kurz darauf liegen — z. B. ein Wasserwechsel schon 3 Tage später. Diese Einstellung legt fest, was dann passiert:",
+      "calmTitle": "Ruhig (empfohlen)",
+      "calmDesc": "Den nächsten regulären Termin überspringen, wenn er innerhalb des Schwellenwerts des Intervalls liegt — du hast die Aufgabe ja gerade erledigt. Genau ein Termin entfällt, danach läuft das Raster normal weiter.",
+      "strictTitle": "Streng",
+      "strictDesc": "Jeden regulären Termin exakt im Raster lassen, auch kurz nach dem Aufholen. Wähle das, wenn du maximale Gleichmäßigkeit willst.",
+      "skipWithin": "Überspringen, wenn der nächste Termin innerhalb von",
+      "pctOfInterval": "% des Intervalls liegt",
+      "footnote": "Gilt für alle Pläne. Einzelne Pläne können das in ihrem Bearbeiten-Dialog weiterhin überschreiben."
+    },
+    "ai": {
+      "title": "KI-Anbieter",
+      "noKey": "Noch kein API-Schlüssel hinterlegt — der Coach bleibt offline, bis unten einer eingetragen ist.",
+      "apiKey": "API-Schlüssel",
+      "saveKey": "Schlüssel speichern",
+      "clear": "Löschen",
+      "keyPlaceholderSet": "•••••••••••••• (hinterlegt — neuen Wert eingeben zum Ersetzen)",
+      "keyPlaceholderNew": "sk-…",
+      "keyNote": "Wird im Datenverzeichnis der App gespeichert, nie in der Datenbank oder in Exporten, und nach dem Speichern nie wieder angezeigt.",
+      "envFallback": "Es ist zusätzlich eine Umgebungsvariable {envVar} gesetzt, die als Rückfallebene dient.",
+      "keySaveFailed": "Schlüssel konnte nicht gespeichert werden",
+      "saveFailed": "Konnte nicht gespeichert werden",
+      "custom": "Eigener",
+      "customEndpoint": "eigener Endpunkt",
+      "baseUrl": "Basis-URL (Anthropic-kompatibel)",
+      "model": "Modell (Freitext)",
+      "provider": "Anbieter",
+      "maxCalls": "Max. Anfragen / Tag",
+      "maxTokens": "Max. Tokens / Tag",
+      "save": "KI-Einstellungen speichern",
+      "footnote": "Diese Einstellungen haben Vorrang vor den Umgebungsvariablen."
+    }
+  },
+  "card": {
+    "clickToEdit": "Zum Ansehen und Bearbeiten klicken",
+    "editTitle": "Pflegeplan bearbeiten",
+    "deleteSchedule": "Pflegeplan löschen",
+    "deleteConfirm": "„{action}“ ({tank}) löschen?\nEinträge und Verlauf bleiben — nur der Plan verschwindet.",
+    "markDone": "{action} als erledigt markieren",
+    "undoDone": "Rückgängig",
+    "doneEarly": "vorzeitig erledigt",
+    "later": "später",
+    "snoozeDays": {
+      "one": "+{n} Tag",
+      "other": "+{n} Tage"
+    },
+    "until": "· bis {date}",
+    "onTimePct": "· {n}% pünktlich",
+    "doneToday": "heute erledigt",
+    "next": "nächster",
+    "dueToday": "heute fällig",
+    "dueInDays": {
+      "one": "fällig in {n} Tag",
+      "other": "fällig in {n} Tagen"
+    }
+  },
+  "feed": {
+    "fedTimes": "{n}× gefüttert",
+    "notFed": "nicht gefüttert",
+    "ariaFed": "{tank}: {n}× gefüttert",
+    "ariaNotFed": "{tank}: nicht gefüttert",
+    "undoFeeding": "Fütterung für {tank} zurücknehmen",
+    "feedOnceMore": "{tank} noch einmal füttern"
+  },
+  "tankFilter": {
+    "allTanks": "Alle Becken"
+  },
+  "tankDetail": {
+    "nh3Alert": "Freies NH₃ {value} mg/l — über der Giftschwelle von 0,020",
+    "lastWaterTest": "Letzte Messung · {date}",
+    "allInRange": "Alle gemessenen Werte im Zielbereich",
+    "waterLastTests": "Wasser · letzte {n} Messungen",
+    "noPlansHint": "Noch keine Pflegepläne — leg unten deine erste Routine an. Jeder Plan bekommt einen Soll-Termin, landet nur auf den Wochentagen, die du wählst, und taucht in Kalender und Feed auf.",
+    "intervalTooTight": "Intervall zu eng? ({n} verpasste Termine)",
+    "logAllActivity": "Verlauf aller Aktivitäten",
+    "nothingLogged": "Noch nichts erfasst.",
+    "waterTestEntry": "Wassermessung",
+    "valuesCount": {
+      "one": "{n} Wert",
+      "other": "{n} Werte"
+    },
+    "outsideBand": " · {n} außerhalb",
+    "daysLate": "{n} T. zu spät",
+    "early": "früh"
+  },
+  "tankForm": {
+    "name": "Name",
+    "namePlaceholder": "z. B. 240L Gesellschaftsbecken",
+    "volume": "Volumen (Liter)",
+    "waterType": "Wasserart",
+    "state": "Zustand",
+    "established": "Eingefahren",
+    "cyclingOption": "Einfahrphase (NO₂/NH₃-Spitzen toleriert)",
+    "equipment": "Ausstattung",
+    "filter": "Filter",
+    "heater": "Heizer",
+    "co2": "CO₂-Anlage",
+    "filterTypePlaceholder": "Filtertyp (optional)",
+    "plants": "Pflanzen",
+    "plantsPlaceholder": "z. B. Vallisneria",
+    "addPlant": "+ Pflanze hinzufügen",
+    "fish": "Fische",
+    "fishPlaceholder": "z. B. Neonsalmler",
+    "addFish": "+ Fisch hinzufügen",
+    "foods": "Futter (für den Fütterungsplan)",
+    "foodNamePlaceholder": "z. B. Flocken",
+    "foodAmountPlaceholder": "z. B. 1",
+    "foodUnitPlaceholder": "z. B. Prise",
+    "addFood": "+ Futter hinzufügen",
+    "remove": "entfernen",
+    "deleteConfirm": "Aquarium „{name}“ löschen? Einträge und Messungen bleiben erhalten (Soft-Delete)."
+  },
+  "editTank": {
+    "aria": "{name} bearbeiten"
+  },
+  "action": {
+    "water_change": "Wasserwechsel",
+    "feed": "Füttern",
+    "fertilize": "Düngen",
+    "water_test": "Wassertest",
+    "substrate_vacuum": "Bodengrund absaugen",
+    "filter_change": "Filter wechseln",
+    "filter_clean": "Filter reinigen",
+    "water_top_up": "Wasser nachfüllen",
+    "glass_clean": "Scheiben reinigen",
+    "plant_trim": "Pflanzen schneiden"
+  },
+  "coach": {
+    "title": "Coach",
+    "usage": {
+      "one": "{n} Anfrage heute · {tokens} Tokens",
+      "other": "{n} Anfragen heute · {tokens} Tokens"
+    },
+    "noTanks": "Noch keine Aquarien — lege zuerst eines an, damit der Coach ein Thema hat.",
+    "createTank": "Aquarium anlegen",
+    "notConfigured": "KI ist nicht konfiguriert — setze {key} (und optional {baseUrl} / {model}), um den Coach zu aktivieren. Alles andere funktioniert auch ohne.",
+    "intro": "Frag nach deinen Aquarien, Werten oder Plänen — z. B. „Nitrit liegt bei 0,3, was soll ich tun?“ oder „Erstelle einen Pflegeplan für mein neues Becken“. Änderungen am Plan kommen als Vorschlag, den du bestätigst.",
+    "placeholder": "Frag den Coach…",
+    "send": "Fragen",
+    "disclaimer": "Ratschläge, keine Medikamenten-Dosierungen — jede Planänderung wartet auf deine Bestätigung.",
+    "budget": "Heute: {calls}/{maxCalls} Anfragen, {tokens}/{maxTokens} Tokens",
+    "offline": "KI ist offline — die Kernfunktionen laufen vollständig ohne sie.",
+    "unreachable": "KI ist nicht erreichbar — die Kernfunktionen laufen vollständig ohne sie.",
+    "noAnswer": "Keine Antwort erhalten — bitte schicke deine Frage noch einmal.",
+    "aiError": "KI-Fehler",
+    "proposalTitle": "Vorschlag · braucht deine Bestätigung",
+    "proposalCreate": "+ {action}",
+    "proposalAdjust": "~ Plan #{id}",
+    "proposalInterval": "Intervall",
+    "proposalEvery": "alle",
+    "proposalDetailsPlaceholder": "Details, z. B. „30 L von 60 L (50 %)“ — Dosierungen mit der Produktangabe abgleichen",
+    "approve": "Bestätigen & übernehmen",
+    "applied": "Übernommen",
+    "appliedList": "Übernommen: {items}",
+    "skippedList": "Übersprungen: {items}",
+    "failed": "Fehlgeschlagen — es wurde nichts geschrieben",
+    "reviewThinking": "Der Coach prüft deinen Plan wegen {why}…",
+    "reviewWhyWaterTest": "neuer Wassertests",
+    "reviewWhyParams": "geänderter Beckendaten",
+    "reviewReady": "Planprüfung abgeschlossen",
+    "badgeRecommendations": "{n} Planempfehlungen",
+    "recommendInitialTitle": "Ersten Pflegeplan erstellen",
+    "recommendUpdateTitle": "Pflegeplan aktualisieren",
+    "recommendInitialBody": "Lege die fünf Standardpläne an — Düngen, Füttern, Filterwechsel, Wasserwechsel und Wassertest.",
+    "recommendUpdateBody": {
+      "one": "Stammdaten geändert — der Plan {plans} fehlt oder braucht eine Aktualisierung.",
+      "other": "Stammdaten geändert — die Pläne {plans} fehlen oder brauchen eine Aktualisierung."
+    },
+    "recommendAsk": "Den Coach um einen Entwurf bitten",
+    "recommendManual": "oder manuell anlegen ({n})",
+    "recommendManualHint": "Zu „Pflegepläne“ scrollen → + Plan hinzufügen: {plans}",
+    "promptInitial": "Bitte erstelle einen ersten Pflegeplan für \"{tank}\" (Aquarium {id}) — schlage Pläne für Düngen, Füttern, Filterwechsel, Wasserwechsel und Wassertest mit konkreten Details vor.",
+    "promptUpdate": "Mein Aquarium \"{tank}\" (Aquarium {id}) hat sich geändert — bitte prüfe und aktualisiere den Pflegeplan ({plans} fehlen).",
+    "skipTankGone": "Aquarium existiert nicht mehr",
+    "skipDuplicate": "für dieses Aquarium gibt es schon einen Plan „{action}“ (einer je Typ)",
+    "skipScheduleGone": "Plan existiert nicht mehr (oder ist pausiert)",
+    "skipWriteFailed": "Schreiben fehlgeschlagen",
+    "changeCreate": "{action} anlegen, alle {n} T. (Aquarium {tank})",
+    "changeAdjust": "Plan #{id} ändern → alle {n} T."
+  },
+  "debug": {
+    "title": "Debug",
+    "subtitle": "Rohe Anfragen und Antworten der letzten KI-Aufrufe — Coach, Planprüfung, Tagesvorschläge.",
+    "empty": "Noch keine KI-Aufrufe protokolliert. Sobald Coach, Planprüfung oder Tagesvorschläge mit dem Anbieter sprechen, füllt sich das hier.",
+    "showing": "Zeigt die {n} neuesten von bis zu 200 gespeicherten Aufrufen — ältere werden automatisch verworfen.",
+    "error": "Fehler",
+    "request": "Anfrage",
+    "response": "Antwort",
+    "noResponse": "(keine Antwort — der Aufruf ist vorher fehlgeschlagen)"
+  },
+  "param": {
+    "temp": "Temperatur",
+    "ph": "pH",
+    "kh": "KH (Karbonathärte)",
+    "gh": "GH (Gesamthärte)",
+    "co2": "CO₂",
+    "no2": "Nitrit (NO₂)",
+    "no3": "Nitrat (NO₃)",
+    "nh4": "Ammonium (NH₄ gesamt)",
+    "po4": "Phosphat (PO₄)",
+    "fe": "Eisen (Fe)",
+    "cl2": "Chlor (Cl₂)",
+    "o2": "Sauerstoff (O₂)",
+    "salinity": "Salzgehalt",
+    "ca": "Calcium (Ca)",
+    "mg": "Magnesium (Mg)",
+    "alkalinity": "Karbonathärte (KH)"
+  },
+  "nutrient": {
+    "c_co2": "Kohlenstoff (C) / CO₂",
+    "n_no3": "Stickstoff (N) / Nitrat",
+    "p_po4": "Phosphor (P) / Phosphat",
+    "k": "Kalium (K)",
+    "mg": "Magnesium (Mg)",
+    "ca": "Calcium (Ca)",
+    "fe": "Eisen (Fe)",
+    "mn": "Mangan (Mn)",
+    "zn": "Zink (Zn)",
+    "b": "Bor (B)",
+    "mo": "Molybdän (Mo)",
+    "cu": "Kupfer (Cu)"
+  },
+  "error": {
+    "validation": "Bitte prüfe deine Eingaben: {detail}",
+    "tank.notFound": "Aquarium nicht gefunden",
+    "tank.createFailed": "Aquarium konnte nicht angelegt werden",
+    "tank.updateFailed": "Aquarium konnte nicht gespeichert werden",
+    "tank.deleteFailed": "Aquarium konnte nicht gelöscht werden",
+    "schedule.notFound": "Plan nicht gefunden",
+    "schedule.createFailed": "Plan konnte nicht angelegt werden",
+    "schedule.updateFailed": "Plan konnte nicht gespeichert werden",
+    "schedule.deleteFailed": "Plan konnte nicht gelöscht werden",
+    "schedule.duplicateType": "Für dieses Aquarium gibt es schon einen Plan „{action}“ (einer je Typ) — bearbeite diesen.",
+    "schedule.doneFailed": "Konnte nicht als erledigt markiert werden",
+    "snooze.pastDate": "Eine Aufgabe kann nicht in die Vergangenheit verschoben werden",
+    "snooze.failed": "Aufgabe konnte nicht verschoben werden",
+    "undo.nothing": "Nichts zum Rückgängigmachen",
+    "undo.failed": "Rückgängig machen fehlgeschlagen",
+    "waterTest.notFound": "Wassertest nicht gefunden",
+    "waterTest.saveFailed": "Wassertest konnte nicht gespeichert werden",
+    "waterTest.updateFailed": "Wassertest konnte nicht gespeichert werden",
+    "waterTest.deleteFailed": "Wassertest konnte nicht gelöscht werden",
+    "values.invalid": "Ungültige Werte: {detail}",
+    "feed.failed": "Die Fütterungszahl konnte nicht geändert werden",
+    "feed.invalidDate": "Kein gültiges Datum",
+    "feed.futureDate": "Fütterungen lassen sich nicht für die Zukunft eintragen",
+    "feed.backfillLimit": "Fütterungen lassen sich nur 30 Tage rückwirkend nachtragen",
+    "log.failed": "Die Aktion konnte nicht protokolliert werden",
+    "log.notLoggable": "Aktionstyp muss einer von diesen sein: {types}",
+    "log.feedIsCounter": "Füttern ist ein Tageszähler, keine protokollierte Aktion — nutze dafür die Fütterung auf der Übersicht",
+    "token.rotateFailed": "Token konnte nicht neu erzeugt werden",
+    "settings.invalid": "Ungültige Einstellungen",
+    "proposal.invalid": "Der Vorschlag war ungültig — es wurde nichts geschrieben",
+    "import.failed": "Import fehlgeschlagen — es wurde nichts geändert. {detail}"
   },
   "help": {
     "topics": {
@@ -268,6 +721,8 @@
           ]
         }
       ]
-    }
+    },
+    "whatDoesThisMean": "Was bedeutet „{term}“?",
+    "howAquamanPlans": "Wie Aquaman plant"
   }
 }

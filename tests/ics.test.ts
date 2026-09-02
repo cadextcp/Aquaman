@@ -120,3 +120,19 @@ describe("buildIcsFeed — 90-day horizon and multiple occurrences", () => {
     expect(feed).toContain("Tank\\; A\\, B\\\\C");
   });
 });
+
+describe("buildIcsFeed — localized event titles", () => {
+  it("defaults to English and keeps the historical SUMMARY wording", () => {
+    const feed = buildIcsFeed([sched()], NOW, TZ);
+    expect(feed).toContain("SUMMARY:Aquaman: Water change — 240L Community");
+  });
+
+  it("renders the SUMMARY in the app language", () => {
+    const feed = buildIcsFeed([sched()], NOW, TZ, "de");
+    expect(feed).toContain("SUMMARY:Aquaman: Wasserwechsel — 240L Community");
+  });
+
+  it("stays byte-identical per locale (determinism is not weakened by i18n)", () => {
+    expect(buildIcsFeed([sched()], NOW, TZ, "de")).toBe(buildIcsFeed([sched()], NOW, TZ, "de"));
+  });
+});

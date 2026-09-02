@@ -16,6 +16,7 @@ import { HelpDot } from "./ui/help";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 import { actionTypeDef } from "@/lib/domain/action-types";
+import { useI18n } from "@/i18n/provider";
 
 export type ScheduleCardData = Schedule & {
   tankName: string;
@@ -69,6 +70,7 @@ export function ScheduleCard({
   showTankName?: boolean;
 }) {
   const router = useRouter();
+  const { t, plural, actionLabel, errorText } = useI18n();
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   // optimistic flag, only bridging the gap until the revalidation lands
@@ -85,14 +87,14 @@ export function ScheduleCard({
   async function done() {
     // a rejected write must not leave the card claiming it is done
     const res = await markDone(schedule.id);
-    setError(res.ok ? null : res.error);
+    setError(res.ok ? null : errorText(res));
     setJustDone(res.ok);
     startTransition(() => router.refresh());
   }
 
   async function undo() {
     const res = await undoLastDone(schedule.id);
-    setError(res.ok ? null : res.error);
+    setError(res.ok ? null : errorText(res));
     if (res.ok) setJustDone(false);
     startTransition(() => router.refresh());
   }
@@ -106,7 +108,7 @@ export function ScheduleCard({
   }
 
   async function remove() {
-    if (!confirm(`Delete "${schedule.actionType.replace(/_/g, " ")}" (${schedule.tankName})?\nLogs and history stay — only the schedule disappears.`)) return;
+    if (!confirm(t("card.deleteConfirm", { action: actionLabel(schedule.actionType), tank: schedule.tankName }))) return;
     setEditOpen(false);
     await deleteSchedule(schedule.id);
     startTransition(() => router.refresh());
@@ -127,7 +129,7 @@ export function ScheduleCard({
           boxShadow: `inset 0 0 0 1px ${showDone ? "var(--success-edge)" : "var(--surface-edge)"}`,
           opacity: showDone ? 0.85 : 1,
         }}
-        title="Click to view & edit this schedule"
+        title={t("card.clickToEdit")}
       >
         {/* icon rail */}
         <span
@@ -143,17 +145,17 @@ export function ScheduleCard({
               </div>
             )}
             <div className="font-medium" style={{ textDecoration: showDone ? "line-through" : "none" }}>
-              {schedule.actionType.replace(/_/g, " ")}
+              {actionLabel(schedule.actionType)}
               <span className="text-sm font-normal" style={{ color: "var(--muted-foreground)" }}>
-                {" "}· every {schedule.intervalDays}d
-                {schedule.endsOn ? ` · until ${schedule.endsOn}` : ""}
+                {" "}· {t("schedule.every", { n: schedule.intervalDays })}
+                {schedule.endsOn ? ` ${t("card.until", { date: schedule.endsOn })}` : ""}
               </span>
               {adherence !== null && (
                 <span
                   className="text-xs tnum ml-1.5"
                   style={{ color: adherence >= 80 ? "var(--success)" : "var(--warning)" }}
                 >
-                  · {adherence}% on time
+                  {t("card.onTimePct", { n: adherence })}
                 </span>
               )}
               {adherence !== null && <HelpDot id="onTime" />}
@@ -166,19 +168,19 @@ export function ScheduleCard({
             <div className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
               {showDone ? (
                 <>
-                  <span style={{ color: "var(--success)" }}>done today</span> · next{" "}
+                  <span style={{ color: "var(--success)" }}>{t("card.doneToday")}</span> · {t("card.next")}{" "}
                   <strong>{due.plannedFor}</strong>
                 </>
               ) : due.overdueDays > 0 ? (
-                <span style={{ color: "var(--warning)" }}>behind {due.overdueDays}d</span>
+                <span style={{ color: "var(--warning)" }}>{t("schedule.behind", { n: due.overdueDays })}</span>
               ) : dueTodayOrOverdue ? (
-                <span style={{ color: "var(--accent)" }}>due today</span>
+                <span style={{ color: "var(--accent)" }}>{t("card.dueToday")}</span>
               ) : (
-                <>due in {daysIn} {daysIn === 1 ? "day" : "days"} · <strong>{due.plannedFor}</strong></>
+                <>{plural("card.dueInDays", daysIn)} · <strong>{due.plannedFor}</strong></>
               )}
               {!showDone && due.overdueDays > 0 && (
                 <>
-                  {" "}· planned <strong>{due.plannedFor}</strong>
+                  {" "}· {t("schedule.planned")} <strong>{due.plannedFor}</strong>
                   <HelpDot id="plannedDate" />
                 </>
               )}
@@ -199,8 +201,8 @@ export function ScheduleCard({
             <button
               onClick={remove}
               disabled={pending}
-              aria-label="Delete schedule"
-              title="Delete schedule"
+              aria-label={t("card.deleteSchedule")}
+              title={t("card.deleteSchedule")}
               className="icon-btn icon-btn-sm icon-btn-danger mr-0.5"
             >
               <i aria-hidden className="ph ph-trash text-base" />
@@ -212,18 +214,18 @@ export function ScheduleCard({
                 className="btn-ghost inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap"
                 style={{ minHeight: 36 }}
               >
-                <i aria-hidden className="ph ph-arrow-counter-clockwise text-sm" /> Undo done
+                <i aria-hidden className="ph ph-arrow-counter-clockwise text-sm" /> {t("card.undoDone")}
               </button>
             ) : dueTodayOrOverdue ? (
               /* primary checkbox-style control for due/overdue */
               <button
                 onClick={done}
                 disabled={pending}
-                aria-label={`Mark ${schedule.actionType} done`}
+                aria-label={t("card.markDone", { action: actionLabel(schedule.actionType) })}
                 className="btn-outline flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
                 style={{ minHeight: 40 }}
               >
-                <i aria-hidden className="ph ph-square text-base" /> Done
+                <i aria-hidden className="ph ph-square text-base" /> {t("common.done")}
               </button>
             ) : (
               /* future: neutral status, secondary actions */
@@ -235,7 +237,7 @@ export function ScheduleCard({
                   className="btn-ghost rounded-lg px-2.5 py-1.5 text-xs"
                   style={{ minHeight: 32 }}
                 >
-                  done early
+                  {t("card.doneEarly")}
                 </button>
                 <div className="relative">
                   <button
@@ -244,7 +246,7 @@ export function ScheduleCard({
                     className="btn-ghost rounded-lg px-2.5 py-1.5 text-xs"
                     style={{ minHeight: 32 }}
                   >
-                    later
+                    {t("card.later")}
                   </button>
                   {snoozeOpen && (
                     <div
@@ -256,7 +258,7 @@ export function ScheduleCard({
                           onClick={() => snoozeBy(d)}
                           className="block w-full text-left px-4 py-2 text-sm hover:opacity-80"
                         >
-                          +{d} {d === 1 ? "day" : "days"}
+                          {plural("card.snoozeDays", d)}
                         </button>
                       ))}
                     </div>
@@ -271,7 +273,7 @@ export function ScheduleCard({
       <Modal
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        title="Edit schedule"
+        title={t("card.editTitle")}
         actions={<ModalDeleteButton onClick={remove} disabled={pending} />}
       >
         <ScheduleForm tankId={schedule.tankId} tanks={tanks} schedule={schedule} />

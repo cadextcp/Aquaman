@@ -17,6 +17,9 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { failure } from "@/lib/domain/errors";
+import { t, actionLabelFor, type Locale } from "@/i18n";
+import { getLocale } from "@/lib/settings";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { tanks, schedules } from "@/lib/db/schema";
@@ -28,17 +31,28 @@ export type ProposalApplyResult = {
   skipped: { change: string; reason: string }[];
 };
 
-function describeChange(c: ProposalChange): string {
-  if (c.kind === "create") return `create ${c.actionType} every ${c.intervalDays}d (tank ${c.tankId})`;
-  return `adjust schedule #${c.scheduleId} → every ${c.intervalDays}d`;
+/**
+ * What was skipped, in the app's language: this text lands in the proposal
+ * card the user is looking at, so it goes through the catalogs like any other
+ * UI string (the action type itself is localized too).
+ */
+function describeChange(c: ProposalChange, locale: Locale): string {
+  return c.kind === "create"
+    ? t("coach.changeCreate", locale, {
+        action: actionLabelFor(c.actionType, locale),
+        n: c.intervalDays,
+        tank: c.tankId,
+      })
+    : t("coach.changeAdjust", locale, { id: c.scheduleId, n: c.intervalDays });
 }
 
 export async function applyProposal(input: unknown): Promise<ActionResult<ProposalApplyResult>> {
   // The proposal re-enters here as UNTRUSTED input from the client — re-parse
   // with the same strict zod schema the stream was validated with.
   const proposal = parseProposal(input);
-  if (!proposal) return { ok: false, error: "Invalid proposal (validation failed)" };
+  if (!proposal) return failure("proposal.invalid", "Invalid proposal (validation failed)");
 
+  const locale = getLocale();
   const applied: string[] = [];
   const skipped: { change: string; reason: string }[] = [];
 
@@ -51,7 +65,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
           .where(and(eq(tanks.id, c.tankId), isNull(tanks.deletedAt)))
           .get();
         if (!tank) {
-          skipped.push({ change: describeChange(c), reason: "Tank no longer exists" });
+          skipped.push({ change: describeChange(c, locale), reason: t("coach.skipTankGone", locale) });
           continue;
         }
         // issue #42: duplicate guard — one plan per standard type per tank
@@ -63,7 +77,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
             .where(and(eq(schedules.tankId, c.tankId), eq(schedules.actionType, c.actionType), eq(schedules.active, true)))
             .get();
           if (dupe) {
-            skipped.push({ change: describeChange(c), reason: `a ${c.actionType.replace(/_/g, " ")} plan already exists for this tank (one per type)` });
+            skipped.push({ change: describeChange(c, locale), reason: t("coach.skipDuplicate", locale, { action: actionLabelFor(c.actionType, locale) }) });
             continue;
           }
         }
@@ -80,7 +94,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
             detailData: (c.detailData as Record<string, unknown> | undefined) ?? null,
           })
           .run();
-        applied.push(describeChange(c));
+        applied.push(describeChange(c, locale));
       } else {
         // join tanks so soft-deleted tank schedules are treated as gone too
         const s = db
@@ -96,7 +110,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
           )
           .get();
         if (!s) {
-          skipped.push({ change: describeChange(c), reason: "Schedule no longer exists (or inactive)" });
+          skipped.push({ change: describeChange(c, locale), reason: t("coach.skipScheduleGone", locale) });
           continue;
         }
         // interval edits clear the snooze — a changed plan invalidates it
@@ -112,11 +126,11 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
           })
           .where(eq(schedules.id, c.scheduleId))
           .run();
-        applied.push(describeChange(c));
+        applied.push(describeChange(c, locale));
       }
     } catch (err) {
       console.error("[applyProposal] change failed", err);
-      skipped.push({ change: describeChange(c), reason: "Write failed" });
+      skipped.push({ change: describeChange(c, locale), reason: t("coach.skipWriteFailed", locale) });
     }
   }
 

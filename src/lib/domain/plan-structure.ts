@@ -15,20 +15,27 @@ export type StandardPlanType = ActionType;
 
 export type NutrientDef = { key: string; symbol: string; label: string; group: "macro" | "micro" };
 
-/** Owner-specified list (fixed for now, flexible later). */
+/**
+ * Owner-specified list (fixed for now, flexible later).
+ *
+ * `label` is the machine-facing English name, like every other domain label;
+ * what a person sees comes from the `nutrient.*` catalog section (these
+ * labels used to be German, which read as German words in an English UI).
+ * `symbol` is a chemical symbol and stays the same in every language.
+ */
 export const NUTRIENTS: NutrientDef[] = [
-  { key: "c_co2", symbol: "CO₂", label: "Kohlenstoff (C) / CO₂", group: "macro" },
-  { key: "n_no3", symbol: "NO₃", label: "Stickstoff (N) / Nitrat", group: "macro" },
-  { key: "p_po4", symbol: "PO₄", label: "Phosphor (P) / Phosphat", group: "macro" },
-  { key: "k", symbol: "K", label: "Kalium (K)", group: "macro" },
+  { key: "c_co2", symbol: "CO₂", label: "Carbon (C) / CO₂", group: "macro" },
+  { key: "n_no3", symbol: "NO₃", label: "Nitrogen (N) / nitrate", group: "macro" },
+  { key: "p_po4", symbol: "PO₄", label: "Phosphorus (P) / phosphate", group: "macro" },
+  { key: "k", symbol: "K", label: "Potassium (K)", group: "macro" },
   { key: "mg", symbol: "Mg", label: "Magnesium (Mg)", group: "macro" },
   { key: "ca", symbol: "Ca", label: "Calcium (Ca)", group: "macro" },
-  { key: "fe", symbol: "Fe", label: "Eisen (Fe)", group: "micro" },
-  { key: "mn", symbol: "Mn", label: "Mangan (Mn)", group: "micro" },
-  { key: "zn", symbol: "Zn", label: "Zink (Zn)", group: "micro" },
-  { key: "b", symbol: "B", label: "Bor (B)", group: "micro" },
-  { key: "mo", symbol: "Mo", label: "Molybdän (Mo)", group: "micro" },
-  { key: "cu", symbol: "Cu", label: "Kupfer (Cu)", group: "micro" },
+  { key: "fe", symbol: "Fe", label: "Iron (Fe)", group: "micro" },
+  { key: "mn", symbol: "Mn", label: "Manganese (Mn)", group: "micro" },
+  { key: "zn", symbol: "Zn", label: "Zinc (Zn)", group: "micro" },
+  { key: "b", symbol: "B", label: "Boron (B)", group: "micro" },
+  { key: "mo", symbol: "Mo", label: "Molybdenum (Mo)", group: "micro" },
+  { key: "cu", symbol: "Cu", label: "Copper (Cu)", group: "micro" },
 ];
 
 export function isStandardPlanType(t: string): t is StandardPlanType {

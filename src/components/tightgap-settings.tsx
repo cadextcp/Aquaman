@@ -9,6 +9,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveGlobalSettingsAction } from "@/app/actions";
 import { StatusNote } from "./ui/status-note";
+import { useI18n } from "@/i18n/provider";
 
 export function TightGapSettings({
   initialPolicy,
@@ -17,6 +18,7 @@ export function TightGapSettings({
   initialPolicy: "fixed" | "suppress";
   initialThreshold: number;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [policy, setPolicy] = useState(initialPolicy);
   const [threshold, setThreshold] = useState(initialThreshold);
@@ -37,29 +39,28 @@ export function TightGapSettings({
   return (
     <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-        Scheduling — after catching up
+        {t("settings.tightGap.title")}
       </div>
       <p className="text-sm mb-3" style={{ color: "var(--muted-foreground)" }}>
-        After a busy week, several tasks can pile up and get done on one day. The <strong>next regular date</strong> can
-        then land very soon after — e.g. a water change due again just 3 days later. This setting controls what happens:
+        {t("settings.tightGap.description")}
       </p>
       <div className="space-y-2 mb-4">
         <PolicyOption
           selected={policy === "suppress"}
           onSelect={() => setPolicy("suppress")}
-          title="Calm (recommended)"
-          desc="Skip the next regular date if it falls within the threshold of the interval — you just did the task, after all. Exactly one date is skipped, the grid continues normally afterwards."
+          title={t("settings.tightGap.calmTitle")}
+          desc={t("settings.tightGap.calmDesc")}
         />
         <PolicyOption
           selected={policy === "fixed"}
           onSelect={() => setPolicy("fixed")}
-          title="Strict"
-          desc="Keep every regular date exactly on the grid, even shortly after a catch-up. Choose this if you want maximum consistency."
+          title={t("settings.tightGap.strictTitle")}
+          desc={t("settings.tightGap.strictDesc")}
         />
       </div>
       {policy === "suppress" && (
         <label className="flex items-center gap-3 text-sm mb-4" style={{ color: "var(--muted-foreground)" }}>
-          Skip when the next date is within
+          {t("settings.tightGap.skipWithin")}
           <input
             type="number"
             min={1}
@@ -69,7 +70,7 @@ export function TightGapSettings({
             className="w-16 rounded px-2 py-1.5"
             style={input}
           />
-          % of the interval
+          {t("settings.tightGap.pctOfInterval")}
         </label>
       )}
       <div className="flex items-center gap-3">
@@ -80,12 +81,12 @@ export function TightGapSettings({
           className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
           style={{ minHeight: 44 }}
         >
-          Save
+          {t("common.save")}
         </button>
-        {saved && <StatusNote tone="success">Saved</StatusNote>}
+        {saved && <StatusNote tone="success">{t("common.saved")}</StatusNote>}
       </div>
       <p className="text-xs mt-3" style={{ color: "var(--muted-foreground)" }}>
-        Applies to all plans. Individual plans can still override this in their edit dialog.
+        {t("settings.tightGap.footnote")}
       </p>
     </div>
   );

@@ -62,6 +62,19 @@ describe("POST /api/v1/actions", () => {
     expect(body.error).not.toContain("feed"); // feed is excluded from the loggable list (own daily-counter endpoint)
   });
 
+  it("serves a stable failure code next to the English message", async () => {
+    // the API contract: `error` stays English and unchanged, `code` is what a
+    // client should branch on (and what the UI translates)
+    const { POST } = await import("../src/app/api/v1/actions/route");
+    const unknownTank = await POST(postActions({ tankId: 999999, actionType: "water_change" }));
+    expect(unknownTank.status).toBe(404);
+    const notFound = await unknownTank.json();
+    expect(notFound).toMatchObject({ error: "Tank not found", code: "tank.notFound" });
+
+    const feed = await POST(postActions({ tankId, actionType: "feed" }));
+    expect((await feed.json()).code).toBe("log.feedIsCounter");
+  });
+
   it("unknown tank → 404", async () => {
     const { POST } = await import("../src/app/api/v1/actions/route");
     const res = await POST(postActions({ tankId: 999999, actionType: "water_change" }));

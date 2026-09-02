@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { NavItem, type NavVariant } from "./ui/nav-item";
+import { useI18n } from "@/i18n/provider";
 
 export type PlanReviewBadgeState =
   | { state: "idle" | "pending" | "thinking" }
@@ -58,6 +59,7 @@ export function usePlanReviewBadge(): PlanReviewBadgeState {
 
 /** The visual badge: pulsing dot (thinking) or count bubble (ready). */
 export function CoachBadge({ state }: { state: PlanReviewBadgeState }) {
+  const { t } = useI18n();
   if (state.state === "thinking" || state.state === "pending") {
     return (
       <span
@@ -78,7 +80,7 @@ export function CoachBadge({ state }: { state: PlanReviewBadgeState }) {
   if (state.state === "ready") {
     return (
       <span
-        aria-label={`${state.count} plan recommendations`}
+        aria-label={t("coach.badgeRecommendations", { n: state.count })}
         className="absolute tnum"
         style={{
           top: -5,
@@ -103,10 +105,11 @@ export function CoachBadge({ state }: { state: PlanReviewBadgeState }) {
 }
 
 
-const COACH = { href: "/coach", label: "Coach", icon: "sparkle" } as const;
+const COACH = { href: "/coach", icon: "sparkle" } as const;
 
 /** Coach nav item with badge — must live in a client file (uses the hook). */
 export function CoachNavItem({ variant }: { variant: NavVariant }) {
+  const { t } = useI18n();
   const badge = usePlanReviewBadge();
-  return <NavItem {...COACH} variant={variant} badge={<CoachBadge state={badge} />} />;
+  return <NavItem {...COACH} label={t("nav.coach")} variant={variant} badge={<CoachBadge state={badge} />} />;
 }

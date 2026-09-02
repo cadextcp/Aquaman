@@ -8,15 +8,18 @@ import { McpSettings } from "@/components/mcp-settings";
 import { ApiSettings } from "@/components/api-settings";
 import { DataCard } from "@/components/data-card";
 import { TightGapSettings } from "@/components/tightgap-settings";
+import { LanguageSettings } from "@/components/language-settings";
 import { AiProviderSettings } from "@/components/ai-provider-settings";
 import { getGlobalSettings, getAiSettings } from "@/lib/settings";
 import { isAiConfigured, hasApiKey } from "@/lib/ai/config";
 import { usageForSettings } from "@/lib/ai/cost-guard";
 import { monthlyStats, careReliabilityStats, chronicOverload, aiCostStats } from "@/lib/stats";
-import { today, shiftMonth } from "@/lib/domain/dates";
+import { today } from "@/lib/domain/dates";
 import { APP_VERSION } from "@/lib/version";
 import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
+import { getLocale } from "@/lib/settings";
+import { t, formatNumber, actionLabelFor } from "@/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +29,7 @@ function fmtMicros(micros: number): string {
 }
 
 export default async function MorePage() {
+  const locale = getLocale();
   const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
@@ -46,7 +50,7 @@ export default async function MorePage() {
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       <PageHeader
-        title="More"
+        title={t("more.title", locale)}
         action={
           <span className="text-xs tnum" style={{ color: "var(--muted-foreground)" }}>
             v{APP_VERSION}
@@ -60,9 +64,9 @@ export default async function MorePage() {
       >
         <i aria-hidden className="ph ph-compass text-xl" style={{ color: "var(--accent)" }} />
         <span className="flex-1 min-w-0">
-          <span className="block text-sm font-medium">How Aquaman plans</span>
+          <span className="block text-sm font-medium">{t("more.conceptsTitle", locale)}</span>
           <span className="block text-xs" style={{ color: "var(--muted-foreground)" }}>
-            Target dates, re-planning and why your backlog stays honest
+            {t("more.conceptsDesc", locale)}
           </span>
         </span>
         <i aria-hidden className="ph ph-caret-right" style={{ color: "var(--faint)" }} />
@@ -74,9 +78,9 @@ export default async function MorePage() {
       >
         <i aria-hidden className="ph ph-bug text-xl" style={{ color: "var(--accent)" }} />
         <span className="flex-1 min-w-0">
-          <span className="block text-sm font-medium">Debug</span>
+          <span className="block text-sm font-medium">{t("more.debugTitle", locale)}</span>
           <span className="block text-xs" style={{ color: "var(--muted-foreground)" }}>
-            Raw request/response of the last AI calls
+            {t("more.debugDesc", locale)}
           </span>
         </span>
         <i aria-hidden className="ph ph-caret-right" style={{ color: "var(--faint)" }} />
@@ -99,34 +103,35 @@ export default async function MorePage() {
       {/* Statistics */}
       <div className="rounded-xl p-5 mb-4 edge-card">
         <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-          This month ({thisMonth})
+          {t("more.thisMonth", locale, { month: thisMonth })}
         </div>
         <HelpNote id="timezone" className="mb-3 mt-0.5" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <Stat label="Water changes" value={stats.waterChanges} />
-          <Stat label="Feedings" value={stats.feedings} />
-          <Stat label="Water tests" value={stats.waterTests} />
-          <Stat label="Other care" value={stats.otherMaintenance} />
+          <Stat label={t("more.statWaterChanges", locale)} value={stats.waterChanges} />
+          <Stat label={t("more.statFeedings", locale)} value={stats.feedings} />
+          <Stat label={t("more.statWaterTests", locale)} value={stats.waterTests} />
+          <Stat label={t("more.statOtherCare", locale)} value={stats.otherMaintenance} />
         </div>
 
         <div className="text-xs uppercase tracking-wide mb-2 flex items-center gap-0.5" style={{ color: "var(--muted-foreground)" }}>
-          Median delay by plan
+          {t("more.medianTitle", locale)}
           <HelpDot id="medianDelay" />
         </div>
         <p className="text-xs mb-2" style={{ color: "var(--faint)" }}>
-          target &lt; 2 d water change · &lt; 1 d fertilize
+          {t("more.medianTarget", locale)}
         </p>
         {reliability.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-            No completed tasks yet — check tasks off and this fills in.
+            {t("more.medianEmpty", locale)}
           </p>
         ) : (
           <ul className="text-sm space-y-1 mb-4">
             {reliability.map((r) => (
               <li key={r.actionType} className="flex justify-between">
-                <span>{r.actionType.replace(/_/g, " ")}</span>
+                <span>{actionLabelFor(r.actionType, locale)}</span>
                 <span style={{ color: "var(--muted-foreground)" }}>
-                  {r.medianDelayDays === null ? "—" : `${r.medianDelayDays} d median`} ({r.count}×)
+                  {r.medianDelayDays === null ? "—" : t("more.medianValue", locale, { n: r.medianDelayDays })}{" "}
+                  {t("more.medianCount", locale, { n: r.count })}
                 </span>
               </li>
             ))}
@@ -135,16 +140,25 @@ export default async function MorePage() {
 
         {overload.length > 0 && (
           <div className="rounded-lg p-3 text-sm mb-2" style={{ background: "var(--secondary)" }}>
-            <div className="font-medium mb-1">Interval too tight? ({overload.length})</div>
+            <div className="font-medium mb-1">{t("more.overloadTitle", locale, { n: overload.length })}</div>
             <ul className="space-y-0.5" style={{ color: "var(--muted-foreground)" }}>
               {overload.slice(0, 5).map((o) => (
                 <li key={o.scheduleId}>
-                  {o.tankName} · {o.actionType.replace(/_/g, " ")} — {o.missedSlots} missed slots
+                  {t("more.overloadRow", locale, {
+                    tank: o.tankName,
+                    action: actionLabelFor(o.actionType, locale),
+                    n: o.missedSlots,
+                  })}
                 </li>
               ))}
             </ul>
           </div>
         )}
+      </div>
+
+      {/* Language (global — UI, ICS titles, coach) */}
+      <div className="mb-4">
+        <LanguageSettings initialLocale={globals.locale} />
       </div>
 
       {/* Scheduling: after catching up (global) */}
@@ -164,21 +178,29 @@ export default async function MorePage() {
       {/* AI status + 30-day cost */}
       <div className="rounded-xl p-5 mb-4 edge-card">
         <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-          AI coach
+          {t("more.aiTitle", locale)}
         </div>
         {aiOn ? (
           <p className="text-sm mb-2">
-            <span className="inline-flex items-center gap-1.5" style={{ color: "var(--success)" }}><i aria-hidden className="ph-fill ph-circle text-[8px]" /> Online</span> — today: {usage.calls} calls ·{" "}
-            {usage.totalTokens.toLocaleString()} tokens. Daily limits reset at local midnight.
+            <span className="inline-flex items-center gap-1.5" style={{ color: "var(--success)" }}>
+              <i aria-hidden className="ph-fill ph-circle text-[8px]" /> {t("more.aiOnline", locale)}
+            </span>{" "}
+            — {t("more.aiOnlineDetail", locale, { calls: usage.calls, tokens: formatNumber(usage.totalTokens, locale) })}
           </p>
         ) : (
           <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
-            <span className="inline-flex items-center gap-1.5"><i aria-hidden className="ph ph-circle text-[8px]" /> Offline</span> — no API key configured yet (set one in the AI provider section below). The app works fully without it.
+            <span className="inline-flex items-center gap-1.5">
+              <i aria-hidden className="ph ph-circle text-[8px]" /> {t("more.aiOffline", locale)}
+            </span>{" "}
+            — {t("more.aiOfflineDetail", locale)}
           </p>
         )}
         <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-          Last 30 days: {aiCost.calls} calls · {(aiCost.promptTokens + aiCost.completionTokens).toLocaleString()} tokens · ≈
-          {fmtMicros(aiCost.costMicros)} cost units
+          {t("more.aiCost", locale, {
+            calls: aiCost.calls,
+            tokens: formatNumber(aiCost.promptTokens + aiCost.completionTokens, locale),
+            cost: fmtMicros(aiCost.costMicros),
+          })}
           {aiCost.byModel.length > 1 && ` (${aiCost.byModel.map((m) => `${m.model}: ${m.calls}`).join(", ")})`}
         </p>
         <HelpNote id="costUnits" />
