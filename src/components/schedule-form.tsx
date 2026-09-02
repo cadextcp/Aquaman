@@ -8,7 +8,6 @@ import { ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } from "@/lib/schem
 import type { ScheduleInput } from "@/lib/schemas";
 import type { Schedule } from "@/lib/db/schema";
 import { StructuredDetailsEditor } from "./structured-details-editor";
-import { formatDetailData } from "@/lib/domain/plan-structure";
 import { SCHEDULABLE_ACTION_TYPES, actionTypeDef } from "@/lib/domain/action-types";
 import { useI18n } from "@/i18n/provider";
 

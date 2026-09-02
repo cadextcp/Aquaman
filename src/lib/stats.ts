@@ -11,7 +11,7 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { maintenanceLogs, waterTests, feedLogs, schedules, aiCalls } from "@/lib/db/schema";
-import { listTanks, listSchedules } from "@/lib/repo";
+import { listSchedules } from "@/lib/repo";
 import { missedSlots, nextPreferredDay } from "@/lib/domain/scheduler";
 import { addDays, today, dayMatchesMask, isoToLocalDate } from "@/lib/domain/dates";
 
@@ -249,7 +249,9 @@ export function scheduleAdherence(
 
 /** Cross-tank 30-day summary (design: "60 care actions"). Pass `tankId` to scope to one tank (dashboard tank filter). */
 export function crossTankStats(now: Date = new Date(), tankId?: number) {
-  const from = addDays(today(), -30);
+  // `now` is the injection point for tests and for a caller pinning one
+  // instant across several stats — today() must read it, not the wall clock
+  const from = addDays(today(undefined, now), -30);
   const fromIso = `${from}T00:00:00.000Z`;
   const logs = db
     .select()
@@ -280,7 +282,7 @@ export function dailyActivity(days = 30): { date: string; count: number }[] {
 
 /** Weekly summary for the empty-queue state (design: "4 tasks closed this week, zero behind"). Pass `tankId` to scope to one tank (dashboard tank filter). */
 export function weeklySummary(now: Date = new Date(), tankId?: number) {
-  const t = today();
+  const t = today(undefined, now);
   const from = addDays(t, -7);
   const fromIso = `${from}T00:00:00.000Z`;
   const logs = db

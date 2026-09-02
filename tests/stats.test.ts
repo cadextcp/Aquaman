@@ -217,3 +217,37 @@ describe("scheduleAdherence (30 d, reset-grid semantics)", () => {
     expect(pct).toBe(100);
   });
 });
+
+describe("injected `now` (both windowed summaries)", () => {
+  // Both functions take `now` so a caller can pin one instant — they used to
+  // accept it and then read the wall clock via today(), which made the whole
+  // parameter a lie: seeded July logs counted or not depending on the real
+  // date the suite happened to run on.
+  it("crossTankStats counts the 30 days before the GIVEN instant", async () => {
+    const { crossTankStats } = await import("../src/lib/stats");
+    // 2026-08-01: the four July logs are inside the 30-day window
+    expect(crossTankStats(new Date("2026-08-01T12:00:00.000Z")).actions).toBe(4);
+    // a year later the same rows are far outside it
+    expect(crossTankStats(new Date("2027-08-01T12:00:00.000Z")).actions).toBe(0);
+  });
+
+  it("weeklySummary counts the 7 days before the GIVEN instant", async () => {
+    const { weeklySummary } = await import("../src/lib/stats");
+    // week of 2026-07-29: only the 07-29 water change falls in it
+    expect(weeklySummary(new Date("2026-07-30T12:00:00.000Z")).closed).toBe(1);
+    // the window is open-ended (everything from `now` - 7d onwards), which is
+    // invisible in production where `now` IS today: from 07-13 that means the
+    // 07-18 AND the 07-29 row
+    expect(weeklySummary(new Date("2026-07-20T12:00:00.000Z")).closed).toBe(2);
+    expect(weeklySummary(new Date("2027-01-01T12:00:00.000Z")).closed).toBe(0);
+  });
+
+  it("scopes to one tank with an injected instant (dashboard tank filter)", async () => {
+    const { crossTankStats } = await import("../src/lib/stats");
+    const { db } = await import("../src/lib/db");
+    const { tanks } = await import("../src/lib/db/schema");
+    const id = db.select().from(tanks).all()[0].id;
+    expect(crossTankStats(new Date("2026-08-01T12:00:00.000Z"), id).actions).toBe(4);
+    expect(crossTankStats(new Date("2026-08-01T12:00:00.000Z"), id + 999).actions).toBe(0);
+  });
+});

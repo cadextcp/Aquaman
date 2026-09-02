@@ -14,7 +14,7 @@ import { getGlobalSettings, getAiSettings } from "@/lib/settings";
 import { isAiConfigured, hasApiKey } from "@/lib/ai/config";
 import { usageForSettings } from "@/lib/ai/cost-guard";
 import { monthlyStats, careReliabilityStats, chronicOverload, aiCostStats } from "@/lib/stats";
-import { today, shiftMonth } from "@/lib/domain/dates";
+import { today } from "@/lib/domain/dates";
 import { APP_VERSION } from "@/lib/version";
 import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
