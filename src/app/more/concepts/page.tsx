@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { concepts } from "@/i18n";
+import { concepts, t } from "@/i18n";
 import { getLocale } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "How Aquaman plans — Aquaman" };
+export function generateMetadata() {
+  const locale = getLocale();
+  return { title: t("app.pageTitle", locale, { page: concepts(locale).title }) };
+}
 
 /**
  * Ebene 4 of the help plan: the scheduling model explained in one place.
@@ -14,7 +17,8 @@ export const metadata = { title: "How Aquaman plans — Aquaman" };
  * entry point. Content lives in the i18n catalogs like every other string.
  */
 export default function ConceptsPage() {
-  const { title, lede, sections } = concepts(getLocale());
+  const locale = getLocale();
+  const { title, lede, sections } = concepts(locale);
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-2xl">
@@ -26,7 +30,7 @@ export default function ConceptsPage() {
             className="btn-ghost inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
             style={{ minHeight: 44 }}
           >
-            <i aria-hidden className="ph ph-caret-left" /> More
+            <i aria-hidden className="ph ph-caret-left" /> {t("common.back", locale)}
           </Link>
         }
       />

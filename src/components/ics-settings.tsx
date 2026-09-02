@@ -3,9 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { rotateIcsTokenAction } from "@/app/actions";
+import { useI18n } from "@/i18n/provider";
 
 /** ICS subscribe URL + rotate button (Phase 3 — TechDesign §4.4/§8b). */
 export function IcsSettings({ initialUrl }: { initialUrl: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [url, setUrl] = useState(initialUrl);
   const [copied, setCopied] = useState(false);
@@ -22,7 +24,7 @@ export function IcsSettings({ initialUrl }: { initialUrl: string }) {
   }
 
   async function rotate() {
-    if (!confirm("Rotate the ICS token? The current subscribe URL will stop working immediately.")) return;
+    if (!confirm(t("settings.ics.rotateConfirm"))) return;
     const res = await rotateIcsTokenAction();
     if (res.ok && res.data) {
       const base = url.split("?")[0];
@@ -36,11 +38,10 @@ export function IcsSettings({ initialUrl }: { initialUrl: string }) {
   return (
     <div className="rounded-xl p-5 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-        Calendar feed (ICS)
+        {t("settings.ics.title")}
       </div>
       <p className="text-sm mb-3" style={{ color: "var(--muted-foreground)" }}>
-        Subscribe to this URL in Google Calendar (&quot;Other calendars → From URL&quot;). It updates automatically —
-        Google refreshes external feeds roughly once a day.
+        {t("settings.ics.description")}
       </p>
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
         <input
@@ -56,7 +57,7 @@ export function IcsSettings({ initialUrl }: { initialUrl: string }) {
           className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy"}
+          {copied ? <><i aria-hidden className="ph ph-check" /> {t("common.copied")}</> : t("common.copy")}
         </button>
       </div>
       <button
@@ -66,7 +67,7 @@ export function IcsSettings({ initialUrl }: { initialUrl: string }) {
         className="text-xs underline"
         style={{ color: "var(--destructive)" }}
       >
-        Rotate token (invalidates the current URL)
+        {t("settings.ics.rotate")}
       </button>
     </div>
   );

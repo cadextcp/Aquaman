@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { rotateMcpTokenAction } from "@/app/actions";
+import { useI18n } from "@/i18n/provider";
+import { withInlineCode, BEARER_HEADER } from "./ui/inline-code";
 
 /**
  * MCP endpoint + token settings (product v1.1 — TechDesign §4.6).
@@ -10,6 +12,7 @@ import { rotateMcpTokenAction } from "@/app/actions";
  * this URL plus the token as an Authorization header.
  */
 export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [currentToken, setCurrentToken] = useState(token);
   const [copied, setCopied] = useState<"url" | "token" | null>(null);
@@ -26,7 +29,7 @@ export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token
   }
 
   async function rotate() {
-    if (!confirm("Rotate the MCP token? Every configured agent loses access immediately until you update it.")) return;
+    if (!confirm(t("settings.mcp.rotateConfirm"))) return;
     const res = await rotateMcpTokenAction();
     if (res.ok && res.data) setCurrentToken(res.data.token);
     startTransition(() => router.refresh());
@@ -37,12 +40,10 @@ export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token
   return (
     <div className="rounded-xl p-5 mb-4 edge-card">
       <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
-        MCP endpoint (for agents like OpenClaw)
+        {t("settings.mcp.title")}
       </div>
       <p className="text-sm mb-3" style={{ color: "var(--muted-foreground)" }}>
-        Remote agents read tank state and record care via the Model Context Protocol. Configure the URL and send the
-        token as <code className="text-xs">Authorization: Bearer</code> header. Write tools can log care — nothing can
-        be deleted or rewritten remotely.
+        {withInlineCode(t("settings.mcp.description", { header: BEARER_HEADER }), BEARER_HEADER)}
       </p>
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
         <input
@@ -58,7 +59,7 @@ export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token
           className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied === "url" ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy URL"}
+          {copied === "url" ? <><i aria-hidden className="ph ph-check" /> {t("common.copied")}</> : t("settings.mcp.copyUrl")}
         </button>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
@@ -75,7 +76,7 @@ export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token
           className="btn-outline inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
           style={{ minHeight: 44 }}
         >
-          {copied === "token" ? <><i aria-hidden className="ph ph-check" /> Copied</> : "Copy token"}
+          {copied === "token" ? <><i aria-hidden className="ph ph-check" /> {t("common.copied")}</> : t("settings.mcp.copyToken")}
         </button>
       </div>
       <button
@@ -85,7 +86,7 @@ export function McpSettings({ endpointUrl, token }: { endpointUrl: string; token
         className="text-xs underline"
         style={{ color: "var(--destructive)" }}
       >
-        Rotate token (invalidates the current one)
+        {t("settings.mcp.rotate")}
       </button>
     </div>
   );

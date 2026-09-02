@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { listAiCallLogs } from "@/lib/ai/debug-log";
+import { getLocale } from "@/lib/settings";
+import { t, formatDateTime, type Locale } from "@/i18n";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Debug — Aquaman" };
+export function generateMetadata() {
+  const locale = getLocale();
+  return { title: t("app.pageTitle", locale, { page: t("debug.title", locale) }) };
+}
 
 /**
  * Raw AI request/response trace (More → Debug). Reads the pruned
@@ -13,38 +18,37 @@ export const metadata = { title: "Debug — Aquaman" };
  * inspection aid.
  */
 export default function DebugPage() {
+  const locale = getLocale();
   const logs = listAiCallLogs(50);
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       <PageHeader
-        title="Debug"
-        subtitle="Raw request/response of the last AI calls — coach, plan review, daily suggestions."
+        title={t("debug.title", locale)}
+        subtitle={t("debug.subtitle", locale)}
         action={
           <Link
             href="/more"
             className="btn-ghost inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
             style={{ minHeight: 44 }}
           >
-            <i aria-hidden className="ph ph-caret-left" /> More
+            <i aria-hidden className="ph ph-caret-left" /> {t("common.back", locale)}
           </Link>
         }
       />
 
       {logs.length === 0 ? (
         <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-          No AI calls logged yet. This fills in as soon as the coach, plan review, or daily
-          suggestions talk to the provider.
+          {t("debug.empty", locale)}
         </p>
       ) : (
         <>
           <p className="text-xs mb-4" style={{ color: "var(--faint)" }}>
-            Showing the {logs.length} most recent of up to 200 kept calls — oldest are dropped
-            automatically.
+            {t("debug.showing", locale, { n: logs.length })}
           </p>
           <div className="flex flex-col gap-3">
             {logs.map((log) => (
-              <LogEntry key={log.id} log={log} />
+              <LogEntry key={log.id} log={log} locale={locale} />
             ))}
           </div>
         </>
@@ -55,7 +59,9 @@ export default function DebugPage() {
 
 function LogEntry({
   log,
+  locale,
 }: {
+  locale: Locale;
   log: {
     id: number;
     createdAt: string;
@@ -86,12 +92,12 @@ function LogEntry({
               className="text-xs px-2 py-0.5 rounded-full"
               style={{ background: "var(--destructive-soft)", color: "var(--destructive)", boxShadow: "inset 0 0 0 1px var(--destructive-edge)" }}
             >
-              error
+              {t("debug.error", locale)}
             </span>
           )}
         </div>
         <span className="text-xs tnum" style={{ color: "var(--faint)" }}>
-          {formatTimestamp(log.createdAt)} · {log.durationMs} ms
+          {formatTimestamp(log.createdAt, locale)} · {log.durationMs} ms
         </span>
       </div>
 
@@ -103,7 +109,7 @@ function LogEntry({
 
       <details className="mb-1.5">
         <summary className="text-xs cursor-pointer select-none" style={{ color: "var(--muted-foreground)" }}>
-          Request
+          {t("debug.request", locale)}
         </summary>
         <pre className="text-xs mt-1.5 p-2.5 rounded-lg overflow-x-auto whitespace-pre-wrap break-words font-mono" style={{ background: "var(--secondary)" }}>
           {formatJson(log.requestJson)}
@@ -112,10 +118,10 @@ function LogEntry({
 
       <details>
         <summary className="text-xs cursor-pointer select-none" style={{ color: "var(--muted-foreground)" }}>
-          Response
+          {t("debug.response", locale)}
         </summary>
         <pre className="text-xs mt-1.5 p-2.5 rounded-lg overflow-x-auto whitespace-pre-wrap break-words font-mono" style={{ background: "var(--secondary)" }}>
-          {log.responseJson ? formatJson(log.responseJson) : "(no response — call failed before completion)"}
+          {log.responseJson ? formatJson(log.responseJson) : t("debug.noResponse", locale)}
         </pre>
       </details>
     </div>
@@ -130,8 +136,8 @@ function formatJson(raw: string): string {
   }
 }
 
-function formatTimestamp(iso: string): string {
+function formatTimestamp(iso: string, locale: Locale): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
+  return formatDateTime(iso, locale);
 }

@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Aquaman",
-    "tagline": "Selbstgehostete Aquariumpflege"
+    "tagline": "Selbstgehostete Aquariumpflege",
+    "pageTitle": "{page} — Aquaman"
   },
   "nav": {
     "dashboard": "Übersicht",
@@ -66,7 +67,11 @@
     "save": "Speichern",
     "loading": "Lädt…",
     "aiOffline": "AI offline — Kernfunktionen voll nutzbar",
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "saved": "Gespeichert",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "back": "Mehr"
   },
   "tanks": {
     "title": "Aquarien",
@@ -174,7 +179,29 @@
   },
   "more": {
     "title": "Mehr",
-    "comingSoon": "Einstellungen, AI-Coach und Kalender folgen in den nächsten Phasen."
+    "comingSoon": "Einstellungen, AI-Coach und Kalender folgen in den nächsten Phasen.",
+    "conceptsTitle": "Wie Aquaman plant",
+    "conceptsDesc": "Soll-Termine, Neuplanung und warum dein Rückstand ehrlich bleibt",
+    "debugTitle": "Debug",
+    "debugDesc": "Rohe Anfragen und Antworten der letzten KI-Aufrufe",
+    "thisMonth": "Diesen Monat ({month})",
+    "statWaterChanges": "Wasserwechsel",
+    "statFeedings": "Fütterungen",
+    "statWaterTests": "Wassertests",
+    "statOtherCare": "Sonstige Pflege",
+    "medianTitle": "Mittlere Verzögerung je Plan",
+    "medianTarget": "Ziel < 2 T Wasserwechsel · < 1 T Düngen",
+    "medianEmpty": "Noch nichts abgehakt — sobald du Aufgaben erledigst, füllt sich das hier.",
+    "medianValue": "{n} T im Median",
+    "medianCount": "({n}×)",
+    "overloadTitle": "Intervall zu eng? ({n})",
+    "overloadRow": "{tank} · {action} — {n} verpasste Termine",
+    "aiTitle": "KI-Coach",
+    "aiOnline": "Online",
+    "aiOnlineDetail": "heute: {calls} Anfragen · {tokens} Tokens. Die Tageslimits werden um Mitternacht zurückgesetzt.",
+    "aiOffline": "Offline",
+    "aiOfflineDetail": "noch kein API-Schlüssel hinterlegt (unten im Abschnitt KI-Anbieter). Die App funktioniert vollständig ohne ihn.",
+    "aiCost": "Letzte 30 Tage: {calls} Anfragen · {tokens} Tokens · ≈{cost} Kosteneinheiten"
   },
   "calendarPage": {
     "title": "Kalender",
@@ -205,6 +232,73 @@
     "language": {
       "title": "Sprache",
       "description": "Gilt für die gesamte App: Oberfläche, Kalender-Termintitel und die Antworten des Coaches."
+    },
+    "ics": {
+      "title": "Kalender-Feed (ICS)",
+      "description": "Abonniere diese URL in Google Kalender („Weitere Kalender → Per URL“). Sie aktualisiert sich automatisch — Google lädt externe Feeds etwa einmal täglich neu.",
+      "rotate": "Token neu erzeugen (macht die aktuelle URL ungültig)",
+      "rotateConfirm": "ICS-Token neu erzeugen? Die aktuelle Abo-URL funktioniert sofort nicht mehr."
+    },
+    "mcp": {
+      "title": "MCP-Endpunkt (für Agenten wie OpenClaw)",
+      "description": "Externe Agenten lesen den Beckenzustand und protokollieren Pflege über das Model Context Protocol. Trage die URL ein und schicke das Token als {header}-Header. Schreib-Tools können Pflege protokollieren — löschen oder überschreiben lässt sich nichts aus der Ferne.",
+      "copyUrl": "URL kopieren",
+      "copyToken": "Token kopieren",
+      "rotate": "Token neu erzeugen (macht das aktuelle ungültig)",
+      "rotateConfirm": "MCP-Token neu erzeugen? Jeder eingerichtete Agent verliert sofort den Zugriff, bis du ihn aktualisierst."
+    },
+    "api": {
+      "title": "REST-API (für Skripte, Displays, Home Assistant, …)",
+      "description": "Eine allgemeine Schnittstelle für Aquarien, Pläne, Pflegehistorie, Fütterungen und Wassertests — schicke das Token als {header}-Header. Vollständige API-Referenz mit Ausprobier-Konsole:",
+      "copyDocs": "Doku-URL kopieren",
+      "copyToken": "Token kopieren",
+      "rotate": "Token neu erzeugen (macht das aktuelle ungültig)",
+      "rotateConfirm": "API-Token neu erzeugen? Jeder eingerichtete Client (ESPHome-Display, Skript, …) verliert sofort den Zugriff, bis du ihn aktualisierst."
+    },
+    "data": {
+      "title": "Daten — Export / Import",
+      "description": "Deine Daten gehören dir: exportiere alles als JSON oder ziehe einen Stand in eine frische Instanz um. Geheimnisse (Tokens, API-Schlüssel) sind nie Teil eines Exports.",
+      "export": "JSON-Export herunterladen",
+      "import": "Stand importieren…",
+      "importing": "Importiere…",
+      "tooLarge": "Datei zu groß (max. 20 MB)",
+      "importConfirm": "\"{file}\" importieren?\n\nDas ERSETZT alle aktuellen Daten (Aquarien, Pläne, Einträge, Wassertests, Fütterungen). Es gibt kein Zurück — exportiere im Zweifel vorher.",
+      "imported": "Importiert: {tanks} Aquarien · {schedules} Pläne · {logs} Einträge · {waterTests} Wassertests · {feedDays} Fütterungstage · {aiCalls} KI-Aufrufe",
+      "importFailed": "Import fehlgeschlagen",
+      "readFailed": "Datei konnte nicht gelesen werden"
+    },
+    "tightGap": {
+      "title": "Planung — nach dem Aufholen",
+      "description": "Nach einer vollen Woche stapeln sich Aufgaben und werden an einem Tag erledigt. Der nächste reguläre Termin kann dann sehr kurz darauf liegen — z. B. ein Wasserwechsel schon 3 Tage später. Diese Einstellung legt fest, was dann passiert:",
+      "calmTitle": "Ruhig (empfohlen)",
+      "calmDesc": "Den nächsten regulären Termin überspringen, wenn er innerhalb des Schwellenwerts des Intervalls liegt — du hast die Aufgabe ja gerade erledigt. Genau ein Termin entfällt, danach läuft das Raster normal weiter.",
+      "strictTitle": "Streng",
+      "strictDesc": "Jeden regulären Termin exakt im Raster lassen, auch kurz nach dem Aufholen. Wähle das, wenn du maximale Gleichmäßigkeit willst.",
+      "skipWithin": "Überspringen, wenn der nächste Termin innerhalb von",
+      "pctOfInterval": "% des Intervalls liegt",
+      "footnote": "Gilt für alle Pläne. Einzelne Pläne können das in ihrem Bearbeiten-Dialog weiterhin überschreiben."
+    },
+    "ai": {
+      "title": "KI-Anbieter",
+      "noKey": "Noch kein API-Schlüssel hinterlegt — der Coach bleibt offline, bis unten einer eingetragen ist.",
+      "apiKey": "API-Schlüssel",
+      "saveKey": "Schlüssel speichern",
+      "clear": "Löschen",
+      "keyPlaceholderSet": "•••••••••••••• (hinterlegt — neuen Wert eingeben zum Ersetzen)",
+      "keyPlaceholderNew": "sk-…",
+      "keyNote": "Wird im Datenverzeichnis der App gespeichert, nie in der Datenbank oder in Exporten, und nach dem Speichern nie wieder angezeigt.",
+      "envFallback": "Es ist zusätzlich eine Umgebungsvariable {envVar} gesetzt, die als Rückfallebene dient.",
+      "keySaveFailed": "Schlüssel konnte nicht gespeichert werden",
+      "saveFailed": "Konnte nicht gespeichert werden",
+      "custom": "Eigener",
+      "customEndpoint": "eigener Endpunkt",
+      "baseUrl": "Basis-URL (Anthropic-kompatibel)",
+      "model": "Modell (Freitext)",
+      "provider": "Anbieter",
+      "maxCalls": "Max. Anfragen / Tag",
+      "maxTokens": "Max. Tokens / Tag",
+      "save": "KI-Einstellungen speichern",
+      "footnote": "Diese Einstellungen haben Vorrang vor den Umgebungsvariablen."
     }
   },
   "card": {
@@ -347,6 +441,16 @@
     "recommendManualHint": "Zu „Pflegepläne“ scrollen → + Plan hinzufügen: {plans}",
     "promptInitial": "Bitte erstelle einen ersten Pflegeplan für \"{tank}\" (Aquarium {id}) — schlage Pläne für Düngen, Füttern, Filterwechsel, Wasserwechsel und Wassertest mit konkreten Details vor.",
     "promptUpdate": "Mein Aquarium \"{tank}\" (Aquarium {id}) hat sich geändert — bitte prüfe und aktualisiere den Pflegeplan ({plans} fehlen)."
+  },
+  "debug": {
+    "title": "Debug",
+    "subtitle": "Rohe Anfragen und Antworten der letzten KI-Aufrufe — Coach, Planprüfung, Tagesvorschläge.",
+    "empty": "Noch keine KI-Aufrufe protokolliert. Sobald Coach, Planprüfung oder Tagesvorschläge mit dem Anbieter sprechen, füllt sich das hier.",
+    "showing": "Zeigt die {n} neuesten von bis zu 200 gespeicherten Aufrufen — ältere werden automatisch verworfen.",
+    "error": "Fehler",
+    "request": "Anfrage",
+    "response": "Antwort",
+    "noResponse": "(keine Antwort — der Aufruf ist vorher fehlgeschlagen)"
   },
   "help": {
     "topics": {
