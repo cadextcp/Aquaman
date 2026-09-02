@@ -115,6 +115,12 @@ export function parseProposal(input: unknown): Proposal | null {
  */
 export const suggestionSchema = z.object({
   day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /**
+   * The language the chips were written in. Optional so a cache entry from
+   * before the language setting still parses — a missing value is treated as
+   * a miss by getDailySuggestions, which costs one regeneration, not a crash.
+   */
+  locale: z.string().min(2).max(8).optional(),
   items: z
     .array(
       z.object({

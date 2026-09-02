@@ -117,15 +117,24 @@ import { today as todayStrLocal } from "./domain/dates";
 
 const SUGG_KEY = "coachSuggestions.v1";
 
-export function getDailySuggestions(now: Date = new Date()): DailySuggestions | null {
+/**
+ * Today's cached chips — a miss on a new day OR a changed language: the chips
+ * are coach output, so an English set must not linger in a German UI.
+ */
+export function getDailySuggestions(now: Date = new Date(), locale: Locale = getLocale()): DailySuggestions | null {
   const row = db.select().from(appSettings).where(eq(appSettings.key, SUGG_KEY)).get();
   const parsed = parseSuggestions(row?.value);
   if (!parsed) return null;
-  return parsed.day === todayStrLocal(undefined, now) ? parsed : null; // stale day → miss
+  if (parsed.day !== todayStrLocal(undefined, now)) return null; // stale day → miss
+  return parsed.locale === locale ? parsed : null; // other language (or pre-i18n entry) → miss
 }
 
-export function saveDailySuggestions(items: { label: string; prompt: string }[], now: Date = new Date()): DailySuggestions {
-  const payload: DailySuggestions = { day: todayStrLocal(undefined, now), items };
+export function saveDailySuggestions(
+  items: { label: string; prompt: string }[],
+  now: Date = new Date(),
+  locale: Locale = getLocale(),
+): DailySuggestions {
+  const payload: DailySuggestions = { day: todayStrLocal(undefined, now), items, locale };
   const parsed = parseSuggestions(payload);
   if (!parsed) throw new Error("invalid suggestions");
   db.insert(appSettings)

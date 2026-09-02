@@ -8,6 +8,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAiConfig, providerLabel, estimateCostMicros, REQUEST_TIMEOUT_MS } from "./config";
 import { recordAiCall } from "./cost-guard";
 import { buildCoachContext } from "./context";
+import { withLanguage } from "./language";
+import { getLocale } from "../settings";
 import { listSchedules } from "@/lib/repo";
 import { planReviewResultSchema } from "./plan-review";
 import { logAiCall } from "./debug-log";
@@ -34,7 +36,10 @@ export async function executePlanReview(
   const client = new Anthropic({ apiKey: config.apiKey, baseURL: config.baseUrl, timeout: REQUEST_TIMEOUT_MS });
   const context = buildCoachContext();
   const planTypes = [...new Set(listSchedules().map((s) => s.actionType))];
-  const system = `${SYSTEM}\n\n=== USER DATA CONTEXT ===\n${context}\n\nEXISTING PLAN TYPES: ${planTypes.join(", ") || "(none)"}`;
+  const system = withLanguage(
+    `${SYSTEM}\n\n=== USER DATA CONTEXT ===\n${context}\n\nEXISTING PLAN TYPES: ${planTypes.join(", ") || "(none)"}`,
+    getLocale(),
+  );
 
   const requestBody = {
     model: config.model,

@@ -11,6 +11,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getAiConfig, providerLabel, REQUEST_TIMEOUT_MS } from "./config";
 import { buildCoachContext } from "./context";
+import { withLanguage } from "./language";
+import { getLocale } from "../settings";
 import { parseSuggestions } from "./proposal";
 import { getDailySuggestions, saveDailySuggestions } from "../settings";
 import { listSchedules } from "@/lib/repo";
@@ -54,7 +56,8 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
   items: { label: string; prompt: string }[];
   cached: boolean;
 } | null> {
-  const cached = getDailySuggestions(now);
+  const locale = getLocale();
+  const cached = getDailySuggestions(now, locale);
   if (cached) return { items: cached.items, cached: true };
 
   const config = getAiConfig();
@@ -74,7 +77,7 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
     requestBody = {
       model: config.model,
       max_tokens: 700,
-      system: `${SYSTEM}\n\n=== USER DATA CONTEXT ===\n${contextWithHints}`,
+      system: withLanguage(`${SYSTEM}\n\n=== USER DATA CONTEXT ===\n${contextWithHints}`, locale),
       messages: [{ role: "user", content: "Generate today's 5 suggestions." }],
       tools: [
         {
@@ -110,7 +113,7 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
     if (!parsed || parsed.items.length === 0) return null; // malformed → reject, never repair
 
     const items = parsed.items.slice(0, 6);
-    const saved = saveDailySuggestions(items, now);
+    const saved = saveDailySuggestions(items, now, locale);
 
     // count the call against the daily budget
     const { recordAiCall } = await import("./cost-guard");

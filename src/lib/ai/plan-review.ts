@@ -21,6 +21,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { appSettings } from "@/lib/db/schema";
+import { getLocale } from "@/lib/settings";
 
 export const PLAN_REVIEW_KEY = "planReview.v1";
 
@@ -38,6 +39,8 @@ export type PlanReviewState =
       since: string;
       summary: string;
       prompts: PlanReviewPrompt[];
+      /** Language the coach wrote this in — see getPlanReviewState. */
+      locale?: string;
     };
 
 export const planReviewResultSchema = z.object({
@@ -60,6 +63,12 @@ export function getPlanReviewState(): PlanReviewState {
   }
   if (v?.state === "ready" && Array.isArray(v.prompts)) {
     const parsed = planReviewResultSchema.safeParse({ shouldChange: true, summary: v.summary, prompts: v.prompts });
+    // Summary and chips are coach OUTPUT, written in the language that was
+    // active when the review ran. After a language switch they would sit in
+    // the coach tab in the wrong language, so the result is dropped rather
+    // than shown — and rather than burning a provider call to redo it: the
+    // next data change triggers a fresh review anyway.
+    if (v.locale !== undefined && v.locale !== getLocale()) return { state: "idle" };
     if (parsed.success && (v.reason === "tank_change" || v.reason === "water_test")) {
       return {
         state: "ready",
@@ -67,6 +76,7 @@ export function getPlanReviewState(): PlanReviewState {
         since: String(v.since ?? ""),
         summary: parsed.data.summary,
         prompts: parsed.data.prompts,
+        locale: typeof v.locale === "string" ? v.locale : undefined,
       };
     }
   }
@@ -116,6 +126,7 @@ export async function runPlanReview(): Promise<PlanReviewState> {
       since: new Date().toISOString(),
       summary: result.summary,
       prompts: result.prompts,
+      locale: getLocale(),
     };
     writeState(ready);
     return ready;
