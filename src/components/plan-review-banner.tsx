@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePlanReviewBadge } from "./coach-badge";
 import { HelpDot } from "./ui/help";
+import { useI18n } from "@/i18n/provider";
 
 type PlanReviewResponse = {
   state?: string;
@@ -20,6 +21,7 @@ type PlanReviewResponse = {
 };
 
 export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string) => void }) {
+  const { t } = useI18n();
   const badge = usePlanReviewBadge();
   const [data, setData] = useState<PlanReviewResponse | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -57,7 +59,7 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
 
   // thinking / pending → info line (the coach tab must say WHY it's busy)
   if (data?.state === "thinking" || badge.state === "thinking" || data?.state === "pending") {
-    const why = data?.reason === "water_test" ? "new water test results" : "changed tank parameters";
+    const why = data?.reason === "water_test" ? t("coach.reviewWhyWaterTest") : t("coach.reviewWhyParams");
     return (
       <div
         className="rounded-xl px-4 py-3 mb-3 flex items-center gap-3 text-sm"
@@ -75,7 +77,7 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
           }}
         />
         <span style={{ color: "var(--muted-foreground)" }}>
-          The coach is reviewing your plan due to {why}…
+          {t("coach.reviewThinking", { why })}
         </span>
       </div>
     );
@@ -90,7 +92,7 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
             <div className="text-sm font-medium flex items-center gap-1">
-              Plan review finished
+              {t("coach.reviewReady")}
               <HelpDot id="planReview" />
             </div>
             {data.summary && (
@@ -102,7 +104,7 @@ export function PlanReviewBanner({ onUsePrompt }: { onUsePrompt: (prompt: string
           <button
             type="button"
             onClick={markReviewed}
-            aria-label="Dismiss"
+            aria-label={t("common.dismiss")}
             className="icon-btn icon-btn-sm icon-btn-bare"
           >
             <i aria-hidden className="ph ph-x text-sm" />

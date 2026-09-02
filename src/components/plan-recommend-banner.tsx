@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useI18n } from "@/i18n/provider";
 
 export function PlanRecommendBanner({
   tankId,
@@ -22,14 +23,19 @@ export function PlanRecommendBanner({
   missingPlans: readonly string[];
   hasAnyPlans: boolean;
 }) {
+  // `actionLabel`, not a local `t` — the old helper was named `t` and would
+  // shadow the translator (the same trap as on the dashboard and calendar).
+  const { t, plural, actionLabel } = useI18n();
   const [dismissed, setDismissed] = useState(false);
   if (dismissed || missingPlans.length === 0) return null;
 
-  const label = (t: string) => t.replace(/_/g, " ");
   const isInitial = !hasAnyPlans;
+  const missingList = missingPlans.map(actionLabel);
+  // The prompt lands in the chat as the user's own message, so it follows the
+  // app language too; the coach answers in it either way (system directive).
   const coachPrompt = isInitial
-    ? `Please create an initial care plan for "${tankName}" (tank ${tankId}) — suggest fertilize, feed, filter change, water change and water test schedules with concrete details.`
-    : `My tank "${tankName}" (tank ${tankId}) changed — please review and update the care plan (${missingPlans.map(label).join(", ")} missing).`;
+    ? t("coach.promptInitial", { tank: tankName, id: tankId })
+    : t("coach.promptUpdate", { tank: tankName, id: tankId, plans: missingList.join(", ") });
 
   return (
     <div
@@ -39,12 +45,12 @@ export function PlanRecommendBanner({
       <i aria-hidden className="ph ph-seal-check mt-0.5" style={{ color: "var(--accent)" }} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium">
-          {isInitial ? "Create an initial care plan" : "Update the care plan"}
+          {isInitial ? t("coach.recommendInitialTitle") : t("coach.recommendUpdateTitle")}
         </div>
         <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
           {isInitial
-            ? "Set up the five standard plans — fertilizer, feed, filter change, water change and water test."
-            : `Master data changed — ${missingPlans.map(label).join(", ")} ${missingPlans.length === 1 ? "plan is" : "plans are"} missing or may need an update.`}
+            ? t("coach.recommendInitialBody")
+            : plural("coach.recommendUpdateBody", missingPlans.length, { plans: missingList.join(", ") })}
         </p>
         <div className="flex flex-wrap gap-2 mt-2">
           <Link
@@ -52,14 +58,14 @@ export function PlanRecommendBanner({
             className="btn-outline rounded-lg px-3 py-1.5 text-xs"
             style={{ minHeight: 34 }}
           >
-            Ask the coach to draft it
+            {t("coach.recommendAsk")}
           </Link>
           <details className="text-xs">
             <summary className="cursor-pointer select-none" style={{ color: "var(--muted-foreground)" }}>
-              or add manually ({missingPlans.length})
+              {t("coach.recommendManual", { n: missingPlans.length })}
             </summary>
             <span className="block mt-1" style={{ color: "var(--faint)" }}>
-              Scroll to “Care plans” → + add plan: {missingPlans.map(label).join(" · ")}
+              {t("coach.recommendManualHint", { plans: missingList.join(" · ") })}
             </span>
           </details>
         </div>
@@ -67,7 +73,7 @@ export function PlanRecommendBanner({
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        aria-label="Dismiss"
+        aria-label={t("common.dismiss")}
         className="icon-btn icon-btn-sm icon-btn-bare"
       >
         <i aria-hidden className="ph ph-x text-sm" />

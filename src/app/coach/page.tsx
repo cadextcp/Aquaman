@@ -6,6 +6,8 @@ import { CoachChat } from "@/components/coach-chat";
 import { TankFilterBar } from "@/components/tank-filter-bar";
 import { PageHeader } from "@/components/ui/page-header";
 import { HelpDot, HelpNote } from "@/components/ui/help";
+import { getLocale } from "@/lib/settings";
+import { t, plural, formatNumber } from "@/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,7 @@ export default async function CoachPage({
   searchParams: Promise<{ q?: string; tank?: string }>;
 }) {
   const { q, tank: tankParam } = await searchParams;
+  const locale = getLocale();
   const configured = isAiConfigured();
   const usage = usageForSettings();
   const tanks = listTanks();
@@ -28,12 +31,12 @@ export default async function CoachPage({
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-3xl">
       <PageHeader
-        title="Coach"
+        title={t("coach.title", locale)}
         adornment={<HelpDot id="aiData" />}
         action={
           configured && (
             <span className="text-xs tnum" style={{ color: "var(--muted-foreground)" }}>
-              {usage.calls} call{usage.calls === 1 ? "" : "s"} today · {usage.totalTokens.toLocaleString()} tokens
+              {plural("coach.usage", usage.calls, locale, { tokens: formatNumber(usage.totalTokens, locale) })}
             </span>
           )
         }
@@ -48,14 +51,14 @@ export default async function CoachPage({
         <div className="rounded-xl p-8 text-center edge-card">
           <i aria-hidden className="ph ph-fish text-4xl" style={{ color: "var(--faint)" }} />
           <p className="mb-4 mt-3" style={{ color: "var(--muted-foreground)" }}>
-            No tanks yet — create a tank first so the coach has something to talk about.
+            {t("coach.noTanks", locale)}
           </p>
           <Link
             href="/tanks/new"
             className="btn-outline inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium"
             style={{ minHeight: 44 }}
           >
-            <i aria-hidden className="ph ph-plus" /> Create tank
+            <i aria-hidden className="ph ph-plus" /> {t("coach.createTank", locale)}
           </Link>
         </div>
       ) : (
@@ -66,6 +69,7 @@ export default async function CoachPage({
             selectedTankId={selectedTankId}
             hrefFor={(id) => `/coach?tank=${id}`}
             allowAll={false}
+            locale={locale}
           />
           {/* key={selectedTankId}: switching tanks starts a fresh conversation —
               carrying old messages across a tank switch would leak the previous

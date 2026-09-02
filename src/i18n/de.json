@@ -65,7 +65,8 @@
     "cancel": "Abbrechen",
     "save": "Speichern",
     "loading": "Lädt…",
-    "aiOffline": "AI offline — Kernfunktionen voll nutzbar"
+    "aiOffline": "AI offline — Kernfunktionen voll nutzbar",
+    "dismiss": "Schließen"
   },
   "tanks": {
     "title": "Aquarien",
@@ -299,6 +300,53 @@
     "water_top_up": "Wasser nachfüllen",
     "glass_clean": "Scheiben reinigen",
     "plant_trim": "Pflanzen schneiden"
+  },
+  "coach": {
+    "title": "Coach",
+    "usage": {
+      "one": "{n} Anfrage heute · {tokens} Tokens",
+      "other": "{n} Anfragen heute · {tokens} Tokens"
+    },
+    "noTanks": "Noch keine Aquarien — lege zuerst eines an, damit der Coach ein Thema hat.",
+    "createTank": "Aquarium anlegen",
+    "notConfigured": "KI ist nicht konfiguriert — setze {key} (und optional {baseUrl} / {model}), um den Coach zu aktivieren. Alles andere funktioniert auch ohne.",
+    "intro": "Frag nach deinen Aquarien, Werten oder Plänen — z. B. „Nitrit liegt bei 0,3, was soll ich tun?“ oder „Erstelle einen Pflegeplan für mein neues Becken“. Änderungen am Plan kommen als Vorschlag, den du bestätigst.",
+    "placeholder": "Frag den Coach…",
+    "send": "Fragen",
+    "disclaimer": "Ratschläge, keine Medikamenten-Dosierungen — jede Planänderung wartet auf deine Bestätigung.",
+    "budget": "Heute: {calls}/{maxCalls} Anfragen, {tokens}/{maxTokens} Tokens",
+    "offline": "KI ist offline — die Kernfunktionen laufen vollständig ohne sie.",
+    "unreachable": "KI ist nicht erreichbar — die Kernfunktionen laufen vollständig ohne sie.",
+    "noAnswer": "Keine Antwort erhalten — bitte schicke deine Frage noch einmal.",
+    "aiError": "KI-Fehler",
+    "proposalTitle": "Vorschlag · braucht deine Bestätigung",
+    "proposalCreate": "+ {action}",
+    "proposalAdjust": "~ Plan #{id}",
+    "proposalInterval": "Intervall",
+    "proposalEvery": "alle",
+    "proposalDetailsPlaceholder": "Details, z. B. „30 L von 60 L (50 %)“ — Dosierungen mit der Produktangabe abgleichen",
+    "approve": "Bestätigen & übernehmen",
+    "applied": "Übernommen",
+    "appliedList": "Übernommen: {items}",
+    "skippedList": "Übersprungen: {items}",
+    "failed": "Fehlgeschlagen — es wurde nichts geschrieben",
+    "reviewThinking": "Der Coach prüft deinen Plan wegen {why}…",
+    "reviewWhyWaterTest": "neuer Wassertests",
+    "reviewWhyParams": "geänderter Beckendaten",
+    "reviewReady": "Planprüfung abgeschlossen",
+    "badgeRecommendations": "{n} Planempfehlungen",
+    "recommendInitialTitle": "Ersten Pflegeplan erstellen",
+    "recommendUpdateTitle": "Pflegeplan aktualisieren",
+    "recommendInitialBody": "Lege die fünf Standardpläne an — Düngen, Füttern, Filterwechsel, Wasserwechsel und Wassertest.",
+    "recommendUpdateBody": {
+      "one": "Stammdaten geändert — der Plan {plans} fehlt oder braucht eine Aktualisierung.",
+      "other": "Stammdaten geändert — die Pläne {plans} fehlen oder brauchen eine Aktualisierung."
+    },
+    "recommendAsk": "Den Coach um einen Entwurf bitten",
+    "recommendManual": "oder manuell anlegen ({n})",
+    "recommendManualHint": "Zu „Pflegepläne“ scrollen → + Plan hinzufügen: {plans}",
+    "promptInitial": "Bitte erstelle einen ersten Pflegeplan für \"{tank}\" (Aquarium {id}) — schlage Pläne für Düngen, Füttern, Filterwechsel, Wasserwechsel und Wassertest mit konkreten Details vor.",
+    "promptUpdate": "Mein Aquarium \"{tank}\" (Aquarium {id}) hat sich geändert — bitte prüfe und aktualisiere den Pflegeplan ({plans} fehlen)."
   },
   "help": {
     "topics": {

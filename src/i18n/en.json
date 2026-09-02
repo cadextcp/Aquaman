@@ -65,7 +65,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "loading": "Loading…",
-    "aiOffline": "AI offline — core features fully working"
+    "aiOffline": "AI offline — core features fully working",
+    "dismiss": "Dismiss"
   },
   "tanks": {
     "title": "Tanks",
@@ -299,6 +300,53 @@
     "water_top_up": "Water top up",
     "glass_clean": "Glass clean",
     "plant_trim": "Plant trim"
+  },
+  "coach": {
+    "title": "Coach",
+    "usage": {
+      "one": "{n} call today · {tokens} tokens",
+      "other": "{n} calls today · {tokens} tokens"
+    },
+    "noTanks": "No tanks yet — create a tank first so the coach has something to talk about.",
+    "createTank": "Create tank",
+    "notConfigured": "AI is not configured — set {key} (and optionally {baseUrl} / {model}) to enable the coach. Everything else works without it.",
+    "intro": "Ask about your tanks, values or plan — e.g. “Nitrite is 0.3, what should I do?” or “Set up a care plan for my new tank”. Schedule changes arrive as proposals you approve.",
+    "placeholder": "Ask the coach…",
+    "send": "Ask",
+    "disclaimer": "Advice, not medication dosages — every schedule change waits for your approval.",
+    "budget": "Today: {calls}/{maxCalls} calls, {tokens}/{maxTokens} tokens",
+    "offline": "AI is offline — core features are fully working without it.",
+    "unreachable": "AI is unreachable — core features are fully working without it.",
+    "noAnswer": "No answer received — please send your question again.",
+    "aiError": "AI error",
+    "proposalTitle": "Proposal · needs your approval",
+    "proposalCreate": "+ {action}",
+    "proposalAdjust": "~ schedule #{id}",
+    "proposalInterval": "interval",
+    "proposalEvery": "every",
+    "proposalDetailsPlaceholder": "Details, e.g. “30 L of 60 L (50 %)” — verify dosages against the product label",
+    "approve": "Approve & apply",
+    "applied": "Applied",
+    "appliedList": "Applied: {items}",
+    "skippedList": "Skipped: {items}",
+    "failed": "Failed — nothing was written",
+    "reviewThinking": "The coach is reviewing your plan due to {why}…",
+    "reviewWhyWaterTest": "new water test results",
+    "reviewWhyParams": "changed tank parameters",
+    "reviewReady": "Plan review finished",
+    "badgeRecommendations": "{n} plan recommendations",
+    "recommendInitialTitle": "Create an initial care plan",
+    "recommendUpdateTitle": "Update the care plan",
+    "recommendInitialBody": "Set up the five standard plans — fertilizer, feed, filter change, water change and water test.",
+    "recommendUpdateBody": {
+      "one": "Master data changed — the {plans} plan is missing or may need an update.",
+      "other": "Master data changed — the {plans} plans are missing or may need an update."
+    },
+    "recommendAsk": "Ask the coach to draft it",
+    "recommendManual": "or add manually ({n})",
+    "recommendManualHint": "Scroll to “Care plans” → + add plan: {plans}",
+    "promptInitial": "Please create an initial care plan for \"{tank}\" (tank {id}) — suggest fertilize, feed, filter change, water change and water test schedules with concrete details.",
+    "promptUpdate": "My tank \"{tank}\" (tank {id}) changed — please review and update the care plan ({plans} missing)."
   },
   "help": {
     "topics": {
