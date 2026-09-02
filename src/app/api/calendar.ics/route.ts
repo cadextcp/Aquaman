@@ -3,6 +3,7 @@ import { listSchedules } from "@/lib/repo";
 import { buildIcsFeed } from "@/lib/domain/ics";
 import { getOrCreateIcsToken, safeTokenEqual } from "@/lib/ics-token";
 import { isRateLimited, recordFailure, recordSuccess } from "@/lib/rate-limit";
+import { getLocale } from "@/lib/settings";
 
 /**
  * ICS feed for Google Calendar (TechDesign v1.2 §4.4): GET-only, token in the
@@ -35,7 +36,8 @@ export async function GET(req: NextRequest) {
   recordSuccess(ip);
 
   const schedules = listSchedules(); // active only, joined w/ tank name, soft-deleted tanks excluded
-  const body = buildIcsFeed(schedules);
+  // event titles follow the app language (the feed is read by a person)
+  const body = buildIcsFeed(schedules, new Date(), undefined, getLocale());
 
   return new NextResponse(body, {
     status: 200,

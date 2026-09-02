@@ -65,7 +65,15 @@ export function actionTypeDef(t: string): ActionTypeDef | undefined {
   return BY_KEY.get(t);
 }
 
-/** "water_change" → "Water change" — catalog label, falling back to a snake_case→Titlecase guess for safety. */
+/**
+ * "water_change" → "Water change" — catalog label, falling back to a
+ * snake_case→Titlecase guess for safety.
+ *
+ * This is the MACHINE-facing English label. Anything a person reads goes
+ * through i18n instead (`actionLabelFor` on the server, `useI18n().actionLabel`
+ * in a client component), whose `action.*` catalog entries are keyed by the
+ * same strings and are pinned to this list by tests/i18n.test.ts.
+ */
 export function actionLabel(t: string): string {
   const def = BY_KEY.get(t);
   if (def) return def.label;

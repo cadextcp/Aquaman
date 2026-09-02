@@ -177,7 +177,28 @@
   },
   "calendarPage": {
     "title": "Kalender",
-    "phase3": "In-App-Kalender und ICS-Feed für Google Calendar kommen in Phase 3."
+    "phase3": "In-App-Kalender und ICS-Feed für Google Calendar kommen in Phase 3.",
+    "planned": {
+      "one": "{n} geplant",
+      "other": "{n} geplant"
+    },
+    "behind": {
+      "one": "{n} im Rückstand",
+      "other": "{n} im Rückstand"
+    },
+    "today": "Heute",
+    "prevMonth": "Voriger Monat",
+    "nextMonth": "Nächster Monat",
+    "taskWithTank": "{action} — {tank}",
+    "empty": "Noch keine Pläne — lege Pflegepläne auf der Seite eines Aquariums an, dann erscheinen ihre Termine hier.",
+    "emptyHint": "Du kannst diesen Plan in jeder Kalender-App abonnieren.",
+    "todayHeading": "Heute",
+    "chipBehind": "im Rückstand",
+    "chipDue": "fällig",
+    "icsHint": "Diesen Plan in einer Kalender-App abonnieren",
+    "icsManage": "verwalten",
+    "chipEdit": "{label} — zum Bearbeiten klicken",
+    "icsSummary": "Aquaman: {action} — {tank}"
   },
   "settings": {
     "language": {
@@ -266,6 +287,18 @@
   },
   "editTank": {
     "aria": "{name} bearbeiten"
+  },
+  "action": {
+    "water_change": "Wasserwechsel",
+    "feed": "Füttern",
+    "fertilize": "Düngen",
+    "water_test": "Wassertest",
+    "substrate_vacuum": "Bodengrund absaugen",
+    "filter_change": "Filter wechseln",
+    "filter_clean": "Filter reinigen",
+    "water_top_up": "Wasser nachfüllen",
+    "glass_clean": "Scheiben reinigen",
+    "plant_trim": "Pflanzen schneiden"
   },
   "help": {
     "topics": {

@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { CalendarLegend } from "@/components/calendar-legend";
 import { TankFilterBar } from "@/components/tank-filter-bar";
 import { getLocale } from "@/lib/settings";
-import { formatMonth, weekdayLabels } from "@/i18n";
+import { formatMonth, weekdayLabels, t, plural, actionLabelFor } from "@/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +18,8 @@ export default async function CalendarPage({
 }) {
   const { m, tank: tankParam } = await searchParams;
   const locale = getLocale();
-  const t = todayStr();
-  const month = m && /^\d{4}-\d{2}$/.test(m) ? m : t.slice(0, 7);
+  const today = todayStr();
+  const month = m && /^\d{4}-\d{2}$/.test(m) ? m : today.slice(0, 7);
 
   const tanks = listTanks();
   // Same tank filter as the dashboard (?tank=<id>), carried over via the nav
@@ -36,12 +36,15 @@ export default async function CalendarPage({
     const occs = occurrencesInRange(s, from, to);
     for (const date of occs) {
       const list = byDate.get(date) ?? [];
-      const overdue = date < t;
+      const overdue = date < today;
       list.push({
         // tank name only in the "All tanks" view — filtered to one tank it's redundant
-        label: selectedTankId === null ? `${s.actionType.replace(/_/g, " ")} — ${s.tankName}` : s.actionType.replace(/_/g, " "),
+        label:
+          selectedTankId === null
+            ? t("calendarPage.taskWithTank", locale, { action: actionLabelFor(s.actionType, locale), tank: s.tankName })
+            : actionLabelFor(s.actionType, locale),
         overdue,
-        variant: overdue ? "behind" : date === t ? "due" : "upcoming",
+        variant: overdue ? "behind" : date === today ? "due" : "upcoming",
         schedule: s,
       });
       byDate.set(date, list);
@@ -49,7 +52,7 @@ export default async function CalendarPage({
   }
 
   const monthPlanned = [...byDate.entries()].filter(([d]) => d.slice(0, 7) === month).reduce((a, [, v]) => a + v.length, 0);
-  const monthBehind = [...byDate.entries()].filter(([d]) => d.slice(0, 7) === month && d < t).reduce((a, [, v]) => a + v.length, 0);
+  const monthBehind = [...byDate.entries()].filter(([d]) => d.slice(0, 7) === month && d < today).reduce((a, [, v]) => a + v.length, 0);
 
   const prevMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
@@ -60,7 +63,7 @@ export default async function CalendarPage({
     const params = new URLSearchParams();
     const nextM = overrides.m ?? month;
     const nextTank = overrides.tank !== undefined ? overrides.tank : selectedTankId !== null ? String(selectedTankId) : null;
-    if (nextM !== t.slice(0, 7)) params.set("m", nextM);
+    if (nextM !== today.slice(0, 7)) params.set("m", nextM);
     if (nextTank !== null) params.set("tank", nextTank);
     const qs = params.toString();
     return qs ? `/calendar?${qs}` : "/calendar";
@@ -72,20 +75,21 @@ export default async function CalendarPage({
         title={formatMonth(month, locale)}
         subtitle={
           <span className="tnum">
-            {monthPlanned} planned{monthBehind > 0 ? ` · ${monthBehind} behind` : ""}
+            {plural("calendarPage.planned", monthPlanned, locale)}
+            {monthBehind > 0 ? ` · ${plural("calendarPage.behind", monthBehind, locale)}` : ""}
           </span>
         }
         action={
           <>
-            {month !== t.slice(0, 7) && (
-              <Link href={hrefFor({ m: t.slice(0, 7) })} className="btn-ghost rounded-lg px-3 text-xs inline-flex items-center" style={{ minHeight: 44 }}>
-                Today
+            {month !== today.slice(0, 7) && (
+              <Link href={hrefFor({ m: today.slice(0, 7) })} className="btn-ghost rounded-lg px-3 text-xs inline-flex items-center" style={{ minHeight: 44 }}>
+                {t("calendarPage.today", locale)}
               </Link>
             )}
-            <Link href={hrefFor({ m: prevMonth })} aria-label="Previous month" className="icon-btn">
+            <Link href={hrefFor({ m: prevMonth })} aria-label={t("calendarPage.prevMonth", locale)} className="icon-btn">
               <i aria-hidden className="ph ph-caret-left text-base" />
             </Link>
-            <Link href={hrefFor({ m: nextMonth })} aria-label="Next month" className="icon-btn">
+            <Link href={hrefFor({ m: nextMonth })} aria-label={t("calendarPage.nextMonth", locale)} className="icon-btn">
               <i aria-hidden className="ph ph-caret-right text-base" />
             </Link>
           </>
@@ -112,7 +116,7 @@ export default async function CalendarPage({
       <div className="grid grid-cols-7 gap-1.5">
         {days.map((d) => {
           const inMonth = d.slice(0, 7) === month;
-          const isToday = d === t;
+          const isToday = d === today;
           const tasks = byDate.get(d) ?? [];
           return (
             <div
@@ -144,22 +148,22 @@ export default async function CalendarPage({
         <div className="rounded-xl p-8 text-center mt-6 edge-card">
           <i aria-hidden className="ph ph-calendar-blank text-4xl" style={{ color: "var(--faint)" }} />
           <p className="mt-3" style={{ color: "var(--muted-foreground)" }}>
-            No schedules yet — add care plans on a tank&apos;s page and their dates appear here.
+            {t("calendarPage.empty", locale)}
           </p>
           <p className="text-xs mt-2" style={{ color: "var(--faint)" }}>
-            You can subscribe to this plan from any calendar app.
+            {t("calendarPage.emptyHint", locale)}
           </p>
         </div>
       )}
 
       {/* today's tasks (design: date heading + rows under the grid) */}
-      {(byDate.get(t) ?? []).length > 0 && (
+      {(byDate.get(today) ?? []).length > 0 && (
         <div className="mt-6">
           <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
-            Today
+            {t("calendarPage.todayHeading", locale)}
           </div>
           <div className="flex flex-col gap-2">
-            {(byDate.get(t) ?? []).map((task, i) => (
+            {(byDate.get(today) ?? []).map((task, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 edge-card">
                 <span className="flex-1 text-sm">{task.label}</span>
                 <span
@@ -169,7 +173,7 @@ export default async function CalendarPage({
                     color: task.overdue ? "var(--warning)" : "var(--due)",
                   }}
                 >
-                  {task.overdue ? "behind" : "due"}
+                  {task.overdue ? t("calendarPage.chipBehind", locale) : t("calendarPage.chipDue", locale)}
                 </span>
               </div>
             ))}
@@ -181,10 +185,10 @@ export default async function CalendarPage({
       <div className="mt-6 flex items-center gap-2.5 rounded-lg px-3.5 py-3 edge-card">
         <i aria-hidden className="ph ph-rss-simple text-base" style={{ color: "var(--accent)" }} />
         <span className="flex-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
-          Subscribe to this plan from a calendar app
+          {t("calendarPage.icsHint", locale)}
         </span>
         <Link href="/more" className="text-xs underline" style={{ color: "var(--accent)" }}>
-          manage
+          {t("calendarPage.icsManage", locale)}
         </Link>
       </div>
     </main>

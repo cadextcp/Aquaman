@@ -53,6 +53,22 @@ export function plural(catalog: Catalog | undefined, key: string, n: number, var
   return typeof form === "string" ? interpolate(form, { n, ...vars }) : key;
 }
 
+/**
+ * Localized name of a standard action type ("water_change" → "Wasserwechsel").
+ *
+ * The catalog is keyed by the SAME strings as ACTION_TYPES in
+ * domain/action-types.ts; that file stays client-safe and catalog-free, so the
+ * English label there is the machine-facing one (API, logs) and this is the
+ * human-facing one. An unknown type falls back to the snake_case→Titlecase
+ * guess, exactly as actionLabel() does.
+ */
+export function actionLabelFrom(catalog: Catalog | undefined, actionType: string): string {
+  const v = lookup(catalog, `action.${actionType}`);
+  if (typeof v === "string") return v;
+  const s = actionType.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 /** A help topic: the title of an E3 sheet plus its paragraphs. */
 export type HelpTopic = {
   title: string;

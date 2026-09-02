@@ -15,7 +15,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import en from "../src/i18n/en.json";
 import de from "../src/i18n/de.json";
-import { catalogKeys, translate, plural, type Catalog } from "../src/i18n/core";
+import { catalogKeys, translate, plural, actionLabelFrom, type Catalog } from "../src/i18n/core";
+import { ACTION_TYPE_KEYS, actionLabel } from "../src/lib/domain/action-types";
 import { LOCALES, LOCALE_TAG, isLocale, DEFAULT_LOCALE } from "../src/i18n/locales";
 import { formatDateLong, formatDateShort, formatMonth, formatNumber, weekdayLabels } from "../src/i18n/format";
 
@@ -161,5 +162,34 @@ describe("language setting", () => {
   it("defaults to the documented default locale", () => {
     expect(DEFAULT_LOCALE).toBe("en");
     expect(LOCALES).toContain(DEFAULT_LOCALE);
+  });
+});
+
+describe("action-type labels", () => {
+  it("every standard action type has a label in every locale", () => {
+    for (const loc of LOCALES) {
+      for (const key of ACTION_TYPE_KEYS) {
+        const label = translate(catalogs[loc], `action.${key}`);
+        expect(label, `action.${key} missing in ${loc}`).not.toBe(`action.${key}`);
+        expect(label.trim()).not.toBe("");
+      }
+    }
+  });
+
+  it("carries no label for a type the catalog does not know (no stale entries)", () => {
+    for (const loc of LOCALES) {
+      const inCatalog = Object.keys((catalogs[loc] as { action: Record<string, string> }).action);
+      expect(inCatalog.sort()).toEqual([...ACTION_TYPE_KEYS].sort());
+    }
+  });
+
+  it("falls back to the snake_case→Titlecase guess for an unknown type", () => {
+    expect(actionLabelFrom(catalogs.en, "some_custom_thing")).toBe("Some custom thing");
+  });
+
+  it("English labels match the machine-facing catalog (ICS output stays stable)", () => {
+    for (const key of ACTION_TYPE_KEYS) {
+      expect(actionLabelFrom(catalogs.en, key)).toBe(actionLabel(key));
+    }
   });
 });

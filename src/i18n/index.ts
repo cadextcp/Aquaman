@@ -12,6 +12,7 @@ import de from "./de.json";
 import {
   translate,
   plural as pluralFrom,
+  actionLabelFrom,
   lookup,
   helpTopicFrom,
   helpNoteFrom,
@@ -41,6 +42,15 @@ export function t(key: string, locale: Locale = DEFAULT_LOCALE, vars?: Vars): st
 /** Counted copy ("1 task" / "2 Aufgaben") — see core.ts:plural for the catalog shape. */
 export function plural(key: string, n: number, locale: Locale = DEFAULT_LOCALE, vars?: Vars): string {
   return pluralFrom(catalogFor(locale), key, n, vars);
+}
+
+/**
+ * Localized action-type name ("water_change" → "Wasserwechsel"). Used wherever
+ * a type is shown to a person — calendar, cards, ICS SUMMARY. The REST API and
+ * the DB keep the raw snake_case key (machine contract).
+ */
+export function actionLabelFor(actionType: string, locale: Locale = DEFAULT_LOCALE): string {
+  return actionLabelFrom(catalogFor(locale), actionType);
 }
 
 /** Raw catalog lookup — for entries that are not plain strings (lists, objects). */

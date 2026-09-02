@@ -16,6 +16,7 @@ import { createContext, useContext, useMemo } from "react";
 import {
   translate,
   plural as pluralFrom,
+  actionLabelFrom,
   helpNoteFrom,
   helpTopicFrom,
   type Catalog,
@@ -31,6 +32,8 @@ export type I18n = {
   t: (key: string, vars?: Vars) => string;
   /** Counted copy — "1 task" / "2 Aufgaben" (see core.ts:plural). */
   plural: (key: string, n: number, vars?: Vars) => string;
+  /** Localized name of an action type ("water_change" → "Wasserwechsel"). */
+  actionLabel: (actionType: string) => string;
   helpTopic: (id: string) => HelpTopic | null;
   helpNote: (id: string) => string;
   formatDateLong: (dateStr: string) => string;
@@ -71,6 +74,7 @@ export function useI18n(): I18n {
       locale,
       t: (key, vars) => translate(catalog, key, vars),
       plural: (key, n, vars) => pluralFrom(catalog, key, n, vars),
+      actionLabel: (actionType) => actionLabelFrom(catalog, actionType),
       helpTopic: (id) => helpTopicFrom(catalog, id),
       helpNote: (id) => helpNoteFrom(catalog, id),
       formatDateLong: (dateStr) => formatDateLong(dateStr, locale),

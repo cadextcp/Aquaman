@@ -16,6 +16,7 @@ import { deleteSchedule } from "@/app/actions";
 import { Modal, ModalDeleteButton } from "./ui/modal";
 import { ScheduleForm } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
+import { useI18n } from "@/i18n/provider";
 
 const STRIPE_COLOR = {
   behind: "var(--warning)",
@@ -35,12 +36,13 @@ export function CalendarChip({
   label: string;
   variant: "behind" | "due" | "upcoming";
 }) {
+  const { t, actionLabel } = useI18n();
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   async function remove() {
-    if (!confirm(`Delete "${schedule.actionType.replace(/_/g, " ")}" (${schedule.tankName})?\nLogs and history stay — only the schedule disappears.`)) return;
+    if (!confirm(t("card.deleteConfirm", { action: actionLabel(schedule.actionType), tank: schedule.tankName }))) return;
     setOpen(false);
     await deleteSchedule(schedule.id);
     startTransition(() => router.refresh());
@@ -51,8 +53,8 @@ export function CalendarChip({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title={`${label} — click to edit`}
-        aria-label={`${label} — click to edit`}
+        title={t("calendarPage.chipEdit", { label })}
+        aria-label={t("calendarPage.chipEdit", { label })}
         className="day-stripe"
         style={{ "--stripe": STRIPE_COLOR[variant] } as React.CSSProperties}
       >
@@ -62,7 +64,7 @@ export function CalendarChip({
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Edit schedule"
+        title={t("card.editTitle")}
         actions={<ModalDeleteButton onClick={remove} disabled={pending} />}
       >
         <ScheduleForm tankId={schedule.tankId} tanks={tanks} schedule={schedule} />

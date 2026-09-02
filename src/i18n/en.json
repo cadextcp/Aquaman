@@ -177,7 +177,28 @@
   },
   "calendarPage": {
     "title": "Calendar",
-    "phase3": "In-app calendar view and the ICS feed for Google Calendar arrive in Phase 3."
+    "phase3": "In-app calendar view and the ICS feed for Google Calendar arrive in Phase 3.",
+    "planned": {
+      "one": "{n} planned",
+      "other": "{n} planned"
+    },
+    "behind": {
+      "one": "{n} behind",
+      "other": "{n} behind"
+    },
+    "today": "Today",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "taskWithTank": "{action} — {tank}",
+    "empty": "No schedules yet — add care plans on a tank's page and their dates appear here.",
+    "emptyHint": "You can subscribe to this plan from any calendar app.",
+    "todayHeading": "Today",
+    "chipBehind": "behind",
+    "chipDue": "due",
+    "icsHint": "Subscribe to this plan from a calendar app",
+    "icsManage": "manage",
+    "chipEdit": "{label} — click to edit",
+    "icsSummary": "Aquaman: {action} — {tank}"
   },
   "settings": {
     "language": {
@@ -266,6 +287,18 @@
   },
   "editTank": {
     "aria": "Edit {name}"
+  },
+  "action": {
+    "water_change": "Water change",
+    "feed": "Feed",
+    "fertilize": "Fertilize",
+    "water_test": "Water test",
+    "substrate_vacuum": "Substrate vacuum",
+    "filter_change": "Filter change",
+    "filter_clean": "Filter clean",
+    "water_top_up": "Water top up",
+    "glass_clean": "Glass clean",
+    "plant_trim": "Plant trim"
   },
   "help": {
     "topics": {
