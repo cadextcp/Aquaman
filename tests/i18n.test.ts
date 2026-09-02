@@ -17,6 +17,8 @@ import en from "../src/i18n/en.json";
 import de from "../src/i18n/de.json";
 import { catalogKeys, translate, plural, actionLabelFrom, type Catalog } from "../src/i18n/core";
 import { ACTION_TYPE_KEYS, actionLabel } from "../src/lib/domain/action-types";
+import { FRESHWATER_RANGES, SALTWATER_RANGES } from "../src/lib/domain/ranges";
+import { NUTRIENTS } from "../src/lib/domain/plan-structure";
 import { LOCALES, LOCALE_TAG, isLocale, DEFAULT_LOCALE } from "../src/i18n/locales";
 import { formatDateLong, formatDateShort, formatMonth, formatNumber, weekdayLabels } from "../src/i18n/format";
 
@@ -190,6 +192,50 @@ describe("action-type labels", () => {
   it("English labels match the machine-facing catalog (ICS output stays stable)", () => {
     for (const key of ACTION_TYPE_KEYS) {
       expect(actionLabelFrom(catalogs.en, key)).toBe(actionLabel(key));
+    }
+  });
+});
+
+describe("domain vocabulary", () => {
+  const paramKeys = [...new Set([...FRESHWATER_RANGES, ...SALTWATER_RANGES].map((r) => r.key))];
+
+  it("every water parameter has a label in every locale", () => {
+    for (const loc of LOCALES) {
+      for (const key of paramKeys) {
+        const label = translate(catalogs[loc], `param.${key}`);
+        expect(label, `param.${key} missing in ${loc}`).not.toBe(`param.${key}`);
+      }
+    }
+  });
+
+  it("every fertilizer nutrient has a label in every locale", () => {
+    for (const loc of LOCALES) {
+      for (const n of NUTRIENTS) {
+        const label = translate(catalogs[loc], `nutrient.${n.key}`);
+        expect(label, `nutrient.${n.key} missing in ${loc}`).not.toBe(`nutrient.${n.key}`);
+      }
+    }
+  });
+
+  it("carries no label for a key the domain does not know (no stale entries)", () => {
+    for (const loc of LOCALES) {
+      const c = catalogs[loc] as { param: Record<string, string>; nutrient: Record<string, string> };
+      expect(Object.keys(c.param).sort()).toEqual([...paramKeys].sort());
+      expect(Object.keys(c.nutrient).sort()).toEqual(NUTRIENTS.map((n) => n.key).sort());
+    }
+  });
+
+  it("the English catalog matches the machine-facing domain labels", () => {
+    // the REST API and exports serve the domain label; English UI and API must
+    // not drift into two different names for the same thing
+    for (const r of [...FRESHWATER_RANGES, ...SALTWATER_RANGES]) {
+      expect(translate(catalogs.en, `param.${r.key}`)).toBe(r.label);
+    }
+    for (const n of NUTRIENTS) {
+      expect(translate(catalogs.en, `nutrient.${n.key}`)).toBe(n.label);
+    }
+    for (const key of ACTION_TYPE_KEYS) {
+      expect(translate(catalogs.en, `action.${key}`)).toBe(actionLabel(key));
     }
   });
 });

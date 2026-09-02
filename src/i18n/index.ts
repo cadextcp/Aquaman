@@ -13,6 +13,7 @@ import {
   translate,
   plural as pluralFrom,
   actionLabelFrom,
+  domainLabelFrom,
   lookup,
   helpTopicFrom,
   helpNoteFrom,
@@ -51,6 +52,20 @@ export function plural(key: string, n: number, locale: Locale = DEFAULT_LOCALE, 
  */
 export function actionLabelFor(actionType: string, locale: Locale = DEFAULT_LOCALE): string {
   return actionLabelFrom(catalogFor(locale), actionType);
+}
+
+/**
+ * Localized water-parameter name ("no2" → "Nitrit (NO₂)"). The `fallback` is
+ * the domain label from ranges.ts, so a parameter added there but not yet in
+ * the catalogs still reads as a name rather than a key.
+ */
+export function paramLabelFor(key: string, locale: Locale = DEFAULT_LOCALE, fallback?: string): string {
+  return domainLabelFrom(catalogFor(locale), "param", key, fallback);
+}
+
+/** Localized fertilizer-nutrient name ("fe" → "Eisen (Fe)"). */
+export function nutrientLabelFor(key: string, locale: Locale = DEFAULT_LOCALE, fallback?: string): string {
+  return domainLabelFrom(catalogFor(locale), "nutrient", key, fallback);
 }
 
 /** Raw catalog lookup — for entries that are not plain strings (lists, objects). */

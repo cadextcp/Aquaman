@@ -83,7 +83,15 @@ export type EvalResult = {
   key: string;
   value: number;
   status: "ok" | "warn" | "critical";
+  /** English, machine-facing: REST API, MCP and the AI context all read this. */
   message?: string;
+  /**
+   * The same message as catalog key + values, for the UI to render in the
+   * app's language. Domain code stays catalog-free (it runs in API routes and
+   * the MCP server too), so it hands over the parts rather than a translation.
+   */
+  messageKey?: string;
+  messageVars?: Record<string, string | number>;
 };
 
 /**
@@ -123,6 +131,8 @@ export function evaluateWaterTest(
           value: nh3,
           status,
           message: `Free NH₃ ${nh3.toFixed(3)} mg/l (from NH₄ ${v} at pH ${ph}, ${temp}°C)`,
+          messageKey: "water.nh3Message",
+          messageVars: { nh3: nh3.toFixed(3), nh4: v, ph, temp },
         });
         continue;
       }

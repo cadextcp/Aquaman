@@ -54,19 +54,32 @@ export function plural(catalog: Catalog | undefined, key: string, n: number, var
 }
 
 /**
- * Localized name of a standard action type ("water_change" → "Wasserwechsel").
+ * Localized name for a domain key — an action type, a water parameter, a
+ * fertilizer nutrient.
  *
- * The catalog is keyed by the SAME strings as ACTION_TYPES in
- * domain/action-types.ts; that file stays client-safe and catalog-free, so the
- * English label there is the machine-facing one (API, logs) and this is the
- * human-facing one. An unknown type falls back to the snake_case→Titlecase
- * guess, exactly as actionLabel() does.
+ * The catalog sections are keyed by the SAME strings as the domain modules
+ * (action-types.ts, ranges.ts, plan-structure.ts), which stay client-safe and
+ * catalog-free: the label THERE is the machine-facing one (REST API, exports,
+ * logs), the one here is what a person reads. `fallback` is what to show when
+ * a key predates the catalog — the domain label, or the snake_case→Titlecase
+ * guess for a type nothing knows.
  */
-export function actionLabelFrom(catalog: Catalog | undefined, actionType: string): string {
-  const v = lookup(catalog, `action.${actionType}`);
+export function domainLabelFrom(
+  catalog: Catalog | undefined,
+  section: "action" | "param" | "nutrient",
+  key: string,
+  fallback?: string,
+): string {
+  const v = lookup(catalog, `${section}.${key}`);
   if (typeof v === "string") return v;
-  const s = actionType.replace(/_/g, " ");
+  if (fallback !== undefined) return fallback;
+  const s = key.replace(/_/g, " ");
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** "water_change" → "Wasserwechsel" (see domainLabelFrom). */
+export function actionLabelFrom(catalog: Catalog | undefined, actionType: string): string {
+  return domainLabelFrom(catalog, "action", actionType);
 }
 
 /** A help topic: the title of an E3 sheet plus its paragraphs. */

@@ -180,7 +180,14 @@
     "savedShort": "gespeichert",
     "historyCount": "Verlauf ({n})",
     "formTitle": "Wassermessung",
-    "filledCount": "{n}/{total} Werte"
+    "filledCount": "{n}/{total} Werte",
+    "statusWarn": "auffällig",
+    "statusCritical": "kritisch",
+    "statusOk": "in Ordnung",
+    "bandIn": "im Zielbereich",
+    "bandOff": "außerhalb",
+    "bandCritical": "kritisch",
+    "nh3Message": "Freies NH₃ {nh3} mg/l (aus NH₄ {nh4} bei pH {ph}, {temp} °C)"
   },
   "more": {
     "title": "Mehr",
@@ -456,6 +463,38 @@
     "request": "Anfrage",
     "response": "Antwort",
     "noResponse": "(keine Antwort — der Aufruf ist vorher fehlgeschlagen)"
+  },
+  "param": {
+    "temp": "Temperatur",
+    "ph": "pH",
+    "kh": "KH (Karbonathärte)",
+    "gh": "GH (Gesamthärte)",
+    "co2": "CO₂",
+    "no2": "Nitrit (NO₂)",
+    "no3": "Nitrat (NO₃)",
+    "nh4": "Ammonium (NH₄ gesamt)",
+    "po4": "Phosphat (PO₄)",
+    "fe": "Eisen (Fe)",
+    "cl2": "Chlor (Cl₂)",
+    "o2": "Sauerstoff (O₂)",
+    "salinity": "Salzgehalt",
+    "ca": "Calcium (Ca)",
+    "mg": "Magnesium (Mg)",
+    "alkalinity": "Karbonathärte (KH)"
+  },
+  "nutrient": {
+    "c_co2": "Kohlenstoff (C) / CO₂",
+    "n_no3": "Stickstoff (N) / Nitrat",
+    "p_po4": "Phosphor (P) / Phosphat",
+    "k": "Kalium (K)",
+    "mg": "Magnesium (Mg)",
+    "ca": "Calcium (Ca)",
+    "fe": "Eisen (Fe)",
+    "mn": "Mangan (Mn)",
+    "zn": "Zink (Zn)",
+    "b": "Bor (B)",
+    "mo": "Molybdän (Mo)",
+    "cu": "Kupfer (Cu)"
   },
   "help": {
     "topics": {

@@ -17,6 +17,7 @@ import {
   translate,
   plural as pluralFrom,
   actionLabelFrom,
+  domainLabelFrom,
   helpNoteFrom,
   helpTopicFrom,
   type Catalog,
@@ -34,6 +35,10 @@ export type I18n = {
   plural: (key: string, n: number, vars?: Vars) => string;
   /** Localized name of an action type ("water_change" → "Wasserwechsel"). */
   actionLabel: (actionType: string) => string;
+  /** Localized water-parameter name; `fallback` is the domain label from ranges.ts. */
+  paramLabel: (key: string, fallback?: string) => string;
+  /** Localized fertilizer-nutrient name. */
+  nutrientLabel: (key: string, fallback?: string) => string;
   helpTopic: (id: string) => HelpTopic | null;
   helpNote: (id: string) => string;
   formatDateLong: (dateStr: string) => string;
@@ -75,6 +80,8 @@ export function useI18n(): I18n {
       t: (key, vars) => translate(catalog, key, vars),
       plural: (key, n, vars) => pluralFrom(catalog, key, n, vars),
       actionLabel: (actionType) => actionLabelFrom(catalog, actionType),
+      paramLabel: (key, fallback) => domainLabelFrom(catalog, "param", key, fallback),
+      nutrientLabel: (key, fallback) => domainLabelFrom(catalog, "nutrient", key, fallback),
       helpTopic: (id) => helpTopicFrom(catalog, id),
       helpNote: (id) => helpNoteFrom(catalog, id),
       formatDateLong: (dateStr) => formatDateLong(dateStr, locale),

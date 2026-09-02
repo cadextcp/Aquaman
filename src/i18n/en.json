@@ -180,7 +180,14 @@
     "savedShort": "saved",
     "historyCount": "History ({n})",
     "formTitle": "Water test",
-    "filledCount": "{n}/{total} values"
+    "filledCount": "{n}/{total} values",
+    "statusWarn": "warn",
+    "statusCritical": "critical",
+    "statusOk": "ok",
+    "bandIn": "in band",
+    "bandOff": "off band",
+    "bandCritical": "critical",
+    "nh3Message": "Free NH₃ {nh3} mg/l (from NH₄ {nh4} at pH {ph}, {temp}°C)"
   },
   "more": {
     "title": "More",
@@ -456,6 +463,38 @@
     "request": "Request",
     "response": "Response",
     "noResponse": "(no response — call failed before completion)"
+  },
+  "param": {
+    "temp": "Temperature",
+    "ph": "pH",
+    "kh": "KH (carbonate hardness)",
+    "gh": "GH (total hardness)",
+    "co2": "CO₂",
+    "no2": "Nitrite (NO₂)",
+    "no3": "Nitrate (NO₃)",
+    "nh4": "Ammonium (NH₄ total)",
+    "po4": "Phosphate (PO₄)",
+    "fe": "Iron (Fe)",
+    "cl2": "Chlorine (Cl₂)",
+    "o2": "Oxygen (O₂)",
+    "salinity": "Salinity",
+    "ca": "Calcium (Ca)",
+    "mg": "Magnesium (Mg)",
+    "alkalinity": "Alkalinity (KH)"
+  },
+  "nutrient": {
+    "c_co2": "Carbon (C) / CO₂",
+    "n_no3": "Nitrogen (N) / nitrate",
+    "p_po4": "Phosphorus (P) / phosphate",
+    "k": "Potassium (K)",
+    "mg": "Magnesium (Mg)",
+    "ca": "Calcium (Ca)",
+    "fe": "Iron (Fe)",
+    "mn": "Manganese (Mn)",
+    "zn": "Zinc (Zn)",
+    "b": "Boron (B)",
+    "mo": "Molybdenum (Mo)",
+    "cu": "Copper (Cu)"
   },
   "help": {
     "topics": {

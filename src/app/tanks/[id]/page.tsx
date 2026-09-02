@@ -7,7 +7,7 @@ import { EditTankButton } from "@/components/edit-tank-button";
 import { Sparkline } from "@/components/sparkline";
 import { scheduleAdherence } from "@/lib/stats";
 import { STANDARD_PLAN_TYPES } from "@/lib/domain/plan-structure";
-import { t as translate, plural } from "@/i18n";
+import { t as translate, plural, paramLabelFor } from "@/i18n";
 import { getLocale } from "@/lib/settings";
 import { PlanRecommendBanner } from "@/components/plan-recommend-banner";
 import { ScheduleForm } from "@/components/schedule-form";
@@ -106,8 +106,9 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                     <i aria-hidden className="ph-fill ph-circle text-[8px]" />
                     {p.key.toUpperCase()}
                   </span>{" "}
-                  {p.value} — {p.status}
-                  {p.message ? ` (${p.message})` : ""}
+                  {p.value} —{" "}
+                  {translate(p.status === "critical" ? "water.statusCritical" : "water.statusWarn", locale)}
+                  {p.messageKey ? ` (${translate(p.messageKey, locale, p.messageVars)})` : p.message ? ` (${p.message})` : ""}
                 </li>
               ))}
             </ul>
@@ -133,7 +134,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
               return (
                 <div key={key} className="flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>{range?.label ?? key}</div>
+                    <div className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>{paramLabelFor(key, locale, range?.label)}</div>
                     <div className="text-sm tnum" style={{ color: st === "warn" ? "var(--warning)" : "var(--foreground)" }}>{last}</div>
                   </div>
                   <Sparkline series={series} color={st === "warn" ? "var(--warning)" : "var(--success)"} />

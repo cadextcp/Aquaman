@@ -74,7 +74,7 @@ export function WaterTestForm({
   onDone?: () => void;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, paramLabel } = useI18n();
   const [values, setValues] = useState<Record<string, string>>(
     edit
       ? Object.fromEntries(Object.entries(edit.values).filter(([, v]) => v !== null).map(([k, v]) => [k, String(v)]))
@@ -184,7 +184,9 @@ export function WaterTestForm({
               }}
             >
               <div className="flex items-baseline justify-between gap-1">
-                <span className="text-[11px] font-medium" style={{ color: "var(--control-foreground)" }}>{r.label}</span>
+                <span className="text-[11px] font-medium" style={{ color: "var(--control-foreground)" }}>
+                  {paramLabel(r.key, r.label)}
+                </span>
                 <span className="text-[9px]" style={{ color: "var(--faint)" }}>{r.unit}</span>
               </div>
 
@@ -202,7 +204,7 @@ export function WaterTestForm({
                   cursor: "pointer",
                   textAlign: "left",
                 }}
-                aria-label={t("water.chooseValue", { label: r.label })}
+                aria-label={t("water.chooseValue", { label: paramLabel(r.key, r.label) })}
               >
                 <span className="text-base font-medium tnum" style={{ color: num === null ? "var(--faint)" : "var(--foreground)" }}>
                   {num === null ? "—" : num}
@@ -275,7 +277,7 @@ export function WaterTestForm({
                         >
                           {o}
                           <span className="flex items-center gap-1">
-                            <span style={{ fontSize: 9, color: COL[ost] }}>{ost === "ok" ? "in band" : ost === "warn" ? "off band" : "critical"}</span>
+                            <span style={{ fontSize: 9, color: COL[ost] }}>{ost === "ok" ? t("water.bandIn") : ost === "warn" ? t("water.bandOff") : t("water.bandCritical")}</span>
                             <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: COL[ost] }} />
                           </span>
                         </button>

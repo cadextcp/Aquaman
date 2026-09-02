@@ -28,7 +28,7 @@ export function StructuredDetailsEditor({
   value: DetailData | null;
   onChange: (data: DetailData | null, rendered: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, nutrientLabel } = useI18n();
   if (actionType === "water_change") {
     const pct = Number(value?.percent ?? 30);
     return (
@@ -89,7 +89,7 @@ export function StructuredDetailsEditor({
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
           {NUTRIENTS.map((n) => (
             <label key={n.key} className="flex items-center gap-1.5 text-xs">
-              <span className="w-9 shrink-0 font-medium" title={n.label} style={{ color: n.group === "macro" ? "var(--secondary-foreground)" : "var(--muted-foreground)" }}>
+              <span className="w-9 shrink-0 font-medium" title={nutrientLabel(n.key, n.label)} style={{ color: n.group === "macro" ? "var(--secondary-foreground)" : "var(--muted-foreground)" }}>
                 {n.symbol}
               </span>
               <input
