@@ -23,7 +23,7 @@ const EMPTY: TankInput = {
 
 export function TankForm({ tank }: { tank?: Tank }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, errorText } = useI18n();
   const editing = !!tank;
   const [form, setForm] = useState<TankInput>(
     tank
@@ -56,7 +56,7 @@ export function TankForm({ tank }: { tank?: Tank }) {
       ? await updateTank(tank.id, { ...form, filterType: form.filterType || null })
       : await createTank({ ...form, filterType: form.filterType || null });
     if (!res.ok) {
-      setError(res.error + (res.fieldErrors ? ` (${Object.values(res.fieldErrors).join(", ")})` : ""));
+      setError(errorText(res) + (res.fieldErrors ? ` (${Object.values(res.fieldErrors).join(", ")})` : ""));
       return;
     }
     startTransition(() => {

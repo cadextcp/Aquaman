@@ -70,7 +70,7 @@ export function ScheduleCard({
   showTankName?: boolean;
 }) {
   const router = useRouter();
-  const { t, plural } = useI18n();
+  const { t, plural, errorText } = useI18n();
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   // optimistic flag, only bridging the gap until the revalidation lands
@@ -87,14 +87,14 @@ export function ScheduleCard({
   async function done() {
     // a rejected write must not leave the card claiming it is done
     const res = await markDone(schedule.id);
-    setError(res.ok ? null : res.error);
+    setError(res.ok ? null : errorText(res));
     setJustDone(res.ok);
     startTransition(() => router.refresh());
   }
 
   async function undo() {
     const res = await undoLastDone(schedule.id);
-    setError(res.ok ? null : res.error);
+    setError(res.ok ? null : errorText(res));
     if (res.ok) setJustDone(false);
     startTransition(() => router.refresh());
   }

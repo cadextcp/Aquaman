@@ -17,6 +17,7 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { failure } from "@/lib/domain/errors";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { tanks, schedules } from "@/lib/db/schema";
@@ -37,7 +38,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
   // The proposal re-enters here as UNTRUSTED input from the client — re-parse
   // with the same strict zod schema the stream was validated with.
   const proposal = parseProposal(input);
-  if (!proposal) return { ok: false, error: "Invalid proposal (validation failed)" };
+  if (!proposal) return failure("proposal.invalid", "Invalid proposal (validation failed)");
 
   const applied: string[] = [];
   const skipped: { change: string; reason: string }[] = [];

@@ -18,6 +18,7 @@ import {
   plural as pluralFrom,
   actionLabelFrom,
   domainLabelFrom,
+  errorTextFrom,
   helpNoteFrom,
   helpTopicFrom,
   type Catalog,
@@ -39,6 +40,8 @@ export type I18n = {
   paramLabel: (key: string, fallback?: string) => string;
   /** Localized fertilizer-nutrient name. */
   nutrientLabel: (key: string, fallback?: string) => string;
+  /** Localized text for a failed write — pass the whole result. */
+  errorText: (res: { error: string; code?: string; vars?: Vars }) => string;
   helpTopic: (id: string) => HelpTopic | null;
   helpNote: (id: string) => string;
   formatDateLong: (dateStr: string) => string;
@@ -82,6 +85,7 @@ export function useI18n(): I18n {
       actionLabel: (actionType) => actionLabelFrom(catalog, actionType),
       paramLabel: (key, fallback) => domainLabelFrom(catalog, "param", key, fallback),
       nutrientLabel: (key, fallback) => domainLabelFrom(catalog, "nutrient", key, fallback),
+      errorText: (res) => errorTextFrom(catalog, res.code, res.error, res.vars),
       helpTopic: (id) => helpTopicFrom(catalog, id),
       helpNote: (id) => helpNoteFrom(catalog, id),
       formatDateLong: (dateStr) => formatDateLong(dateStr, locale),

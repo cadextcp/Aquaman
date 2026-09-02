@@ -35,7 +35,7 @@ export function ScheduleForm({
   tankFoods?: { name: string; amount: string; unit: string }[];
 }) {
   const router = useRouter();
-  const { t, weekdayLabels } = useI18n();
+  const { t, weekdayLabels, errorText } = useI18n();
   const editing = !!schedule;
   const [selectedTankId, setSelectedTankId] = useState(tankId);
   const [actionType, setActionType] = useState(schedule?.actionType ?? "water_change");
@@ -77,7 +77,7 @@ export function ScheduleForm({
       ? await (await import("@/app/actions")).updateSchedule(schedule.id, input)
       : await createSchedule(input);
     if (!res.ok) {
-      setError(res.error);
+      setError(errorText(res));
       return;
     }
     startTransition(() => router.refresh());

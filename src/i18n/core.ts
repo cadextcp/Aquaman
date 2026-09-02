@@ -82,6 +82,36 @@ export function actionLabelFrom(catalog: Catalog | undefined, actionType: string
   return domainLabelFrom(catalog, "action", actionType);
 }
 
+/**
+ * Localized text for a failure from a write path (see lib/domain/errors.ts).
+ *
+ * Error codes contain dots ("tank.notFound") and are stored FLAT inside the
+ * `error` section, so this reads that map directly instead of walking a dot
+ * path. An unknown code falls back to `fallback` — the English message the
+ * result already carries, which is better than showing a key.
+ *
+ * `vars.action` is an action-type key, so it is resolved to that language's
+ * action name before interpolation ("water_change" → "Wasserwechsel").
+ */
+export function errorTextFrom(
+  catalog: Catalog | undefined,
+  code: string | undefined,
+  fallback: string,
+  vars?: Vars,
+): string {
+  const section = catalog?.error;
+  const template =
+    code && section && typeof section === "object"
+      ? (section as Record<string, unknown>)[code]
+      : undefined;
+  if (typeof template !== "string") return fallback;
+  const resolved: Vars | undefined =
+    vars && typeof vars.action === "string"
+      ? { ...vars, action: domainLabelFrom(catalog, "action", vars.action) }
+      : vars;
+  return interpolate(template, resolved).trim();
+}
+
 /** A help topic: the title of an E3 sheet plus its paragraphs. */
 export type HelpTopic = {
   title: string;

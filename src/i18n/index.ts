@@ -14,6 +14,7 @@ import {
   plural as pluralFrom,
   actionLabelFrom,
   domainLabelFrom,
+  errorTextFrom,
   lookup,
   helpTopicFrom,
   helpNoteFrom,
@@ -66,6 +67,14 @@ export function paramLabelFor(key: string, locale: Locale = DEFAULT_LOCALE, fall
 /** Localized fertilizer-nutrient name ("fe" → "Eisen (Fe)"). */
 export function nutrientLabelFor(key: string, locale: Locale = DEFAULT_LOCALE, fallback?: string): string {
   return domainLabelFrom(catalogFor(locale), "nutrient", key, fallback);
+}
+
+/** Localized text for a failed write (server side — see core.ts:errorTextFrom). */
+export function errorText(
+  res: { error: string; code?: string; vars?: Vars },
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return errorTextFrom(catalogFor(locale), res.code, res.error, res.vars);
 }
 
 /** Raw catalog lookup — for entries that are not plain strings (lists, objects). */

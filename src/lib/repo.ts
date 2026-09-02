@@ -14,6 +14,7 @@ import { today, addDays } from "@/lib/domain/dates";
 import { isStandardPlanType, formatDetailData } from "@/lib/domain/plan-structure";
 import { LOGGABLE_ACTION_TYPES } from "@/lib/domain/action-types";
 import type { DetailData } from "@/lib/db/schema";
+import { failure, type Failure } from "@/lib/domain/errors";
 
 // ==================== Tanks ====================
 
@@ -224,8 +225,8 @@ export function adjustFeedCore(
 // and both callers wrap it. Cores return domain errors as values and only
 // throw on unexpected DB failures; UI layers add revalidatePath/plan-review.
 
-export type WriteResult = { ok: true } | { ok: false; error: string };
-export type WriteResultWithTank = { ok: true; tankId: number } | { ok: false; error: string };
+export type WriteResult = { ok: true } | Failure;
+export type WriteResultWithTank = { ok: true; tankId: number } | Failure;
 
 /** First zod form error, matching what zodFail() in actions.ts shows the user. */
 function firstZodError(e: { flatten: () => { formErrors: string[] } }): string {
@@ -244,7 +245,7 @@ export function markScheduleDoneCore(
   source: "user" | "ai_proposed" | "mcp" | "api" = "user",
 ): WriteResultWithTank {
   const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
-  if (!s) return { ok: false, error: "Schedule not found" };
+  if (!s) return failure("schedule.notFound", "Schedule not found");
   addMaintenanceLog({
     tankId: s.tankId,
     actionType: s.actionType,
@@ -274,10 +275,10 @@ export function markScheduleDoneCore(
  */
 export function snoozeScheduleCore(scheduleId: number, until: string): WriteResultWithTank {
   const parsed = snoozeInputSchema.safeParse({ scheduleId, until });
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
-  if (until < today()) return { ok: false, error: "Cannot snooze to a past date" };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
+  if (until < today()) return failure("snooze.pastDate", "Cannot snooze to a past date");
   const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
-  if (!s) return { ok: false, error: "Schedule not found" };
+  if (!s) return failure("schedule.notFound", "Schedule not found");
   db.update(schedules)
     .set({
       snoozedUntil: `${until}T00:00:00.000Z`,
@@ -298,11 +299,11 @@ export function snoozeScheduleCore(scheduleId: number, until: string): WriteResu
  */
 export function logWaterTestCore(input: unknown): WriteResultWithTank {
   const parsed = waterTestInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
   const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
-  if (!tank) return { ok: false, error: "Tank not found" };
+  if (!tank) return failure("tank.notFound", "Tank not found");
   const [clean, vErr] = validateWaterValues(parsed.data.values, tank.waterType);
-  if (vErr || !clean) return { ok: false, error: vErr ?? "Invalid values" };
+  if (vErr || !clean) return failure("values.invalid", vErr ?? "Invalid values", { detail: vErr ?? "" });
   addWaterTest({
     tankId: parsed.data.tankId,
     measuredAt: parsed.data.measuredAt,
@@ -319,11 +320,11 @@ export function logWaterTestCore(input: unknown): WriteResultWithTank {
 // way in). Same rule as the cores above: validate, mutate, return errors as
 // values -- no revalidatePath/requestPlanReview here, callers add those.
 
-export type WriteResultWithId = { ok: true; id: number } | { ok: false; error: string };
+export type WriteResultWithId = { ok: true; id: number } | Failure;
 
 export function createTankCore(input: unknown, photoPath?: string | null): WriteResultWithId {
   const parsed = tankInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
   try {
     const row = db
       .insert(tanks)
@@ -346,11 +347,11 @@ export function createTankCore(input: unknown, photoPath?: string | null): Write
     return { ok: true, id: row.id };
   } catch (err) {
     console.error("[createTankCore]", err);
-    return { ok: false, error: "Could not create tank" };
+    return failure("tank.createFailed", "Could not create tank");
   }
 }
 
-export type UpdateTankResult = { ok: true; masterChanged: boolean } | { ok: false; error: string };
+export type UpdateTankResult = { ok: true; masterChanged: boolean } | Failure;
 
 /**
  * `masterChanged` tells the caller whether fish/plants/foods/volume/equipment
@@ -360,7 +361,7 @@ export type UpdateTankResult = { ok: true; masterChanged: boolean } | { ok: fals
  */
 export function updateTankCore(id: number, input: unknown, photoPath?: string | null): UpdateTankResult {
   const parsed = tankInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
   try {
     const before = db.select().from(tanks).where(and(eq(tanks.id, id), isNull(tanks.deletedAt))).get();
     db.update(tanks)
@@ -393,7 +394,7 @@ export function updateTankCore(id: number, input: unknown, photoPath?: string | 
     return { ok: true, masterChanged };
   } catch (err) {
     console.error("[updateTankCore]", err);
-    return { ok: false, error: "Could not update tank" };
+    return failure("tank.updateFailed", "Could not update tank");
   }
 }
 
@@ -405,7 +406,7 @@ export function deleteTankCore(id: number): WriteResult {
     return { ok: true };
   } catch (err) {
     console.error("[deleteTankCore]", err);
-    return { ok: false, error: "Could not delete tank" };
+    return failure("tank.deleteFailed", "Could not delete tank");
   }
 }
 
@@ -413,8 +414,8 @@ export function deleteTankCore(id: number): WriteResult {
 
 export function createScheduleCore(input: unknown): WriteResultWithId {
   const parsed = scheduleInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
-  if (!getTank(parsed.data.tankId)) return { ok: false, error: "Tank not found" };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
+  if (!getTank(parsed.data.tankId)) return failure("tank.notFound", "Tank not found");
   // issue #42: one plan per standard type per tank -- duplicates would overlap
   if (isStandardPlanType(parsed.data.actionType)) {
     const existing = db
@@ -429,10 +430,11 @@ export function createScheduleCore(input: unknown): WriteResultWithId {
       )
       .get();
     if (existing) {
-      return {
-        ok: false,
-        error: `This tank already has a ${parsed.data.actionType.replace(/_/g, " ")} plan (one per type) -- edit it instead`,
-      };
+      return failure(
+        "schedule.duplicateType",
+        `This tank already has a ${parsed.data.actionType.replace(/_/g, " ")} plan (one per type) -- edit it instead`,
+        { action: parsed.data.actionType },
+      );
     }
   }
   try {
@@ -455,14 +457,14 @@ export function createScheduleCore(input: unknown): WriteResultWithId {
     return { ok: true, id: row.id };
   } catch (err) {
     console.error("[createScheduleCore]", err);
-    return { ok: false, error: "Could not create schedule" };
+    return failure("schedule.createFailed", "Could not create schedule");
   }
 }
 
 export function updateScheduleCore(id: number, input: unknown): WriteResult {
   const parsed = scheduleInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
-  if (!getTank(parsed.data.tankId)) return { ok: false, error: "Tank not found" };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
+  if (!getTank(parsed.data.tankId)) return failure("tank.notFound", "Tank not found");
   // issue #42: renaming to a standard type another active plan already holds -> block
   if (isStandardPlanType(parsed.data.actionType)) {
     const clash = db
@@ -477,7 +479,11 @@ export function updateScheduleCore(id: number, input: unknown): WriteResult {
       )
       .get();
     if (clash && clash.id !== id) {
-      return { ok: false, error: `This tank already has a ${parsed.data.actionType.replace(/_/g, " ")} plan` };
+      return failure(
+        "schedule.duplicateType",
+        `This tank already has a ${parsed.data.actionType.replace(/_/g, " ")} plan`,
+        { action: parsed.data.actionType },
+      );
     }
   }
   try {
@@ -502,7 +508,7 @@ export function updateScheduleCore(id: number, input: unknown): WriteResult {
     return { ok: true };
   } catch (err) {
     console.error("[updateScheduleCore]", err);
-    return { ok: false, error: "Could not update schedule" };
+    return failure("schedule.updateFailed", "Could not update schedule");
   }
 }
 
@@ -513,12 +519,12 @@ export function updateScheduleCore(id: number, input: unknown): WriteResult {
 export function deleteScheduleCore(id: number): WriteResultWithTank {
   try {
     const s = db.select().from(schedules).where(eq(schedules.id, id)).get();
-    if (!s) return { ok: false, error: "Schedule not found" };
+    if (!s) return failure("schedule.notFound", "Schedule not found");
     db.delete(schedules).where(eq(schedules.id, id)).run();
     return { ok: true, tankId: s.tankId };
   } catch (err) {
     console.error("[deleteScheduleCore]", err);
-    return { ok: false, error: "Could not delete schedule" };
+    return failure("schedule.deleteFailed", "Could not delete schedule");
   }
 }
 
@@ -528,7 +534,7 @@ export function setScheduleActiveCore(id: number, active: boolean): WriteResult 
     return { ok: true };
   } catch (err) {
     console.error("[setScheduleActiveCore]", err);
-    return { ok: false, error: "Could not update schedule" };
+    return failure("schedule.updateFailed", "Could not update schedule");
   }
 }
 
@@ -541,8 +547,8 @@ export function setScheduleActiveCore(id: number, active: boolean): WriteResult 
 export function undoLastDoneCore(scheduleId: number): WriteResultWithTank {
   try {
     const s = db.select().from(schedules).where(eq(schedules.id, scheduleId)).get();
-    if (!s) return { ok: false, error: "Schedule not found" };
-    if (!s.lastDoneAt) return { ok: false, error: "Nothing to undo" };
+    if (!s) return failure("schedule.notFound", "Schedule not found");
+    if (!s.lastDoneAt) return failure("undo.nothing", "Nothing to undo");
 
     const logs = db
       .select()
@@ -551,7 +557,7 @@ export function undoLastDoneCore(scheduleId: number): WriteResultWithTank {
       .orderBy(desc(maintenanceLogs.doneAt))
       .limit(2)
       .all();
-    if (logs.length === 0) return { ok: false, error: "Nothing to undo" };
+    if (logs.length === 0) return failure("undo.nothing", "Nothing to undo");
 
     db.delete(maintenanceLogs).where(eq(maintenanceLogs.id, logs[0].id)).run();
     const previous = logs[1]?.doneAt ?? null;
@@ -569,7 +575,7 @@ export function undoLastDoneCore(scheduleId: number): WriteResultWithTank {
     return { ok: true, tankId: s.tankId };
   } catch (err) {
     console.error("[undoLastDoneCore]", err);
-    return { ok: false, error: "Could not undo" };
+    return failure("undo.failed", "Could not undo");
   }
 }
 
@@ -579,14 +585,14 @@ export const waterTestUpdateSchema = waterTestInputSchema.extend({ id: z.number(
 
 export function updateWaterTestCore(input: unknown): WriteResultWithTank {
   const parsed = waterTestUpdateSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
   const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
-  if (!tank) return { ok: false, error: "Tank not found" };
+  if (!tank) return failure("tank.notFound", "Tank not found");
   const [clean, vErr] = validateWaterValues(parsed.data.values, tank.waterType);
-  if (vErr || !clean) return { ok: false, error: vErr ?? "Invalid values" };
+  if (vErr || !clean) return failure("values.invalid", vErr ?? "Invalid values", { detail: vErr ?? "" });
   try {
     const existing = db.select().from(waterTests).where(eq(waterTests.id, parsed.data.id)).get();
-    if (!existing) return { ok: false, error: "Water test not found" };
+    if (!existing) return failure("waterTest.notFound", "Water test not found");
     db.update(waterTests)
       .set({ measuredAt: parsed.data.measuredAt, values: clean, note: parsed.data.note ?? null })
       .where(eq(waterTests.id, parsed.data.id))
@@ -594,19 +600,19 @@ export function updateWaterTestCore(input: unknown): WriteResultWithTank {
     return { ok: true, tankId: parsed.data.tankId };
   } catch (err) {
     console.error("[updateWaterTestCore]", err);
-    return { ok: false, error: "Could not update water test" };
+    return failure("waterTest.updateFailed", "Could not update water test");
   }
 }
 
 export function deleteWaterTestCore(id: number): WriteResultWithTank {
   try {
     const existing = db.select().from(waterTests).where(eq(waterTests.id, id)).get();
-    if (!existing) return { ok: false, error: "Water test not found" };
+    if (!existing) return failure("waterTest.notFound", "Water test not found");
     db.delete(waterTests).where(eq(waterTests.id, id)).run();
     return { ok: true, tankId: existing.tankId };
   } catch (err) {
     console.error("[deleteWaterTestCore]", err);
-    return { ok: false, error: "Could not delete water test" };
+    return failure("waterTest.deleteFailed", "Could not delete water test");
   }
 }
 
@@ -641,19 +647,19 @@ export const logActionSchema = z.object({
 
 export function logActionCore(input: unknown): WriteResultWithTank {
   const parsed = logActionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstZodError(parsed.error) };
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
   const { actionType } = parsed.data;
   if (actionType === "feed") {
-    return {
-      ok: false,
-      error: "Feeding is tracked as a daily count, not a logged action -- use POST /api/v1/tanks/{id}/feedings instead",
-    };
+    return failure(
+      "log.feedIsCounter",
+      "Feeding is tracked as a daily count, not a logged action -- use POST /api/v1/tanks/{id}/feedings instead",
+    );
   }
   if (!(LOGGABLE_ACTION_TYPES as readonly string[]).includes(actionType)) {
-    return { ok: false, error: `actionType must be one of: ${LOGGABLE_ACTION_TYPES.join(", ")}` };
+    return failure("log.notLoggable", `actionType must be one of: ${LOGGABLE_ACTION_TYPES.join(", ")}`, { types: LOGGABLE_ACTION_TYPES.join(", ") });
   }
   const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
-  if (!tank) return { ok: false, error: "Tank not found" };
+  if (!tank) return failure("tank.notFound", "Tank not found");
   try {
     const doneAt = parsed.data.doneAt ?? new Date().toISOString();
     const active = db
@@ -698,7 +704,7 @@ export function logActionCore(input: unknown): WriteResultWithTank {
     return { ok: true, tankId: parsed.data.tankId };
   } catch (err) {
     console.error("[logActionCore]", err);
-    return { ok: false, error: "Could not log action" };
+    return failure("log.failed", "Could not log action");
   }
 }
 

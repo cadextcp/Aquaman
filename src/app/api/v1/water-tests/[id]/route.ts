@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { updateWaterTestCore, deleteWaterTestCore } from "@/lib/repo";
 import { apiGate } from "@/lib/api/v1-auth";
-import { ok, fail, notFound } from "@/lib/api/respond";
+import { ok, notFound, failFor } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!Number.isInteger(id) || id <= 0) return notFound("Water test not found");
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const res = updateWaterTestCore({ ...(body ?? {}), id });
-  if (!res.ok) return fail(res.error.includes("not found") ? 404 : 400, res.error);
+  if (!res.ok) return failFor(res);
   return ok({ tankId: res.tankId });
 }
 
@@ -26,6 +26,6 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) return notFound("Water test not found");
   const res = deleteWaterTestCore(id);
-  if (!res.ok) return fail(404, res.error);
+  if (!res.ok) return failFor(res, 404);
   return new Response(null, { status: 204 });
 }

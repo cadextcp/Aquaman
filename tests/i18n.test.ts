@@ -15,10 +15,11 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import en from "../src/i18n/en.json";
 import de from "../src/i18n/de.json";
-import { catalogKeys, translate, plural, actionLabelFrom, type Catalog } from "../src/i18n/core";
+import { catalogKeys, translate, plural, actionLabelFrom, errorTextFrom, type Catalog } from "../src/i18n/core";
 import { ACTION_TYPE_KEYS, actionLabel } from "../src/lib/domain/action-types";
 import { FRESHWATER_RANGES, SALTWATER_RANGES } from "../src/lib/domain/ranges";
 import { NUTRIENTS } from "../src/lib/domain/plan-structure";
+import { ERROR_CODES, failure } from "../src/lib/domain/errors";
 import { LOCALES, LOCALE_TAG, isLocale, DEFAULT_LOCALE } from "../src/i18n/locales";
 import { formatDateLong, formatDateShort, formatMonth, formatNumber, weekdayLabels } from "../src/i18n/format";
 
@@ -237,5 +238,39 @@ describe("domain vocabulary", () => {
     for (const key of ACTION_TYPE_KEYS) {
       expect(translate(catalogs.en, `action.${key}`)).toBe(actionLabel(key));
     }
+  });
+});
+
+describe("failure codes", () => {
+  it("every error code has a message in every locale", () => {
+    for (const loc of LOCALES) {
+      for (const code of ERROR_CODES) {
+        const section = (catalogs[loc] as { error: Record<string, string> }).error;
+        expect(section[code], `error.${code} missing in ${loc}`).toBeTypeOf("string");
+        expect(section[code].trim()).not.toBe("");
+      }
+    }
+  });
+
+  it("carries no message for a code that does not exist (no stale entries)", () => {
+    for (const loc of LOCALES) {
+      const section = (catalogs[loc] as { error: Record<string, string> }).error;
+      expect(Object.keys(section).sort()).toEqual([...ERROR_CODES].sort());
+    }
+  });
+
+  it("renders a failure in the active language, action names included", () => {
+    const res = failure("schedule.duplicateType", "This tank already has a water_change plan", {
+      action: "water_change",
+    });
+    expect(errorTextFrom(catalogs.de, res.code, res.error, res.vars)).toContain("Wasserwechsel");
+    expect(errorTextFrom(catalogs.en, res.code, res.error, res.vars)).toContain("Water change");
+  });
+
+  it("falls back to the English message for a code the catalog does not know", () => {
+    // an API-only failure, or a code added before its catalog entry: showing
+    // the English sentence beats showing a bare key
+    expect(errorTextFrom(catalogs.de, "nope.notACode", "Something went wrong")).toBe("Something went wrong");
+    expect(errorTextFrom(catalogs.de, undefined, "Something went wrong")).toBe("Something went wrong");
   });
 });

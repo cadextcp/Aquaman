@@ -20,7 +20,7 @@ import { StatusNote } from "./ui/status-note";
 
 export function LanguageSettings({ initialLocale }: { initialLocale: Locale }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, errorText } = useI18n();
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -33,7 +33,7 @@ export function LanguageSettings({ initialLocale }: { initialLocale: Locale }) {
     const res = await saveGlobalSettingsAction({ locale: next });
     if (!res.ok) {
       setLocale(previous);
-      setError(res.error);
+      setError(errorText(res));
       return;
     }
     startTransition(() => router.refresh());

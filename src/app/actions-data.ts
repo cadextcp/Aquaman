@@ -8,6 +8,7 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { failure } from "@/lib/domain/errors";
 import { importSnapshot } from "@/lib/export";
 import type { ActionResult } from "./actions";
 
@@ -31,6 +32,9 @@ export async function importDataAction(input: unknown): Promise<ActionResult<Imp
     return { ok: true, data: result };
   } catch (err) {
     console.error("[importDataAction]", err);
-    return { ok: false, error: err instanceof Error ? err.message : "Import failed — nothing was changed" };
+    // the thrown message carries the detail (which row, which field) — the
+    // catalog line frames it, so both survive translation
+    const detail = err instanceof Error ? err.message : "";
+    return failure("import.failed", detail || "Import failed — nothing was changed", { detail });
   }
 }

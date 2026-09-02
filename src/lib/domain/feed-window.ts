@@ -7,6 +7,7 @@
  */
 import { z } from "zod";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
+import type { ErrorCode } from "@/lib/domain/errors";
 
 /** Feeding can be edited for this many past days (typo guard). */
 export const FEED_BACKFILL_DAYS = 30;
@@ -21,13 +22,17 @@ export function feedMinDay(t: string = todayStr()): string {
 
 /**
  * Validate a feed day: a real YYYY-MM-DD calendar date, today or earlier, at
- * most FEED_BACKFILL_DAYS back. Returns an error message, or null when the
- * day is editable.
+ * most FEED_BACKFILL_DAYS back. Returns the English message plus its code
+ * (see domain/errors.ts), or null when the day is editable.
  */
-export function feedDayError(day: string, t: string = todayStr()): string | null {
-  if (!feedDaySchema.safeParse(day).success) return "Invalid date";
-  if (day > t) return "Cannot log feeding for a future date";
-  if (day < feedMinDay(t)) return `Feeding can only be backfilled ${FEED_BACKFILL_DAYS} days back`;
+export function feedDayError(
+  day: string,
+  t: string = todayStr(),
+): { code: ErrorCode; error: string } | null {
+  if (!feedDaySchema.safeParse(day).success) return { code: "feed.invalidDate", error: "Invalid date" };
+  if (day > t) return { code: "feed.futureDate", error: "Cannot log feeding for a future date" };
+  if (day < feedMinDay(t))
+    return { code: "feed.backfillLimit", error: `Feeding can only be backfilled ${FEED_BACKFILL_DAYS} days back` };
   return null;
 }
 

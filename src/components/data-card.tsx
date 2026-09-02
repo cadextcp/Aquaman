@@ -13,7 +13,7 @@ import { StatusNote } from "./ui/status-note";
 import { useI18n } from "@/i18n/provider";
 
 export function DataCard() {
-  const { t } = useI18n();
+  const { t, errorText } = useI18n();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -54,7 +54,7 @@ export function DataCard() {
         setIsError(false);
         router.refresh();
       } else {
-        setResult(res.ok ? t("settings.data.importFailed") : res.error);
+        setResult(res.ok ? t("settings.data.importFailed") : errorText(res));
         setIsError(true);
       }
     } catch (err) {

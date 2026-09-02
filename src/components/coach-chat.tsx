@@ -342,7 +342,7 @@ export function CoachChat({
 }
 
 function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
-  const { t, actionLabel } = useI18n();
+  const { t, actionLabel, errorText } = useI18n();
   const [state, setState] = useState<"pending" | "applied" | "failed" | "partial">("pending");
   const [result, setResult] = useState<string>("");
   // issue #36: editable approval card — the user can correct AI-suggested
@@ -373,7 +373,7 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
       );
     } else {
       setState("failed");
-      setResult(res.ok ? "" : res.error);
+      setResult(res.ok ? "" : errorText(res));
     }
   }
 

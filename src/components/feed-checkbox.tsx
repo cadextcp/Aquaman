@@ -28,7 +28,7 @@ export function FeedControl({
   day: string;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, errorText } = useI18n();
   const [pending, startTransition] = useTransition();
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export function FeedControl({
     // A rejected day (stale tab past midnight, hand-edited ?day=) must not fail
     // silently — the refresh would just re-render the unchanged count.
     const res = await adjustFeedOn(tankId, day, delta);
-    setError(res.ok ? null : res.error);
+    setError(res.ok ? null : errorText(res));
     startTransition(() => router.refresh());
   }
 

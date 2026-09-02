@@ -74,7 +74,7 @@ export function WaterTestForm({
   onDone?: () => void;
 }) {
   const router = useRouter();
-  const { t, paramLabel } = useI18n();
+  const { t, paramLabel, errorText } = useI18n();
   const [values, setValues] = useState<Record<string, string>>(
     edit
       ? Object.fromEntries(Object.entries(edit.values).filter(([, v]) => v !== null).map(([k, v]) => [k, String(v)]))
@@ -126,7 +126,7 @@ export function WaterTestForm({
       ? await updateWaterTest({ id: edit.id, tankId, values: cleaned, note: note || undefined, measuredAt: edit.measuredAt })
       : await logWaterTest({ tankId, values: cleaned, note: note || undefined });
     if (!res.ok) {
-      setError(res.error);
+      setError(errorText(res));
       return;
     }
     setSaved(true);
