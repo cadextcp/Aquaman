@@ -50,9 +50,10 @@ describe("formatDetailData", () => {
     expect(formatDetailData("water_top_up", { liters: 0 })).toBe("");
   });
 
-  it("standard types: exactly the five", async () => {
+  it("standard types: exactly the four (feed is a daily habit, not a plan)", async () => {
     const { STANDARD_PLAN_TYPES, isStandardPlanType } = await import("../src/lib/domain/plan-structure");
-    expect(STANDARD_PLAN_TYPES).toHaveLength(5);
+    expect(STANDARD_PLAN_TYPES).toHaveLength(4);
+    expect(isStandardPlanType("feed")).toBe(false);
     expect(isStandardPlanType("glass_clean")).toBe(false);
     expect(isStandardPlanType("water_change")).toBe(true);
   });
@@ -94,11 +95,11 @@ describe("duplicate guard (one plan per type per tank)", () => {
     const { createTank, createSchedule } = await import("../src/app/actions");
     const t = await createTank({ name: "GuardAI", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
     const tankId = (t as { data?: { id: number } }).data!.id;
-    await createSchedule({ tankId, actionType: "feed", intervalDays: 1, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
+    await createSchedule({ tankId, actionType: "water_change", intervalDays: 1, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
 
     const res = await applyProposal({
       rationale: "r",
-      changes: [{ kind: "create", tankId, actionType: "feed", intervalDays: 2, preferredDays: 127, details: "Flakes 1 pinch" }],
+      changes: [{ kind: "create", tankId, actionType: "water_change", intervalDays: 2, preferredDays: 127, details: "30 %" }],
     });
     expect(res.ok).toBe(true);
     if (res.ok) {

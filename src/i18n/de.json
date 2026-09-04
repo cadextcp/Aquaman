@@ -353,7 +353,14 @@
     "ariaFed": "{tank}: {n}× gefüttert",
     "ariaNotFed": "{tank}: nicht gefüttert",
     "undoFeeding": "Fütterung für {tank} zurücknehmen",
-    "feedOnceMore": "{tank} noch einmal füttern"
+    "feedOnceMore": "{tank} noch einmal füttern",
+    "lastToday": "zuletzt: heute",
+    "lastYesterday": "zuletzt: gestern",
+    "lastDaysAgo": {
+      "one": "zuletzt: vor {n} Tag",
+      "other": "zuletzt: vor {n} Tagen"
+    },
+    "lastNever": "noch nie gefüttert"
   },
   "tankFilter": {
     "allTanks": "Alle Becken"

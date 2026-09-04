@@ -15,8 +15,12 @@ describe("ACTION_TYPES catalog", () => {
     expect(new Set(ACTION_TYPE_KEYS).size).toBe(10);
   });
 
-  it("SCHEDULABLE_ACTION_TYPES is all 10; LOGGABLE_ACTION_TYPES is all but feed", () => {
-    expect(SCHEDULABLE_ACTION_TYPES).toHaveLength(10);
+  // Feeding is a daily habit (feed_logs), so it is the one type that is neither
+  // loggable nor schedulable: a feed PLAN can never be ticked off, because
+  // nothing that records a feeding writes schedules.lastDoneAt.
+  it("SCHEDULABLE_ACTION_TYPES and LOGGABLE_ACTION_TYPES are all 10 but feed", () => {
+    expect(SCHEDULABLE_ACTION_TYPES).toHaveLength(9);
+    expect(SCHEDULABLE_ACTION_TYPES).not.toContain("feed");
     expect(LOGGABLE_ACTION_TYPES).toHaveLength(9);
     expect(LOGGABLE_ACTION_TYPES).not.toContain("feed");
   });
@@ -43,9 +47,11 @@ describe("ACTION_TYPES catalog", () => {
     expect(catchUpWeight("glass_clean", 0)).toBe(20 + 0); // unknown-to-old-map fallback value preserved
   });
 
-  it("STANDARD_PLAN_TYPES (duplicate-guard types) still matches the pre-catalog five", async () => {
+  it("STANDARD_PLAN_TYPES (duplicate-guard types) is the pre-catalog five minus feed", async () => {
     const { STANDARD_PLAN_TYPES, isStandardPlanType } = await import("../src/lib/domain/plan-structure");
-    expect(new Set(STANDARD_PLAN_TYPES)).toEqual(new Set(["water_change", "feed", "fertilize", "filter_change", "water_test"]));
+    // feed dropped out: it is no longer a plan at all, so there is no plan to
+    // recommend on the tank page and nothing for the duplicate guard to guard.
+    expect(new Set(STANDARD_PLAN_TYPES)).toEqual(new Set(["water_change", "fertilize", "filter_change", "water_test"]));
     expect(isStandardPlanType("substrate_vacuum")).toBe(false);
     expect(isStandardPlanType("water_top_up")).toBe(false);
   });

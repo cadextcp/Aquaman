@@ -123,7 +123,11 @@ compat — nothing reads them at runtime.)
   API. Anything else → 400 with the valid keys in the message. `feed` is
   deliberately rejected there with a pointer to `POST /tanks/{id}/feedings`
   (`delta: 1|-1`), because feeding is a daily counter (`feed_logs`), not a
-  timestamped log row.
+  timestamped log row. `POST /schedules` rejects it for the same reason:
+  `SCHEDULABLE_ACTION_TYPES` is the catalog minus `feed`, since nothing that
+  records a feeding writes `schedules.last_done_at` — a feed plan could never
+  be closed. "Last fed" is served by `GET /tanks/{id}/status` instead
+  (`actions.feed.lastDoneDay` / `daysAgo`, straight from `feed_logs`).
 - **Writes** go through the same cores as Server Actions (`logActionCore`
   etc.) and set `source: 'api'` in `maintenance_logs`. When a call omits
   `detailData`, `logActionCore` inherits the structured details (e.g.

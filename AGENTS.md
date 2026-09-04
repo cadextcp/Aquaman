@@ -48,7 +48,9 @@ live in PRD/TechDesign. `docs/plan-review.md` documents why v1.2/v1.1 differ.
 - ICS token: compare via `safeTokenEqual()` (SHA-256 both sides, then `timingSafeEqual`) — never compare raw strings/buffers directly, a wrong-length token throws `RangeError` on plain `timingSafeEqual` and would 500 instead of 404.
 - `snoozedUntil` always wins over interval math for that occurrence — don't "helpfully" recompute.
 - SQLite has no arrays/jsonb: JSON fields are `text({mode:'json'})`, weekdays are a 7-bit integer mask (Bit 0 = Mon … Bit 6 = Sun).
-- Feeding is a Daily Habit (dashboard checkbox, `maintenanceLogs` entry) — NOT a schedule, NOT an ICS event.
+- **Feeding is a Daily Habit — NOT a schedule, NOT an ICS event, NOT a `maintenanceLogs` row.** It lives in `feed_logs` (one row per tank per local day, 0–5 counter, 30-day backfill) and is written ONLY by `markFed`/`adjustFeedCore`. Neither of them touches `schedules.lastDoneAt`, which is why a feed PLAN is unsatisfiable by construction: `nextDue()` would keep re-projecting it every day, `missedSlots()` would grow by a day per day however much you fed, and `careStreak()` (which judges plans by `maintenanceLogs`) would count it as neglected forever. The standard-events catalog briefly made `feed` schedulable and two such plans reached production — owner report, fixed by migration `0006_feeding_is_not_a_plan`. The catalog flags are the guard now: `feed` is the one type with `schedulable: false, loggable: false, standardPlan: false`. Don't flip any of them without wiring `feed_logs` → plan completion FIRST (and then `markScheduleDoneCore`'s `lastDoneAt = now` is wrong too — a backfilled feeding must date from the day it happened).
+- `importSnapshot()` is the one path that writes `schedules` without passing zod's `SCHEDULABLE_ACTION_TYPES`, so it force-deactivates `feed` rows — a backup from before `0006` would otherwise restore the plan straight back into the care queue.
+- "When did I last feed?" comes from `lastFeedDays()` (dashboard) / `lastFeed()` (`/api/v1/tanks/{id}/status`, which the ESPHome display reads) — never from a plan's due date.
 
 ### Next.js / build traps
 

@@ -10,6 +10,12 @@
 
 import { ACTION_TYPES, type ActionType } from "./action-types";
 
+/**
+ * Derived from the catalog's `standardPlan` flag — `feed` is deliberately NOT
+ * in here: feeding is the daily counter, so recommending a feeding PLAN (this
+ * list drives the tank page's "missing plans" checklist) would push the user
+ * into creating a plan nothing can ever tick off.
+ */
 export const STANDARD_PLAN_TYPES = ACTION_TYPES.filter((a) => a.standardPlan).map((a) => a.key) as ActionType[];
 export type StandardPlanType = ActionType;
 

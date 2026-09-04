@@ -140,6 +140,26 @@ export function feedAllToday(localDay: string): FeedLog[] {
   return db.select().from(feedLogs).where(eq(feedLogs.day, localDay)).all();
 }
 
+/**
+ * Last feeding day per tank (`tankId` → YYYY-MM-DD), across all of history.
+ *
+ * The dashboard's "last fed" line — the thing feeding is actually FOR, now that
+ * it has no plan to show a due date. One grouped query rather than `lastFeed()`
+ * per tank, because the dashboard renders every visible tank at once.
+ *
+ * `day` is already the local day string (AQUAMAN_TIMEZONE, written by
+ * markFed/adjustFeedCore), so `max()` over it is a plain lexical max — no
+ * timezone conversion on the way out.
+ */
+export function lastFeedDays(): Map<number, string> {
+  const rows = db
+    .select({ tankId: feedLogs.tankId, day: sql<string>`max(${feedLogs.day})` })
+    .from(feedLogs)
+    .groupBy(feedLogs.tankId)
+    .all();
+  return new Map(rows.map((r) => [r.tankId, r.day]));
+}
+
 /** Feed history for one tank, most recent day first — the v1 REST API's read side for feedings. */
 export function feedLogsForTank(tankId: number, days = 30): FeedLog[] {
   const since = addDays(today(), -days);

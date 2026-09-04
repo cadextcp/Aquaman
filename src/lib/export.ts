@@ -217,7 +217,15 @@ export function importSnapshot(raw: unknown): ImportResult {
     tx.delete(aiCalls).run();
 
     for (const row of snap.tanks) tx.insert(tanks).values([{ ...row, foods: row.foods ?? [] }]).run();
-    for (const row of snap.schedules) tx.insert(schedules).values([row]).run();
+    // Feed plans come back INACTIVE (migration 0006): `feed` stopped being a
+    // schedulable type because the feeding counter can never tick such a plan
+    // off. A snapshot taken before that still carries active ones, and an
+    // import is the one path that writes `schedules` without going through
+    // zod's SCHEDULABLE_ACTION_TYPES — restoring it verbatim would put the
+    // never-satisfiable plan straight back in the care queue. The row itself is
+    // kept (history, `maintenance_logs.schedule_id`), exactly like the migration.
+    for (const row of snap.schedules)
+      tx.insert(schedules).values([row.actionType === "feed" ? { ...row, active: false } : row]).run();
     for (const row of snap.maintenanceLogs) tx.insert(maintenanceLogs).values([row]).run();
     for (const row of snap.waterTests) tx.insert(waterTests).values([row]).run();
     for (const row of snap.feedLogs) tx.insert(feedLogs).values([row]).run();

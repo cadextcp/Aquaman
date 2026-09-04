@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { listTanks, listSchedules, feedAllToday } from "@/lib/repo";
-import { nextDue, missedSlots, catchUpWeight, doneOn } from "@/lib/domain/scheduler";
+import { listTanks, listSchedules, feedAllToday, lastFeedDays } from "@/lib/repo";
+import { nextDue, missedSlots, catchUpWeight, doneOn, dayCount } from "@/lib/domain/scheduler";
 import { careStreak } from "@/lib/domain/streak";
 import { scheduleAdherence, crossTankStats, weeklySummary } from "@/lib/stats";
 import { today as todayStr, addDays } from "@/lib/domain/dates";
@@ -61,6 +61,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const prevDay = day > minDay ? addDays(day, -1) : null;
   const nextDay = day < today ? addDays(day, 1) : null;
   const feeds = feedAllToday(day);
+  // "Last fed" per tank — measured from TODAY, not from the day the stepper is
+  // pointed at, and computed here because "days ago" is AQUAMAN_TIMEZONE math.
+  const lastFed = lastFeedDays();
 
   // Preserve whichever of ?day=/?tank= isn'today being changed by a given link —
   // day navigation must not reset the tank filter and vice versa.
@@ -182,10 +185,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <HelpNote id="feeding" className="mt-0" />
             <HelpNote id="feedBackfill" className="mb-3 mt-1" />
             <div className="flex flex-col gap-2">
-              {visibleTanks.map((tank) => (
-                <FeedControl key={tank.id} tankId={tank.id} tankName={tank.name} day={day}
-                  timesFed={feeds.find((f) => f.tankId === tank.id)?.timesFed ?? 0} />
-              ))}
+              {visibleTanks.map((tank) => {
+                const fedOn = lastFed.get(tank.id);
+                return (
+                  <FeedControl key={tank.id} tankId={tank.id} tankName={tank.name} day={day}
+                    timesFed={feeds.find((f) => f.tankId === tank.id)?.timesFed ?? 0}
+                    lastFedDaysAgo={fedOn ? dayCount(fedOn, today) : null} />
+                );
+              })}
             </div>
           </div>
         </section>

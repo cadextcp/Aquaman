@@ -6,6 +6,14 @@
  * server-side too (adjustFeedOn). `day` comes from the dashboard's day
  * navigation — today, or a past day within the 30-day backfill window
  * (owner request: "edit past days if I forget to add feeding").
+ *
+ * `lastFedDaysAgo` is the "when did I last feed this tank?" line (owner
+ * request). It is measured from TODAY and from the whole feed_logs history —
+ * NOT from `day` and not from `timesFed`, which both describe the day the
+ * stepper is currently pointed at. Backfilling yesterday therefore updates it
+ * even while you are looking at yesterday. The server hands the count down
+ * pre-computed: "days ago" is AQUAMAN_TIMEZONE arithmetic, and the browser's
+ * own clock has no business in it.
  */
 
 import { useRef, useState, useTransition } from "react";
@@ -21,14 +29,17 @@ export function FeedControl({
   tankName,
   timesFed,
   day,
+  lastFedDaysAgo,
 }: {
   tankId: number;
   tankName: string;
   timesFed: number;
   day: string;
+  /** Whole days between the most recent feeding and today; null = never fed. */
+  lastFedDaysAgo: number | null;
 }) {
   const router = useRouter();
-  const { t, errorText } = useI18n();
+  const { t, plural, errorText } = useI18n();
   const [pending, startTransition] = useTransition();
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -66,14 +77,25 @@ export function FeedControl({
       className="edge-card flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 w-full"
       style={{ minHeight: 52 }}
     >
-      <Link
-        href={`/tanks/${tankId}`}
-        className="flex min-w-0 flex-1 items-center gap-1 text-sm font-medium"
-        style={{ color: "var(--foreground)", cursor: "pointer" }}
-      >
-        <span className="truncate underline decoration-dotted underline-offset-4">{tankName}</span>
-        <i aria-hidden className="ph ph-arrow-right text-[10px] shrink-0" />
-      </Link>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Link
+          href={`/tanks/${tankId}`}
+          className="flex min-w-0 items-center gap-1 text-sm font-medium"
+          style={{ color: "var(--foreground)", cursor: "pointer" }}
+        >
+          <span className="truncate underline decoration-dotted underline-offset-4">{tankName}</span>
+          <i aria-hidden className="ph ph-arrow-right text-[10px] shrink-0" />
+        </Link>
+        <span className="text-xs" style={{ color: "var(--faint)" }}>
+          {lastFedDaysAgo === null
+            ? t("feed.lastNever")
+            : lastFedDaysAgo === 0
+              ? t("feed.lastToday")
+              : lastFedDaysAgo === 1
+                ? t("feed.lastYesterday")
+                : plural("feed.lastDaysAgo", lastFedDaysAgo)}
+        </span>
+      </div>
 
       <div className="flex shrink-0 items-center gap-2">
         {/* pips */}
