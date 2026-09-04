@@ -5,7 +5,6 @@
  * - NUTRIENTS: the fixed fertilizer nutrient catalog (owner list) —
  *   macro: C/CO2, N/NO3, P/PO4, K, Mg, Ca; micro: Fe, Mn, Zn, B, Mo, Cu
  * - formatDetailData(): structured JSON → human-readable one-liner
- * - tankFingerprint(): master-data signature for change detection
  */
 
 import { ACTION_TYPES, type ActionType } from "./action-types";
@@ -84,24 +83,4 @@ export function formatDetailData(actionType: string, data: Record<string, unknow
     return parts.join(" · ");
   }
   return "";
-}
-
-/**
- * Master-data fingerprint for change detection (issue #42): changes to these
- * fields mean existing plans may no longer fit → recommend updating them.
- */
-export function tankFingerprint(tank: {
-  volumeL: number;
-  fish: unknown;
-  plants: unknown;
-  foods: unknown;
-  hasCo2: boolean;
-  hasHeater: boolean;
-  hasFilter: boolean;
-  filterType: string | null;
-}): string {
-  const stable = (v: unknown) => JSON.stringify(v, Object.keys(v as object).length ? null : undefined);
-  void stable;
-  const json = (v: unknown) => JSON.stringify(v);
-  return [tank.volumeL, json(tank.fish), json(tank.plants), json(tank.foods), tank.hasCo2, tank.hasHeater, tank.hasFilter, tank.filterType ?? ""].join("|");
 }

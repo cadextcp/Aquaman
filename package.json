@@ -1,6 +1,6 @@
 {
   "name": "aquaman",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "npm run db:ensure && node scripts/copy-swagger-assets.mjs && next dev",

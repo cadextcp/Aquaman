@@ -4,7 +4,7 @@
 
 - **What this is:** Self-hosted aquarium care & water tracking app with AI coach, flexible scheduling and ICS calendar feed
 - **Who it is for:** Self-hosting aquarium hobbyists (analytical, dashboard-loving) — primary: owner with 2 freshwater tanks on TrueNAS SCALE
-- **Current phase:** Foundation (vertical slice incl. Docker/CI/NAS first)
+- **Current phase:** v1.0 shipped (tag `v1.0.0`). Next up: the product inventory — `docs/plan-produkt-lager.md`
 
 ## Commands
 

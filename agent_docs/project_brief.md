@@ -8,7 +8,7 @@
 
 ## Scope
 
-- Must ship (v1):
+- Shipped in v1.0 (tagged 2026-09):
   - Tank management with photos, specs & tankState (cycling/established)
   - Maintenance schedules with weekday selection
   - Flexible scheduling: snooze + auto-reschedule as read-projection, originalDueAt/plannedFor separation, catch-up mode
@@ -18,13 +18,17 @@
   - Daily habit tracking for feeding (dashboard checkbox, no ICS spam)
   - Docker deployment via docker compose (local-only port binding)
   - JSON export/import of all data
-- Not in v1 (but planned):
-  - MCP server + OpenClaw → v1.1 (fully bearer-token gated)
-- Not planned for v1.x:
+  - MCP server + bearer-gated REST API `/api/v1`, i18n (en/de), installable PWA
+- Next (post-1.0):
+  - Product inventory: fertilizer & food products with description and nutrient
+    content, compared against the fertilize plan — see `docs/plan-produkt-lager.md`.
+    This supersedes the earlier "no inventory management" scoping: it was ruled
+    out for v1, and v1 has shipped.
+- Not planned:
   - Sensor integration & real-time data (architecture stays API-first)
   - Multi-user / OIDC auth
   - Web push notifications
-  - Food/inventory management, breeding logbook, photo vision AI, community templates
+  - Breeding logbook, photo vision AI, community templates
 
 ## Principles
 

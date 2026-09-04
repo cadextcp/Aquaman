@@ -4,8 +4,8 @@
 > entschieden (siehe unten); der Rest ist ausgearbeiteter Vorschlag, noch nichts
 > gebaut. PRD (`PRD-Aquaman-MVP.md`) und Tech Design
 > (`TechDesign-Aquaman-MVP.md`) bleiben unverändert, bis die Umsetzung
-> beschlossen ist — `agent_docs/project_brief.md` **muss** dabei angefasst
-> werden (§10.1).
+> beschlossen ist. `agent_docs/project_brief.md` ist bereits nachgezogen: das
+> Lager steht dort unter *Next (post-1.0)* (§10.1).
 > Erstellt: 2026-09-04 · Basis: `main` @ `43eac64` · App-Version 0.4.0
 
 **Entschieden:**
@@ -28,10 +28,10 @@
 | `feed`-Plan: `detailData = { foods: Record<foodName, "1 Prise"> }` | Über den **Namen** verschlüsselt, nicht über eine ID | Migration muss Namen erhalten, sonst brechen bestehende Pläne (§4.4) |
 | `StructuredDetailsEditor` mit `tankFoods`-Prop | `structured-details-editor.tsx:115ff` | Liest künftig aus dem Lager statt vom Becken |
 | `buildCoachContext()` | `ai/context.ts` — Becken, Wasserwerte, Backlog, Pläne | Kennt **weder Futter noch Düngerdetails**. Auch `detailData` der Pläne fehlt komplett |
-| `tankFingerprint()` | `plan-structure.ts:93` — enthält `foods` | **Toter Code**, nirgends aufgerufen (`grep` → nur die Definition). Anpassung kostet nichts |
+| ~~`tankFingerprint()`~~ | War toter Code, nirgends aufgerufen | **Erledigt** — auf Owner-Entscheid mit dem 1.0-Commit gelöscht. Kein Thema mehr für diesen Plan |
 | `updateTankCore().masterChanged` | Vergleicht u. a. `before.foods` → löst `requestPlanReview("tank_change")` aus | Der Trigger muss auf Produkt-Änderungen umziehen (§7.3) |
 | Export-Format | `EXPORT_FORMAT_VERSION = 1`, `foods` optional im Tank-Schema | Braucht Version 2 **und** einen Lift-Pfad für alte Backups (§8.1) |
-| `agent_docs/project_brief.md` | Listet „Food/inventory management" unter *Not planned for v1.x* | Direkter Widerspruch zu diesem Feature — muss mit entschieden werden (§10.1) |
+| `agent_docs/project_brief.md` | **Bereinigt.** Der Ausschluss galt v1 — v1 ist als `v1.0.0` raus, das Lager steht jetzt unter *Next (post-1.0)* | Kein Widerspruch mehr (§10.1) |
 
 ### Das eigentliche Problem in einem Satz
 
@@ -317,8 +317,8 @@ der Review da. Der bestehende Grund `tank_change` reicht; ein neuer Grund
 zöge Zustandsmaschine, Badge-Texte und beide Kataloge nach sich, ohne etwas zu
 verbessern.
 
-`tankFingerprint()` verliert `foods` — die Funktion wird nirgends aufgerufen,
-das ist eine reine Aufräumarbeit (oder der Anlass, sie zu löschen).
+`tankFingerprint()` ist erledigt: die Funktion wurde nie aufgerufen und ist mit
+dem 1.0-Commit gelöscht — hier ist nichts mehr anzupassen.
 
 ---
 
@@ -399,13 +399,12 @@ Datenstand, inklusive Lager; ein v1-Backup verliert kein Futter.
 
 ## 10. Risiken und offene Punkte
 
-### 10.1 Widerspruch zum Project Brief *(muss vor Stufe 1 geklärt sein)*
+### 10.1 Scope-Widerspruch — geklärt
 
-`agent_docs/project_brief.md` führt „Food/inventory management" unter *Not
-planned for v1.x*. Dieser Plan baut genau das. Entweder wird die Zeile
-gestrichen und das Feature in Scope gezogen — oder der Plan bleibt liegen.
-Beides ist vertretbar, aber es stillschweigend zu bauen wäre der Anfang
-driftender Dokumente, genau das, wovor `CLAUDE.md` warnt.
+Der Brief schloss Inventar-Verwaltung „für v1.x" aus. Der Owner hat den damaligen
+Stand als **v1.0** deklariert und getaggt; damit hat sich der Ausschluss erledigt.
+`agent_docs/project_brief.md` nennt das Lager jetzt unter *Next (post-1.0)* und
+verweist auf dieses Dokument. Stufe 1 ist nicht mehr blockiert.
 
 ### 10.2 Umbenennen eines Produkts trennt bestehende Pläne ab
 
