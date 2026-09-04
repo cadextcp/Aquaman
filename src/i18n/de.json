@@ -189,6 +189,8 @@
     "deleteMeasurement": "Messung löschen",
     "deleteConfirm": "Messung vom {date} löschen? Das lässt sich nicht rückgängig machen.",
     "savedShort": "gespeichert",
+    "savedKeepEditing": "gespeichert — Änderungen aktualisieren diese Messung",
+    "newMeasurement": "Neue Messung",
     "historyCount": "Verlauf ({n})",
     "formTitle": "Wassermessung",
     "filledCount": "{n}/{total} Werte",

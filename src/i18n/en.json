@@ -189,6 +189,8 @@
     "deleteMeasurement": "Delete measurement",
     "deleteConfirm": "Delete the measurement from {date}? This cannot be undone.",
     "savedShort": "saved",
+    "savedKeepEditing": "saved — further edits update this measurement",
+    "newMeasurement": "New measurement",
     "historyCount": "History ({n})",
     "formTitle": "Water test",
     "filledCount": "{n}/{total} values",

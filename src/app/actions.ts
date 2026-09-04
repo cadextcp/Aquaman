@@ -166,7 +166,12 @@ export async function snooze(scheduleId: number, until: string): Promise<ActionR
 
 // ==================== Water tests ====================
 
-export async function logWaterTest(input: unknown): Promise<ActionResult> {
+/**
+ * Returns the new row's `id`/`measuredAt` so the form can keep editing THIS
+ * measurement (issue: every save started a new water test instead of
+ * correcting the one just entered).
+ */
+export async function logWaterTest(input: unknown): Promise<ActionResult<{ id: number; measuredAt: string }>> {
   try {
     const { logWaterTestCore } = await import("@/lib/repo");
     const res = logWaterTestCore(input);
@@ -176,7 +181,7 @@ export async function logWaterTest(input: unknown): Promise<ActionResult> {
     revalidatePath("/coach");
     const { requestPlanReview } = await import("@/lib/ai/plan-review");
     requestPlanReview("water_test");
-    return { ok: true };
+    return { ok: true, data: { id: res.id, measuredAt: res.measuredAt } };
   } catch (err) {
     console.error("[logWaterTest]", err);
     return failure("waterTest.saveFailed", "Could not save water test");

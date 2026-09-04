@@ -86,11 +86,21 @@ export function WaterTestForm({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+  /**
+   * The measurement THIS form already created. Filling a water test is a
+   * multi-value flow and every Enter submits the form, so a create-on-every-save
+   * form produced a row per keystroke-confirmation. After the first save we keep
+   * the entered values on screen and update that row instead.
+   */
+  const [created, setCreated] = useState<{ id: number; measuredAt: string } | null>(null);
+  /** The row a save writes to: the edited one, or the one we just created. */
+  const target = edit ?? created;
 
   const filled = ranges.filter((r) => values[r.key] !== undefined && values[r.key] !== "").length;
 
   function pick(key: string, v: number) {
     setValues((s) => ({ ...s, [key]: String(v) }));
+    setSaved(false);
     setOpen(null);
   }
   function clear(key: string) {
@@ -99,12 +109,24 @@ export function WaterTestForm({
       delete c[key];
       return c;
     });
+    setSaved(false);
     setOpen(null);
   }
   function typeValue(key: string, raw: string) {
     setDraft(raw);
+    setSaved(false);
     const n = Number(raw.replace(",", "."));
     setValues((s) => (raw === "" || Number.isNaN(n) ? { ...s, [key]: raw } : { ...s, [key]: String(n) }));
+  }
+
+  /** Starts a second measurement instead of updating the one just saved. */
+  function startNew() {
+    setCreated(null);
+    setValues({});
+    setNote("");
+    setSaved(false);
+    setOpen(null);
+    setError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -122,16 +144,17 @@ export function WaterTestForm({
       setError(t("water.enterOne"));
       return;
     }
-    const res = edit
-      ? await updateWaterTest({ id: edit.id, tankId, values: cleaned, note: note || undefined, measuredAt: edit.measuredAt })
+    const res = target
+      ? await updateWaterTest({ id: target.id, tankId, values: cleaned, note: note || undefined, measuredAt: target.measuredAt })
       : await logWaterTest({ tankId, values: cleaned, note: note || undefined });
     if (!res.ok) {
       setError(errorText(res));
       return;
     }
+    // Values stay on screen on purpose — the next save corrects this
+    // measurement rather than logging another one.
+    if (!target && "data" in res && res.data) setCreated(res.data);
     setSaved(true);
-    setValues({});
-    setNote("");
     startTransition(() => router.refresh());
     if (onDone) onDone();
   }
@@ -257,6 +280,14 @@ export function WaterTestForm({
                       inputMode="decimal"
                       value={draft}
                       onChange={(e) => typeValue(r.key, e.target.value)}
+                      onKeyDown={(e) => {
+                        // Enter confirms the typed value and closes the dropdown;
+                        // without this it submits the form (and used to log a new test).
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          setOpen(null);
+                        }
+                      }}
                     />
                   </div>
                   <div className="flex flex-col gap-0.5 mt-1.5 max-h-28 overflow-y-auto">
@@ -305,19 +336,29 @@ export function WaterTestForm({
         placeholder={t("water.note")}
         maxLength={500}
         value={note}
-        onChange={(e) => setNote(e.target.value)}
+        onChange={(e) => {
+          setNote(e.target.value);
+          setSaved(false);
+        }}
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
           disabled={pending}
           className="btn-outline rounded-lg px-5 py-2.5 text-sm font-medium"
           style={{ minHeight: 44 }}
         >
-          {edit ? t("tanks.save") : t("water.save")}
+          {target ? t("tanks.save") : t("water.save")}
         </button>
-        {saved && <StatusNote tone="success">{t("water.savedShort")}</StatusNote>}
+        {created && !edit && (
+          <button type="button" onClick={startNew} className="btn-outline rounded-lg px-4 py-2.5 text-sm" style={{ minHeight: 44 }}>
+            {t("water.newMeasurement")}
+          </button>
+        )}
+        {saved && (
+          <StatusNote tone="success">{created && !edit ? t("water.savedKeepEditing") : t("water.savedShort")}</StatusNote>
+        )}
         {edit && onDone && (
           <button type="button" onClick={onDone} className="btn-outline rounded-lg px-4 py-2.5 text-sm" style={{ minHeight: 44 }}>
             {t("common.cancel")}

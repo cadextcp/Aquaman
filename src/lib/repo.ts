@@ -317,20 +317,27 @@ export function snoozeScheduleCore(scheduleId: number, until: string): WriteResu
  * add those (an MCP-written test also feeds the coach, so the MCP tool
  * triggers the plan review itself).
  */
-export function logWaterTestCore(input: unknown): WriteResultWithTank {
+/**
+ * Adds `id`/`measuredAt` on top of {@link WriteResultWithTank}: the form keeps
+ * editing the measurement it just created instead of inserting a second row
+ * on the next save, and that needs the row's identity back.
+ */
+export type WaterTestCreateResult = { ok: true; tankId: number; id: number; measuredAt: string } | Failure;
+
+export function logWaterTestCore(input: unknown): WaterTestCreateResult {
   const parsed = waterTestInputSchema.safeParse(input);
   if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
   const tank = db.select().from(tanks).where(and(eq(tanks.id, parsed.data.tankId), isNull(tanks.deletedAt))).get();
   if (!tank) return failure("tank.notFound", "Tank not found");
   const [clean, vErr] = validateWaterValues(parsed.data.values, tank.waterType);
   if (vErr || !clean) return failure("values.invalid", vErr ?? "Invalid values", { detail: vErr ?? "" });
-  addWaterTest({
+  const row = addWaterTest({
     tankId: parsed.data.tankId,
     measuredAt: parsed.data.measuredAt,
     values: clean,
     note: parsed.data.note ?? undefined,
   });
-  return { ok: true, tankId: parsed.data.tankId };
+  return { ok: true, tankId: parsed.data.tankId, id: row.id, measuredAt: row.measuredAt };
 }
 
 // ==================== Shared write cores -- Tanks (v1 REST API + Server Actions) ====================

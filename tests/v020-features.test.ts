@@ -204,6 +204,28 @@ describe("water test update/delete (issue #35)", () => {
     expect(db.select().from(waterTests).all().length).toBe(0);
   });
 
+  it("logWaterTest returns the row identity, so a repeated save updates instead of inserting", async () => {
+    // Regression: the form submits on every Enter. Without the id coming back
+    // it could only call logWaterTest again — one water test per keypress.
+    const { logWaterTest, updateWaterTest } = await import("../src/app/actions");
+    const { db } = await import("../src/lib/db");
+    const { tanks, waterTests } = await import("../src/lib/db/schema");
+
+    const tank = db.insert(tanks).values({ name: "WTR", volumeL: 60, waterType: "fresh" }).returning().get();
+    const created = await logWaterTest({ tankId: tank.id, values: { temp: 25 } });
+    expect(created.ok).toBe(true);
+    const ref = (created as { ok: true; data?: { id: number; measuredAt: string } }).data;
+    expect(ref).toBeDefined();
+
+    // What the form does on the next Enter: same row, one more value.
+    const up = await updateWaterTest({ id: ref!.id, tankId: tank.id, values: { temp: 25, ph: 7.2 }, measuredAt: ref!.measuredAt });
+    expect(up.ok).toBe(true);
+
+    const rows = db.select().from(waterTests).all();
+    expect(rows.length).toBe(1);
+    expect(rows[0].values["ph"]).toBe(7.2);
+  });
+
   it("edit rejects implausible values (validation still applies)", async () => {
     const { updateWaterTest, logWaterTest } = await import("../src/app/actions");
     const { db } = await import("../src/lib/db");
