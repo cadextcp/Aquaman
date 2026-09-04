@@ -29,6 +29,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
   const locale = getLocale();
   const tanks = listTanks();
   const foodProducts = listProducts("food");
+  const fertilizers = listProducts("fertilizer");
   const schedules = listSchedules(tank.id);
   const logs = recentLogs(tank.id, 10);
   const adherenceLogs = allLogsForTank(tank.id); // untruncated — adherence reconstructs the occurrence chain from it
@@ -167,6 +168,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
                     tanks={tanks}
                     adherence={adherenceBySchedule.get(s.id) ?? null}
                     doneToday={doneOn(s, todayStrLocal())}
+                    fertilizers={fertilizers}
                   />
                   {missed >= MISSED_SLOTS_HINT && (
                     <p className="text-xs mt-1 mb-2 flex items-center gap-1" style={{ color: "var(--warning)" }}>

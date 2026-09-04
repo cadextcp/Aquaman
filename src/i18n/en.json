@@ -231,7 +231,17 @@
     "renamedPlans": {
       "one": "Saved. The new name was carried into {n} plan.",
       "other": "Saved. The new name was carried into {n} plans."
-    }
+    },
+    "noFertilizersYet": "No fertilizers in the inventory yet, so nothing to compare this plan against:",
+    "uncoveredHint": {
+      "one": "Nothing in your inventory contains {nutrients}.",
+      "other": "Nothing in your inventory contains {nutrients}."
+    },
+    "usedInPlans": {
+      "one": "used in {n} fertilize plan",
+      "other": "used in {n} fertilize plans"
+    },
+    "usedInNoPlan": "in no fertilize plan"
   },
   "more": {
     "title": "More",

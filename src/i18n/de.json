@@ -231,7 +231,17 @@
     "renamedPlans": {
       "one": "Gespeichert. Der neue Name wurde in {n} Plan übernommen.",
       "other": "Gespeichert. Der neue Name wurde in {n} Pläne übernommen."
-    }
+    },
+    "noFertilizersYet": "Noch kein Dünger im Lager, also nichts zum Abgleichen:",
+    "uncoveredHint": {
+      "one": "Kein Produkt in deinem Lager enthält {nutrients}.",
+      "other": "Kein Produkt in deinem Lager enthält {nutrients}."
+    },
+    "usedInPlans": {
+      "one": "in {n} Düngeplan verwendet",
+      "other": "in {n} Düngeplänen verwendet"
+    },
+    "usedInNoPlan": "in keinem Düngeplan"
   },
   "more": {
     "title": "Mehr",

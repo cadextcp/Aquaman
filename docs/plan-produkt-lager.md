@@ -1,9 +1,10 @@
 # Plan — Produkt-Lager (Dünger & Futter)
 
-> **Status: Stufe 1 gebaut, Stufe 2 offen.** Die drei Grundsatzfragen sind
-> entschieden (siehe unten). Stufe 1 (§9) steht inklusive Migration `0007`,
-> `/inventory`, MCP-Lesetool und Export-Format 2 — Stufe 2 (Abgleich + Coach)
-> ist noch Entwurf. PRD (`PRD-Aquaman-MVP.md`) und Tech Design
+> **Status: Stufe 1 und 2 gebaut, Stufe 3 offen.** Die drei Grundsatzfragen
+> sind entschieden (siehe unten). Stufe 1 (Lager, Migration `0007`,
+> `/inventory`, MCP-Lesetool, Export-Format 2) und Stufe 2 (Abgleich,
+> Coverage-Streifen, Coach-Kontext) stehen; offen ist nur noch Stufe 3
+> (REST-Routen + OpenAPI, §9). PRD (`PRD-Aquaman-MVP.md`) und Tech Design
 > (`TechDesign-Aquaman-MVP.md`) bleiben unverändert;
 > `agent_docs/project_brief.md` führt das Lager unter *Next (post-1.0)* (§10.1).
 > Erstellt: 2026-09-04 · Basis: `main` @ `43eac64` · Stufe 1 auf App-Version 1.0.0
@@ -27,7 +28,7 @@
 | `NUTRIENTS` (12 Einträge, macro/micro) | `plan-structure.ts:38` | **Das Scharnier.** Plan und Produkt teilen dieselben Keys — ohne diesen gemeinsamen Katalog gäbe es keinen Abgleich |
 | `feed`-Plan: `detailData = { foods: Record<foodName, "1 Prise"> }` | Über den **Namen** verschlüsselt, nicht über eine ID | Migration muss Namen erhalten, sonst brechen bestehende Pläne (§4.4) |
 | `StructuredDetailsEditor` mit `tankFoods`-Prop | `structured-details-editor.tsx:115ff` | Liest künftig aus dem Lager statt vom Becken |
-| `buildCoachContext()` | `ai/context.ts` — Becken, Wasserwerte, Backlog, Pläne | Kennt **weder Futter noch Düngerdetails**. Auch `detailData` der Pläne fehlt komplett |
+| `buildCoachContext()` | **Erweitert in Stufe 2**: `INVENTORY`-Block, `doses:` je Plan und die Coverage-Zeilen | Vorher kannte der Coach weder das Lager noch die `detailData` der Pläne — beides fehlt jetzt nicht mehr |
 | ~~`tankFingerprint()`~~ | War toter Code, nirgends aufgerufen | **Erledigt** — auf Owner-Entscheid mit dem 1.0-Commit gelöscht. Kein Thema mehr für diesen Plan |
 | `updateTankCore().masterChanged` | Vergleicht u. a. `before.foods` → löst `requestPlanReview("tank_change")` aus | Der Trigger muss auf Produkt-Änderungen umziehen (§7.3) |
 | Export-Format | `EXPORT_FORMAT_VERSION = 1`, `foods` optional im Tank-Schema | Braucht Version 2 **und** einen Lift-Pfad für alte Backups (§8.1) |
@@ -288,18 +289,25 @@ Lücke — kein Schätzen nötig.
 
 Zwei Blöcke — beide fehlen heute:
 
-```
-INVENTORY (products the user owns — recommend ONLY from these):
-  fertilizer #3 "Aqua Rebell Makro Basic NPK" [NO3 0.2%, PO4 0.02%, K 5%]
-    note: 10 ml per 100 l weekly per label
-  food #7 "JBL NovoBel"
-    note: flake food, community fish, 2x daily what they eat in 2 min
+So sieht der Kontext tatsächlich aus (Auszug eines echten Laufs, 195 Tokens
+für dieses Becken):
 
-TANK #1 plan details:
-  fertilize every 7d → Fe 10 ml · K 5 ml
-    coverage: Fe ← #4 Easy Life Ferro | K ← #3 Makro Basic NPK
-    NOT covered by inventory: —
 ```
+INVENTORY (products the user owns — recommend from these):
+  fertilizer #1 "Easy Life Ferro" [Fe 0,2 %] (usual dose 10 ml)
+    note: Eisenvolldünger, laut Etikett 10 ml auf 100 l.
+  fertilizer #2 "Makro Basic K" [K 5 %]
+  fertilizer #3 "Ungenutzter Volldünger" [Cu, B]
+TANK #1 "Gesellschaftsbecken": 120L freshwater, established, CO2, filter
+  schedules:
+    #1 fertilize every 7d […] → planned 2026-09-11 […]
+      doses: Fe 10 ml · K 5 ml · Mg 3 ml
+      covered by inventory: Fe ← Easy Life Ferro; K ← Makro Basic K
+      NOT covered by inventory: Mg (plan doses 3 ml)
+```
+
+Ein leeres Lager wird ausdrücklich benannt (`INVENTORY: (empty …)`) statt
+weggelassen — sonst rät das Modell, was der Nutzer wohl besitzt.
 
 Der Coverage-Block kommt aus derselben `coverFertilizePlan()` wie die UI — eine
 Berechnung, zwei Ausgaben.
@@ -391,7 +399,7 @@ Schema + Migration `0007` (inkl. Datenübernahme) · `productInputSchema` ·
 Lager, der Fütterungsplan zeigt unverändert dieselben Dosen, ein neuer Dünger
 mit Nährstoffen lässt sich anlegen und wieder bearbeiten.
 
-### Stufe 2 — Das Lager wird nützlich
+### Stufe 2 — Das Lager wird nützlich — **ERLEDIGT**
 
 `domain/inventory.ts` + Unit-Tests · Coverage-Streifen an der
 `fertilize`-Plankarte · Nutzungshinweis auf `/inventory` · `INVENTORY`- und

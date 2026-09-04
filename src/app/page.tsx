@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listTanks, listSchedules, feedAllToday, lastFeedDays } from "@/lib/repo";
+import { listTanks, listSchedules, listProducts, feedAllToday, lastFeedDays } from "@/lib/repo";
 import { nextDue, missedSlots, catchUpWeight, doneOn, dayCount } from "@/lib/domain/scheduler";
 import { careStreak } from "@/lib/domain/streak";
 import { scheduleAdherence, crossTankStats, weeklySummary } from "@/lib/stats";
@@ -23,6 +23,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const { day: dayParam, tank: tankParam } = await searchParams;
   const locale = getLocale();
   const tanks = listTanks();
+  const fertilizers = listProducts("fertilizer");
   const schedules = listSchedules();
   const { db } = await import("@/lib/db");
   const { maintenanceLogs } = await import("@/lib/db/schema");
@@ -114,7 +115,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const card = (item: (typeof tasks)[number]) => {
     const { s, due } = item;
     // Tank name only in the "All tanks" view — filtered to one tank it's redundant.
-    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: today }} tanks={tanks} doneToday={doneTodayIds.has(s.id)} showTankName={selectedTankId === null} />;
+    return <ScheduleCard key={s.id} schedule={{ ...s, due, today: today }} tanks={tanks} doneToday={doneTodayIds.has(s.id)} showTankName={selectedTankId === null} fertilizers={fertilizers} />;
   };
 
   return (
@@ -246,7 +247,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <div className="text-xs uppercase tracking-wide mb-2" style={{ color: "var(--muted-foreground)" }}>
             {t("dashboard.catchUpTitle", locale)}
           </div>
-          <ScheduleCard schedule={{ ...catchUpCandidate.s, due: catchUpCandidate.due, today: today }} tanks={tanks} showTankName={selectedTankId === null} />
+          <ScheduleCard schedule={{ ...catchUpCandidate.s, due: catchUpCandidate.due, today: today }} tanks={tanks} showTankName={selectedTankId === null} fertilizers={fertilizers} />
           <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
             {plural("dashboard.catchUpMore", behind.length - 1, locale)}
           </div>

@@ -17,6 +17,8 @@ import { ScheduleForm, type ScheduleFormTank } from "./schedule-form";
 import type { Schedule } from "@/lib/db/schema";
 import { actionTypeDef } from "@/lib/domain/action-types";
 import { useI18n } from "@/i18n/provider";
+import { NutrientCoverage } from "./nutrient-coverage";
+import type { InventoryProduct } from "@/lib/domain/inventory";
 
 export type ScheduleCardData = Schedule & {
   tankName: string;
@@ -50,6 +52,7 @@ function daysUntil(dateStr: string, today: string): number {
 export function ScheduleCard({
   schedule,
   tanks,
+  fertilizers = [],
   adherence = null,
   doneToday = false,
   showTankName = false,
@@ -61,6 +64,12 @@ export function ScheduleCard({
    * page cannot hand the dialog an empty list by omission.
    */
   tanks: ScheduleFormTank[];
+  /**
+   * The fertilizer shelf, for the coverage strip on a `fertilize` card. Left
+   * empty by callers that have no reason to load it — the strip then simply
+   * does not render.
+   */
+  fertilizers?: InventoryProduct[];
   adherence?: number | null;
   /**
    * The schedule was closed today (derived from lastDoneAt by the page).
@@ -168,6 +177,13 @@ export function ScheduleCard({
               <div className="text-sm mt-0.5" style={{ color: "var(--accent)" }}>
                 {schedule.details}
               </div>
+            )}
+            {schedule.actionType === "fertilize" && (
+              <NutrientCoverage
+                planNutrients={(schedule.detailData as { nutrients?: Record<string, unknown> } | null)?.nutrients}
+                products={fertilizers}
+                className="mt-1.5"
+              />
             )}
             <div className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
               {showDone ? (

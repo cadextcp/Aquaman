@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/provider";
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions";
 import { NUTRIENTS } from "@/lib/domain/plan-structure";
+import { plansUsingProduct } from "@/lib/domain/inventory";
 import type { Product } from "@/lib/db/schema";
 import { StatusNote } from "./ui/status-note";
 
@@ -23,7 +24,16 @@ const MAX_DESCRIPTION = 600;
 const MAX_DOSE = 30;
 const MAX_CONTENT = 30;
 
-export function InventorySection({ kind, products }: { kind: Kind; products: Product[] }) {
+export function InventorySection({
+  kind,
+  products,
+  fertilizePlans = [],
+}: {
+  kind: Kind;
+  products: Product[];
+  /** nutrients of every active fertilize plan — drives the "used in N plans" line */
+  fertilizePlans?: (Record<string, unknown> | null)[];
+}) {
   const { t } = useI18n();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -71,7 +81,7 @@ export function InventorySection({ kind, products }: { kind: Kind; products: Pro
               <ProductForm kind={kind} product={p} onDone={() => setEditingId(null)} />
             </div>
           ) : (
-            <ProductCard key={p.id} product={p} onEdit={() => setEditingId(p.id)} />
+            <ProductCard key={p.id} product={p} fertilizePlans={fertilizePlans} onEdit={() => setEditingId(p.id)} />
           ),
         )}
       </div>
@@ -79,12 +89,24 @@ export function InventorySection({ kind, products }: { kind: Kind; products: Pro
   );
 }
 
-function ProductCard({ product, onEdit }: { product: Product; onEdit: () => void }) {
+function ProductCard({
+  product,
+  fertilizePlans,
+  onEdit,
+}: {
+  product: Product;
+  fertilizePlans: (Record<string, unknown> | null)[];
+  onEdit: () => void;
+}) {
   const router = useRouter();
-  const { t, nutrientLabel, errorText } = useI18n();
+  const { t, plural, nutrientLabel, errorText } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const keys = Object.keys(product.nutrients ?? {});
+  const usedInPlans = plansUsingProduct(
+    { id: product.id, name: product.name, nutrients: (product.nutrients ?? {}) as Record<string, string> },
+    fertilizePlans,
+  );
 
   async function handleDelete() {
     if (!confirm(t("inventory.deleteConfirm", { name: product.name }))) return;
@@ -146,6 +168,12 @@ function ProductCard({ product, onEdit }: { product: Product; onEdit: () => void
               );
             })
           )}
+        </div>
+      )}
+
+      {product.kind === "fertilizer" && keys.length > 0 && (
+        <div className="text-xs mt-1.5" style={{ color: usedInPlans === 0 ? "var(--warning)" : "var(--faint)" }}>
+          {usedInPlans === 0 ? t("inventory.usedInNoPlan") : plural("inventory.usedInPlans", usedInPlans)}
         </div>
       )}
 
