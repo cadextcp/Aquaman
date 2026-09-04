@@ -147,13 +147,13 @@ describe("trigger wiring (actions)", () => {
   it("updateTank with master-data change sets pending(tank_change)", async () => {
     const { createTank, updateTank } = await import("../src/app/actions");
     const t = await createTank({
-      name: "PR Tank", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [],
+      name: "PR Tank", volumeL: 60, waterType: "fresh", plants: [], fish: [],
       hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established",
     });
     const tankId = (t as { data?: { id: number } }).data!.id;
 
     const res = await updateTank(tankId, {
-      name: "PR Tank", volumeL: 120, waterType: "fresh", plants: [], fish: [], foods: [],
+      name: "PR Tank", volumeL: 120, waterType: "fresh", plants: [], fish: [],
       hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established",
     });
     expect(res.ok).toBe(true);
@@ -168,13 +168,13 @@ describe("trigger wiring (actions)", () => {
   it("updateTank WITHOUT master-data change does not trigger", async () => {
     const { createTank, updateTank } = await import("../src/app/actions");
     const t = await createTank({
-      name: "PR2", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [],
+      name: "PR2", volumeL: 60, waterType: "fresh", plants: [], fish: [],
       hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established",
     });
     const tankId = (t as { data?: { id: number } }).data!.id;
     // only rename — no plan-relevant change
     await updateTank(tankId, {
-      name: "PR2 renamed", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [],
+      name: "PR2 renamed", volumeL: 60, waterType: "fresh", plants: [], fish: [],
       hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established",
     });
     const { getPlanReviewState } = await import("../src/lib/ai/plan-review");
@@ -184,7 +184,7 @@ describe("trigger wiring (actions)", () => {
   it("logWaterTest sets pending(water_test)", async () => {
     const { createTank, logWaterTest } = await import("../src/app/actions");
     const t = await createTank({
-      name: "PR3", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [],
+      name: "PR3", volumeL: 60, waterType: "fresh", plants: [], fish: [],
       hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established",
     });
     const tankId = (t as { data?: { id: number } }).data!.id;

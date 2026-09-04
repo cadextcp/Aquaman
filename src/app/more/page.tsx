@@ -59,6 +59,20 @@ export default async function MorePage() {
       />
 
       <Link
+        href="/inventory"
+        className="rounded-xl p-4 mb-4 flex items-center gap-3 edge-card transition-colors hover:bg-white/[0.07]"
+      >
+        <i aria-hidden className="ph ph-package text-xl" style={{ color: "var(--accent)" }} />
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-medium">{t("more.inventoryTitle", locale)}</span>
+          <span className="block text-xs" style={{ color: "var(--muted-foreground)" }}>
+            {t("more.inventoryDesc", locale)}
+          </span>
+        </span>
+        <i aria-hidden className="ph ph-caret-right" style={{ color: "var(--faint)" }} />
+      </Link>
+
+      <Link
         href="/more/concepts"
         className="rounded-xl p-4 mb-4 flex items-center gap-3 edge-card transition-colors hover:bg-white/[0.07]"
       >

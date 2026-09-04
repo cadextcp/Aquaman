@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createSchedule, markDone, snooze, setScheduleActive } from "@/app/actions";
 import { ALL_DAYS, WEEKEND, WEEKDAYS, daysToMask, maskToDays } from "@/lib/schemas";
 import type { ScheduleInput } from "@/lib/schemas";
-import type { Food, Schedule } from "@/lib/db/schema";
+import type { Product, Schedule } from "@/lib/db/schema";
 import { StructuredDetailsEditor } from "./structured-details-editor";
 import { SCHEDULABLE_ACTION_TYPES, actionTypeDef } from "@/lib/domain/action-types";
 import { useI18n } from "@/i18n/provider";
@@ -17,10 +17,13 @@ const ACTIONS = SCHEDULABLE_ACTION_TYPES;
  * What the plan editor needs to know about a tank: the label for the move
  * selector, plus the data the structured detail editor computes with. The
  * pages already hand whole tank rows down — the prop types just used to
- * narrow them to {id, name}, which is why every feed plan claimed the tank
- * had no food types and every water change was measured against 60 L.
+ * narrow them to {id, name}, which is why every water change was measured
+ * against 60 L.
+ *
+ * Food is NOT in here any more: it moved to the install-wide inventory
+ * (`foodProducts`), so it no longer depends on which tank is selected.
  */
-export type ScheduleFormTank = { id: number; name: string; volumeL: number; foods: Food[] };
+export type ScheduleFormTank = { id: number; name: string; volumeL: number };
 
 /** Only reachable if a caller passes a list without the tank it names — the percentage still needs SOME denominator. */
 const FALLBACK_VOLUME_L = 60;
@@ -28,6 +31,7 @@ const FALLBACK_VOLUME_L = 60;
 export function ScheduleForm({
   tankId,
   tanks,
+  foodProducts = [],
   schedule,
   globalPolicy = "suppress",
   globalThreshold = 50,
@@ -35,12 +39,14 @@ export function ScheduleForm({
   tankId: number;
   /**
    * The tanks this form may point at — the move selector's options AND where
-   * volume/foods come from. REQUIRED (and must contain `tankId`): it used to
-   * be optional next to `tankVolumeL`/`tankFoods` props that defaulted to
-   * 60 L and no foods, so a call site that forgot them compiled fine and
-   * silently mis-computed every water change. Now there is nothing to forget.
+   * volume comes from. REQUIRED (and must contain `tankId`): it used to be
+   * optional next to a `tankVolumeL` prop that defaulted to 60 L, so a call
+   * site that forgot it compiled fine and silently mis-computed every water
+   * change. Now there is nothing to forget.
    */
   tanks: ScheduleFormTank[];
+  /** The inventory's food products — what a feed plan can dose (repo listProducts("food")). */
+  foodProducts?: Pick<Product, "name" | "defaultDose">[];
   schedule?: Schedule & { tankName: string };
   /** global default from /more (issue #39) — "default" means "like global" */
   globalPolicy?: "fixed" | "suppress";
@@ -64,13 +70,13 @@ export function ScheduleForm({
   );
   const [endsOn, setEndsOn] = useState(schedule?.endsOn ?? "");
   /**
-   * Volume and foods come from the tank the form is CURRENTLY pointed at, not
-   * from the one it opened on: moving a plan to another aquarium has to move
-   * the percentage→liters maths and the food list with it.
+   * Volume comes from the tank the form is CURRENTLY pointed at, not from the
+   * one it opened on: moving a plan to another aquarium has to move the
+   * percentage→liters maths with it. The food list no longer moves — it is
+   * the same shelf whichever tank is selected.
    */
   const selectedTank = tanks.find((tk) => tk.id === selectedTankId);
   const volumeL = selectedTank?.volumeL ?? FALLBACK_VOLUME_L;
-  const foods = selectedTank?.foods ?? [];
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -151,7 +157,7 @@ export function ScheduleForm({
         <StructuredDetailsEditor
           actionType={actionType}
           tankVolumeL={volumeL}
-          tankFoods={foods}
+          foodProducts={foodProducts}
           value={detailData}
           onChange={(data, rendered) => {
             setDetailData(data);

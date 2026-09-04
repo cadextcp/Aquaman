@@ -12,7 +12,8 @@
     "today": "Heute",
     "plan": "Plan",
     "coach": "Coach",
-    "aria": "Hauptnavigation"
+    "aria": "Hauptnavigation",
+    "inventory": "Lager"
   },
   "dashboard": {
     "title": "Übersicht",
@@ -168,9 +169,8 @@
     "nutrientDose": "Dosierung je Nährstoff (gegen die Produktangabe prüfen)",
     "nutrientHint": "Makro (oben): CO₂, NO₃, PO₄, K, Mg, Ca · Mikro: Fe, Mn, Zn, B, Mo, Cu — freier Text je Nährstoff, z. B. „10 ml“",
     "foodAmount": "Menge je Futter",
-    "foodPlaceholder": "z. B. {amount} {unit}",
     "foodPlaceholderEmpty": "z. B. 1 Prise",
-    "noFoodsYet": "Lege zuerst Futtersorten am Becken an (Becken bearbeiten → „Futter“) — dann lassen sich hier Mengen je Sorte planen.",
+    "noFoodsYet": "Noch kein Futter im Lager (Mehr → Lager) — dann lassen sich hier Mengen je Sorte planen.",
     "detailsPlaceholder": "z. B. „Medien im Beckenwasser ausspülen“"
   },
   "water": {
@@ -202,6 +202,37 @@
     "bandCritical": "kritisch",
     "nh3Message": "Freies NH₃ {nh3} mg/l (aus NH₄ {nh4} bei pH {ph}, {temp} °C)"
   },
+  "inventory": {
+    "title": "Lager",
+    "lede": "Die Dünger und Futtersorten, die du tatsächlich da hast. Der Coach empfiehlt aus dieser Liste.",
+    "fertilizers": "Dünger",
+    "foods": "Futter",
+    "addFertilizer": "+ Dünger",
+    "addFood": "+ Futter",
+    "emptyFertilizers": "Noch kein Dünger. Trag einen ein, dann lassen sich seine Nährstoffe mit deinem Düngeplan abgleichen.",
+    "emptyFoods": "Noch kein Futter. Trag ein, was du fütterst, damit der Coach weiß, was du hast.",
+    "name": "Name",
+    "namePlaceholderFertilizer": "z. B. Aqua Rebell Makro Basic NPK",
+    "namePlaceholderFood": "z. B. JBL NovoBel",
+    "description": "Beschreibung",
+    "descriptionHint": "Dieser Text geht an den Coach — Dosierung vom Etikett, für welche Fische das Futter geeignet ist, alles Wissenswerte.",
+    "descriptionPlaceholderFertilizer": "Laut Etikett 10 ml pro 100 l wöchentlich …",
+    "descriptionPlaceholderFood": "Flockenfutter für Gesellschaftsbecken, zweimal täglich …",
+    "defaultDose": "Übliche Dosis",
+    "defaultDosePlaceholderFertilizer": "10 ml",
+    "defaultDosePlaceholderFood": "1 Prise",
+    "nutrients": "Enthaltene Nährstoffe",
+    "nutrientsHint": "Ankreuzen, was drin ist. Der Gehalt ist optional — verglichen wird dein Düngeplan mit dem Kreuz.",
+    "contentPlaceholder": "Gehalt, z. B. 0,2 %",
+    "noNutrients": "keine Nährstoffe hinterlegt",
+    "edit": "{name} bearbeiten",
+    "delete": "{name} löschen",
+    "deleteConfirm": "„{name}“ aus dem Lager löschen?",
+    "renamedPlans": {
+      "one": "Gespeichert. Der neue Name wurde in {n} Plan übernommen.",
+      "other": "Gespeichert. Der neue Name wurde in {n} Pläne übernommen."
+    }
+  },
   "more": {
     "title": "Mehr",
     "comingSoon": "Einstellungen, AI-Coach und Kalender folgen in den nächsten Phasen.",
@@ -226,7 +257,9 @@
     "aiOnlineDetail": "heute: {calls} Anfragen · {tokens} Tokens. Die Tageslimits werden um Mitternacht zurückgesetzt.",
     "aiOffline": "Offline",
     "aiOfflineDetail": "noch kein API-Schlüssel hinterlegt (unten im Abschnitt KI-Anbieter). Die App funktioniert vollständig ohne ihn.",
-    "aiCost": "Letzte 30 Tage: {calls} Anfragen · {tokens} Tokens · ≈{cost} Kosteneinheiten"
+    "aiCost": "Letzte 30 Tage: {calls} Anfragen · {tokens} Tokens · ≈{cost} Kosteneinheiten",
+    "inventoryTitle": "Lager",
+    "inventoryDesc": "Dünger und Futter, die du hast"
   },
   "calendarPage": {
     "title": "Kalender",
@@ -404,13 +437,9 @@
     "fish": "Fische",
     "fishPlaceholder": "z. B. Neonsalmler",
     "addFish": "+ Fisch hinzufügen",
-    "foods": "Futter (für den Fütterungsplan)",
-    "foodNamePlaceholder": "z. B. Flocken",
-    "foodAmountPlaceholder": "z. B. 1",
-    "foodUnitPlaceholder": "z. B. Prise",
-    "addFood": "+ Futter hinzufügen",
     "remove": "entfernen",
-    "deleteConfirm": "Aquarium „{name}“ löschen? Einträge und Messungen bleiben erhalten (Soft-Delete)."
+    "deleteConfirm": "Aquarium „{name}“ löschen? Einträge und Messungen bleiben erhalten (Soft-Delete).",
+    "foodsMoved": "Futter wird jetzt im Lager gepflegt, für alle Becken gemeinsam:"
   },
   "editTank": {
     "aria": "{name} bearbeiten"
@@ -553,7 +582,12 @@
     "token.rotateFailed": "Token konnte nicht neu erzeugt werden",
     "settings.invalid": "Ungültige Einstellungen",
     "proposal.invalid": "Der Vorschlag war ungültig — es wurde nichts geschrieben",
-    "import.failed": "Import fehlgeschlagen — es wurde nichts geändert. {detail}"
+    "import.failed": "Import fehlgeschlagen — es wurde nichts geändert. {detail}",
+    "product.notFound": "Produkt nicht gefunden",
+    "product.createFailed": "Produkt konnte nicht gespeichert werden",
+    "product.updateFailed": "Produkt konnte nicht geändert werden",
+    "product.deleteFailed": "Produkt konnte nicht gelöscht werden",
+    "product.duplicateName": "Ein Produkt namens „{name}“ gibt es schon"
   },
   "help": {
     "topics": {
@@ -674,7 +708,8 @@
       "costUnits": "Eine Schätzung aus Tokenpreisen, kein Betrag in einer Währung.",
       "timezone": "„Heute“ richtet sich nach der Zeitzone, mit der Aquaman konfiguriert ist — nicht nach deiner Browseruhr.",
       "plansStat": "Aktive Pflegepläne, auch solche ohne Termin in dieser Woche.",
-      "feedMax": "Bis zu fünf Fütterungen pro Tag."
+      "feedMax": "Bis zu fünf Fütterungen pro Tag.",
+      "inventory": "Alles, was du hast, an einer Stelle. Die Nährstoffe eines Düngers werden mit deinem Düngeplan abgeglichen; die Beschreibung liest der Coach."
     },
     "concepts": {
       "title": "Wie Aquaman plant",

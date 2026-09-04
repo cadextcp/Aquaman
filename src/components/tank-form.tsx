@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/provider";
@@ -13,7 +14,6 @@ const EMPTY: TankInput = {
   waterType: "fresh",
   plants: [],
   fish: [],
-  foods: [],
   hasCo2: false,
   hasHeater: true,
   hasFilter: true,
@@ -21,9 +21,8 @@ const EMPTY: TankInput = {
   tankState: "established",
 };
 
-/** Mirrors tankInputSchema: plants/fish max 50, foods max 20. */
+/** Mirrors tankInputSchema: plants/fish max 50. */
 const MAX_LIST_ITEMS = 50;
-const MAX_FOODS = 20;
 
 export function TankForm({ tank }: { tank?: Tank }) {
   const router = useRouter();
@@ -37,7 +36,6 @@ export function TankForm({ tank }: { tank?: Tank }) {
           waterType: tank.waterType,
           plants: tank.plants,
           fish: tank.fish,
-          foods: tank.foods ?? [],
           hasCo2: tank.hasCo2,
           hasHeater: tank.hasHeater,
           hasFilter: tank.hasFilter,
@@ -162,8 +160,13 @@ export function TankForm({ tank }: { tank?: Tank }) {
         max={MAX_LIST_ITEMS}
       />
 
-      {/* issue #42: food types at the tank (used by the feed plan's structured details) */}
-      <FoodEditor foods={form.foods} onChange={(foods) => set("foods", foods)} />
+      {/* Food used to be typed in here per tank; it is inventory now (0007). */}
+      <p className="text-xs rounded-lg p-2.5" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+        {t("tankForm.foodsMoved")}{" "}
+        <Link href="/inventory" style={{ color: "var(--accent)" }}>
+          {t("nav.inventory")}
+        </Link>
+      </p>
 
       <div className="flex gap-3 pt-2">
         <button type="submit" disabled={pending}
@@ -232,50 +235,6 @@ function ListEditor({
           {addLabel}
         </button>
       </div>
-    </fieldset>
-  );
-}
-
-
-function FoodEditor({
-  foods,
-  onChange,
-}: {
-  foods: { name: string; amount: string; unit: string }[];
-  onChange: (foods: { name: string; amount: string; unit: string }[]) => void;
-}) {
-  const { t } = useI18n();
-  const input = { background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" };
-  const field = "rounded-lg px-2.5 py-2 text-sm";
-
-  function update(i: number, patch: Partial<{ name: string; amount: string; unit: string }>) {
-    onChange(foods.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
-  }
-
-  return (
-    <fieldset className="rounded-lg p-3" style={{ boxShadow: "inset 0 0 0 1px var(--border)" }}>
-      <legend className="text-xs uppercase tracking-wide px-2">{t("tankForm.foods")}</legend>
-      {foods.map((f, i) => (
-        <div key={i} className="flex gap-1.5 mb-1.5">
-          <input className={`${field} flex-1`} style={input} value={f.name} maxLength={60} placeholder={t("tankForm.foodNamePlaceholder")}
-            onChange={(e) => update(i, { name: e.target.value })} />
-          <input className={`${field} w-24`} style={input} value={f.amount} maxLength={30} placeholder={t("tankForm.foodAmountPlaceholder")}
-            onChange={(e) => update(i, { amount: e.target.value })} />
-          <input className={`${field} w-28`} style={input} value={f.unit} maxLength={20} placeholder={t("tankForm.foodUnitPlaceholder")}
-            onChange={(e) => update(i, { unit: e.target.value })} />
-          <button type="button" onClick={() => onChange(foods.filter((_, idx) => idx !== i))}
-            className="icon-btn icon-btn-sm icon-btn-danger"><i aria-hidden className="ph ph-x text-sm" /></button>
-        </div>
-      ))}
-      <button
-        type="button"
-        disabled={foods.length >= MAX_FOODS}
-        onClick={() => onChange([...foods, { name: "", amount: "", unit: "" }])}
-        className="btn-outline rounded-lg px-3 py-1.5 text-xs"
-        style={{ minHeight: 36, opacity: foods.length >= MAX_FOODS ? 0.4 : 1 }}
-      >
-        {t("tankForm.addFood")}
-      </button>
     </fieldset>
   );
 }

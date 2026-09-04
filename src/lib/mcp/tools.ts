@@ -13,6 +13,7 @@
  */
 import {
   listTanks,
+  listProducts,
   listSchedules,
   waterTestsForTank,
   markScheduleDoneCore,
@@ -38,7 +39,6 @@ function tanksWithRanges() {
     waterType: t.waterType,
     plants: t.plants,
     fish: t.fish,
-    foods: t.foods,
     equipment: { co2: t.hasCo2, heater: t.hasHeater, filter: t.hasFilter, filterType: t.filterType },
     tankState: t.tankState,
   }));
@@ -46,6 +46,29 @@ function tanksWithRanges() {
 
 export function getTanks(): ToolOutcome {
   return { ok: true, payload: { tanks: tanksWithRanges() } };
+}
+
+/**
+ * The inventory, read-only. There is deliberately no write counterpart: the
+ * MCP surface stays read-heavy (code_patterns.md), and a shelf is something
+ * the user curates in the app, not something an agent should be editing.
+ */
+export function getProducts(input: unknown): ToolOutcome {
+  const parsed = z.object({ kind: z.enum(["fertilizer", "food"]).optional() }).safeParse(input ?? {});
+  if (!parsed.success) return { ok: false, error: "Invalid arguments" };
+  return {
+    ok: true,
+    payload: {
+      products: listProducts(parsed.data.kind).map((p) => ({
+        id: p.id,
+        kind: p.kind,
+        name: p.name,
+        description: p.description,
+        nutrients: p.nutrients,
+        defaultDose: p.defaultDose,
+      })),
+    },
+  };
 }
 
 export function getWaterValues(input: unknown): ToolOutcome {

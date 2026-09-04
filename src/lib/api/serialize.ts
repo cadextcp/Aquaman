@@ -5,7 +5,7 @@
  * Both independently omit photoPath (server-local filesystem path — never
  * sent over the network) and app_settings/tokens.
  */
-import type { Tank, Schedule } from "@/lib/db/schema";
+import type { Tank, Schedule, Product } from "@/lib/db/schema";
 
 export function serializeTank(t: Tank) {
   return {
@@ -15,7 +15,6 @@ export function serializeTank(t: Tank) {
     waterType: t.waterType,
     plants: t.plants,
     fish: t.fish,
-    foods: t.foods,
     hasCo2: t.hasCo2,
     hasHeater: t.hasHeater,
     hasFilter: t.hasFilter,
@@ -23,6 +22,19 @@ export function serializeTank(t: Tank) {
     tankState: t.tankState,
     paramOverrides: t.paramOverrides,
     createdAt: t.createdAt,
+  };
+}
+
+/** Inventory product — nothing here is server-local, the whole row is public. */
+export function serializeProduct(p: Product) {
+  return {
+    id: p.id,
+    kind: p.kind,
+    name: p.name,
+    description: p.description,
+    nutrients: p.nutrients,
+    defaultDose: p.defaultDose,
+    createdAt: p.createdAt,
   };
 }
 

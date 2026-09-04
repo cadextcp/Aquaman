@@ -6,8 +6,8 @@
  * so the server itself holds no per-session state and survives restarts
  * invisibly for the client.
  *
- * Tool surface is READ-heavy BY DESIGN: get_tanks, get_water_values,
- * get_pending_maintenance, plus exactly three write tools that reuse the
+ * Tool surface is READ-heavy BY DESIGN: get_tanks, get_products,
+ * get_water_values, get_pending_maintenance, plus exactly three write tools that reuse the
  * in-app cores (add_water_test, log_maintenance, snooze_task) and ask_coach
  * behind the shared AI budget. NO delete/update tools (TechDesign §4.6) —
  * an agent can record care, never destroy or rewrite history.
@@ -17,6 +17,7 @@ import { z } from "zod";
 import { APP_VERSION } from "@/lib/version";
 import {
   getTanks,
+  getProducts,
   getWaterValues,
   getPendingMaintenance,
   addWaterTest,
@@ -40,6 +41,18 @@ export function createAquamanMcpServer(): McpServer {
     "get_tanks",
     { description: "List all aquarium tanks with volume, water type, livestock, equipment and cycling state." },
     () => textResult(getTanks()),
+  );
+
+  server.registerTool(
+    "get_products",
+    {
+      description:
+        "The fertilizer and food products the user actually owns, with the nutrients a fertilizer contains and the label notes they typed in. Recommend from these rather than naming products they do not have.",
+      inputSchema: {
+        kind: z.enum(["fertilizer", "food"]).optional().describe("Restrict to fertilizers or foods"),
+      },
+    },
+    ({ kind }) => textResult(getProducts({ kind })),
   );
 
   server.registerTool(

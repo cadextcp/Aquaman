@@ -62,7 +62,7 @@ describe("formatDetailData", () => {
 describe("duplicate guard (one plan per type per tank)", () => {
   it("createSchedule blocks a second water_change for the same tank", async () => {
     const { createSchedule, createTank } = await import("../src/app/actions");
-    const t = await createTank({ name: "GuardT", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const t = await createTank({ name: "GuardT", volumeL: 60, waterType: "fresh", plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
     expect(t.ok).toBe(true);
     const tankId = (t as { data?: { id: number } }).data!.id;
 
@@ -80,7 +80,7 @@ describe("duplicate guard (one plan per type per tank)", () => {
 
   it("updateSchedule blocks renaming onto an occupied standard type", async () => {
     const { createSchedule, updateSchedule, createTank } = await import("../src/app/actions");
-    const t = await createTank({ name: "GuardU", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const t = await createTank({ name: "GuardU", volumeL: 60, waterType: "fresh", plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
     const tankId = (t as { data?: { id: number } }).data!.id;
     await createSchedule({ tankId, actionType: "fertilize", intervalDays: 7, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
     const wc = await createSchedule({ tankId, actionType: "water_change", intervalDays: 7, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
@@ -93,7 +93,7 @@ describe("duplicate guard (one plan per type per tank)", () => {
   it("applyProposal respects the guard (skips instead of writing)", async () => {
     const { applyProposal } = await import("../src/app/actions-ai");
     const { createTank, createSchedule } = await import("../src/app/actions");
-    const t = await createTank({ name: "GuardAI", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const t = await createTank({ name: "GuardAI", volumeL: 60, waterType: "fresh", plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
     const tankId = (t as { data?: { id: number } }).data!.id;
     await createSchedule({ tankId, actionType: "water_change", intervalDays: 1, preferredDays: 127, autoReschedule: true, tightGapPolicy: null, tightGapThresholdPct: null });
 
@@ -116,8 +116,8 @@ describe("moving a schedule to a different tank (edit popup's tank selector)", (
     const { schedules } = await import("../src/lib/db/schema");
     const { eq } = await import("drizzle-orm");
 
-    const a = await createTank({ name: "MoveFrom", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
-    const b = await createTank({ name: "MoveTo", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const a = await createTank({ name: "MoveFrom", volumeL: 60, waterType: "fresh", plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const b = await createTank({ name: "MoveTo", volumeL: 60, waterType: "fresh", plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
     const fromId = (a as { data?: { id: number } }).data!.id;
     const toId = (b as { data?: { id: number } }).data!.id;
 
@@ -133,8 +133,8 @@ describe("moving a schedule to a different tank (edit popup's tank selector)", (
 
   it("moving onto a tank that already has that standard type is blocked (same duplicate guard as creating)", async () => {
     const { createSchedule, createTank, updateSchedule } = await import("../src/app/actions");
-    const a = await createTank({ name: "MoveFrom2", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
-    const b = await createTank({ name: "MoveTo2", volumeL: 60, waterType: "fresh", plants: [], fish: [], foods: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const a = await createTank({ name: "MoveFrom2", volumeL: 60, waterType: "fresh", plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const b = await createTank({ name: "MoveTo2", volumeL: 60, waterType: "fresh", plants: [], fish: [], hasCo2: false, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
     const fromId = (a as { data?: { id: number } }).data!.id;
     const toId = (b as { data?: { id: number } }).data!.id;
 
@@ -155,7 +155,7 @@ describe("detailData persistence + export", () => {
     const { db } = await import("../src/lib/db");
     const { schedules } = await import("../src/lib/db/schema");
 
-    const t = await createTank({ name: "DetailT", volumeL: 120, waterType: "fresh", plants: [], fish: [], foods: [{ name: "Flakes", amount: "1", unit: "pinch" }], hasCo2: true, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
+    const t = await createTank({ name: "DetailT", volumeL: 120, waterType: "fresh", plants: [], fish: [], hasCo2: true, hasHeater: false, hasFilter: true, filterType: null, tankState: "established" });
     const tankId = (t as { data?: { id: number } }).data!.id;
     const res = await createSchedule({
       tankId, actionType: "water_change", intervalDays: 7, preferredDays: 96,

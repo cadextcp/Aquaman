@@ -336,6 +336,64 @@ export async function deleteWaterTest(id: number): Promise<ActionResult> {
   }
 }
 
+// ==================== Products (inventory) ====================
+//
+// A new or changed fertilizer can make a different care plan the right one,
+// so every write here asks for a plan review -- the same trigger a tank's
+// master data fires. Reason stays "tank_change": a separate reason would drag
+// the state machine, the badge copy and both catalogs along without telling
+// the user anything new.
+
+export async function createProduct(input: unknown): Promise<ActionResult<{ id: number }>> {
+  try {
+    const { createProductCore } = await import("@/lib/repo");
+    const res = createProductCore(input);
+    if (!res.ok) return res;
+    revalidatePath("/inventory");
+    revalidatePath("/tanks");
+    revalidatePath("/coach");
+    const { requestPlanReview } = await import("@/lib/ai/plan-review");
+    requestPlanReview("tank_change");
+    return { ok: true, data: { id: res.id } };
+  } catch (err) {
+    console.error("[createProduct]", err);
+    return failure("product.createFailed", "Could not create product");
+  }
+}
+
+/** `renamedPlans` = how many active plans had their food key re-keyed (repo.ts). */
+export async function updateProduct(id: number, input: unknown): Promise<ActionResult<{ renamedPlans: number }>> {
+  try {
+    const { updateProductCore } = await import("@/lib/repo");
+    const res = updateProductCore(id, input);
+    if (!res.ok) return res;
+    revalidatePath("/inventory");
+    revalidatePath("/tanks");
+    revalidatePath("/coach");
+    const { requestPlanReview } = await import("@/lib/ai/plan-review");
+    requestPlanReview("tank_change");
+    return { ok: true, data: { renamedPlans: res.renamedPlans } };
+  } catch (err) {
+    console.error("[updateProduct]", err);
+    return failure("product.updateFailed", "Could not update product");
+  }
+}
+
+export async function deleteProduct(id: number): Promise<ActionResult> {
+  try {
+    const { deleteProductCore } = await import("@/lib/repo");
+    const res = deleteProductCore(id);
+    if (!res.ok) return res;
+    revalidatePath("/inventory");
+    revalidatePath("/tanks");
+    revalidatePath("/coach");
+    return { ok: true };
+  } catch (err) {
+    console.error("[deleteProduct]", err);
+    return failure("product.deleteFailed", "Could not delete product");
+  }
+}
+
 // ==================== Global settings (issues #39/#40) ====================
 
 export async function saveGlobalSettingsAction(input: unknown): Promise<ActionResult> {

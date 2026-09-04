@@ -43,6 +43,17 @@ export const NUTRIENTS: NutrientDef[] = [
   { key: "cu", symbol: "Cu", label: "Copper (Cu)", group: "micro" },
 ];
 
+/**
+ * The nutrient keys as a plain list — the one place zod (productInputSchema)
+ * and any other validator may take them from. A second hand-written key list
+ * is exactly the divergence AGENTS.md warns about for action-types.ts.
+ */
+export const NUTRIENT_KEYS = NUTRIENTS.map((n) => n.key) as [string, ...string[]];
+
+export function isNutrientKey(k: string): boolean {
+  return NUTRIENTS.some((n) => n.key === k);
+}
+
 export function isStandardPlanType(t: string): t is StandardPlanType {
   return (STANDARD_PLAN_TYPES as readonly string[]).includes(t);
 }

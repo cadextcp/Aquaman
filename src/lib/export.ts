@@ -1,7 +1,7 @@
 /**
  * JSON export/import (Phase 5 — PRD §5.9, "no lock-in" promise).
  *
- * Export: all USER data tables — tanks, schedules, maintenanceLogs,
+ * Export: all USER data tables — tanks, products, schedules, maintenanceLogs,
  * waterTests, feedLogs, aiCalls (usage history; counters only, no secrets).
  * appSettings is deliberately NOT exported: it holds the ICS token (secret)
  * and the seeded range catalogs (a fresh install re-seeds those). Tank-level
@@ -16,13 +16,20 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { tanks, schedules, maintenanceLogs, waterTests, feedLogs, aiCalls } from "@/lib/db/schema";
+import { tanks, schedules, maintenanceLogs, waterTests, feedLogs, aiCalls, products } from "@/lib/db/schema";
 import { APP_VERSION } from "./version";
 import { ACTION_TYPE_KEYS } from "./domain/action-types";
+import { nutrientMapSchema } from "./schemas";
 
 const actionTypeEnum = z.enum(ACTION_TYPE_KEYS as [string, ...string[]]);
 
-export const EXPORT_FORMAT_VERSION = 1 as const;
+/**
+ * 2 since the product inventory (migration 0007). Format 1 is still accepted
+ * on import: its food list lives on the tanks, and importing it has to lift
+ * that into `products` — the column it used to go into no longer exists, and
+ * dropping it silently would lose the user's food list on a restore.
+ */
+export const EXPORT_FORMAT_VERSION = 2 as const;
 
 export type ExportSnapshot = {
   format: typeof EXPORT_FORMAT_VERSION;
@@ -30,6 +37,7 @@ export type ExportSnapshot = {
   appVersion: string;
   exportedAt: string; // ISO-8601 UTC
   tanks: unknown[];
+  products: unknown[];
   schedules: unknown[];
   maintenanceLogs: unknown[];
   waterTests: unknown[];
@@ -44,6 +52,7 @@ export function buildExportSnapshot(now: Date = new Date()): ExportSnapshot {
     appVersion: APP_VERSION,
     exportedAt: now.toISOString(),
     tanks: db.select().from(tanks).all(),
+    products: db.select().from(products).all(),
     schedules: db.select().from(schedules).all(),
     maintenanceLogs: db.select().from(maintenanceLogs).all(),
     waterTests: db.select().from(waterTests).all(),
@@ -70,7 +79,9 @@ export const tankRowSchema = z.object({
   hasFilter: z.boolean(),
   filterType: z.string().max(60).nullable(),
   tankState: z.enum(["cycling", "established"]),
-  // v0.3 (issue #42) — food types at the tank, optional for older exports
+  // Format 1 only (v0.3–v1.0): the food list used to live on the tank. The
+  // column is gone since migration 0007, so this is read on import purely to
+  // lift the names into `products` — never written back to `tanks`.
   foods: z.array(z.object({ name: z.string().min(1).max(60), amount: z.string().max(30), unit: z.string().max(20) })).max(20).nullable().optional(),
   paramOverrides: z.record(
     z.string(),
@@ -147,12 +158,25 @@ export const aiCallRowSchema = z.object({
   purpose: z.string().min(1).max(60),
 });
 
+const productRowSchema = z.object({
+  id: z.number().int().positive(),
+  kind: z.enum(["fertilizer", "food"]),
+  name: z.string().min(1).max(80),
+  description: z.string().max(600).nullable().optional(),
+  nutrients: nutrientMapSchema,
+  defaultDose: z.string().max(30).nullable().optional(),
+  createdAt: isoString,
+  deletedAt: nullableIso.optional(),
+});
+
 export const importSnapshotSchema = z.object({
-  format: z.literal(EXPORT_FORMAT_VERSION),
+  // Both formats are accepted; the difference is handled in importSnapshot().
+  format: z.union([z.literal(1), z.literal(2)]),
   app: z.literal("aquaman"),
   appVersion: z.string().max(40).optional(),
   exportedAt: isoString.optional(),
   tanks: z.array(tankRowSchema).max(1000),
+  products: z.array(productRowSchema).max(1000).optional().default([]),
   schedules: z.array(scheduleRowSchema).max(5000),
   maintenanceLogs: z.array(maintenanceLogRowSchema).max(50_000),
   waterTests: z.array(waterTestRowSchema).max(50_000),
@@ -164,6 +188,7 @@ export type ImportSnapshot = z.infer<typeof importSnapshotSchema>;
 
 export type ImportResult = {
   tanks: number;
+  products: number;
   schedules: number;
   maintenanceLogs: number;
   waterTests: number;
@@ -191,6 +216,27 @@ function checkReferences(snap: ImportSnapshot): string | null {
 }
 
 /**
+ * Foods carried on format-1 tank rows that no product in the snapshot already
+ * covers — deduplicated by name, first dose wins, blank names skipped. Mirrors
+ * the INSERT in migration 0007 so a restored backup and a migrated database
+ * end up with the same inventory.
+ */
+function liftedFoodNames(snap: ImportSnapshot): { name: string; dose: string | null }[] {
+  const taken = new Set(snap.products.filter((p) => p.kind === "food").map((p) => p.name));
+  const out: { name: string; dose: string | null }[] = [];
+  for (const tank of snap.tanks) {
+    if (tank.deletedAt) continue; // deleted tanks are skipped, exactly as in 0007
+    for (const food of tank.foods ?? []) {
+      const name = food.name.trim();
+      if (!name || taken.has(name)) continue;
+      taken.add(name);
+      out.push({ name, dose: `${food.amount} ${food.unit}`.trim() || null });
+    }
+  }
+  return out;
+}
+
+/**
  * Import a snapshot: validate (zod), pre-check references, then replace the
  * data tables transactionally. Throws on invalid input (caller maps to a
  * friendly error); on any SQL failure the transaction rolls back and the
@@ -214,9 +260,23 @@ export function importSnapshot(raw: unknown): ImportResult {
     tx.delete(maintenanceLogs).run();
     tx.delete(schedules).run();
     tx.delete(tanks).run();
+    tx.delete(products).run();
     tx.delete(aiCalls).run();
 
-    for (const row of snap.tanks) tx.insert(tanks).values([{ ...row, foods: row.foods ?? [] }]).run();
+    // `foods` is a format-1 leftover on the tank row and has no column any
+    // more — strip it before the insert instead of letting drizzle reject it.
+    for (const row of snap.tanks) {
+      const { foods: _legacyFoods, ...tank } = row;
+      void _legacyFoods;
+      tx.insert(tanks).values([tank]).run();
+    }
+    for (const row of snap.products) tx.insert(products).values([{ ...row, deletedAt: row.deletedAt ?? null }]).run();
+    // Format-1 lift: the snapshot's food list sits on the tanks. Without this
+    // a restore from a v1.0 backup would silently lose every food the user had
+    // typed in — the same move migration 0007 makes, one name per product.
+    for (const name of liftedFoodNames(snap)) {
+      tx.insert(products).values([{ kind: "food", name: name.name, defaultDose: name.dose, nutrients: {} }]).run();
+    }
     // Feed plans come back INACTIVE (migration 0006): `feed` stopped being a
     // schedulable type because the feeding counter can never tick such a plan
     // off. A snapshot taken before that still carries active ones, and an
@@ -234,6 +294,7 @@ export function importSnapshot(raw: unknown): ImportResult {
 
   return {
     tanks: snap.tanks.length,
+    products: snap.products.length + liftedFoodNames(snap).length,
     schedules: snap.schedules.length,
     maintenanceLogs: snap.maintenanceLogs.length,
     waterTests: snap.waterTests.length,

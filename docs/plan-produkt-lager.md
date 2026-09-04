@@ -1,12 +1,12 @@
 # Plan — Produkt-Lager (Dünger & Futter)
 
-> **Status: Entwurf zur Umsetzung.** Der Owner hat die drei Grundsatzfragen
-> entschieden (siehe unten); der Rest ist ausgearbeiteter Vorschlag, noch nichts
-> gebaut. PRD (`PRD-Aquaman-MVP.md`) und Tech Design
-> (`TechDesign-Aquaman-MVP.md`) bleiben unverändert, bis die Umsetzung
-> beschlossen ist. `agent_docs/project_brief.md` ist bereits nachgezogen: das
-> Lager steht dort unter *Next (post-1.0)* (§10.1).
-> Erstellt: 2026-09-04 · Basis: `main` @ `43eac64` · App-Version 0.4.0
+> **Status: Stufe 1 gebaut, Stufe 2 offen.** Die drei Grundsatzfragen sind
+> entschieden (siehe unten). Stufe 1 (§9) steht inklusive Migration `0007`,
+> `/inventory`, MCP-Lesetool und Export-Format 2 — Stufe 2 (Abgleich + Coach)
+> ist noch Entwurf. PRD (`PRD-Aquaman-MVP.md`) und Tech Design
+> (`TechDesign-Aquaman-MVP.md`) bleiben unverändert;
+> `agent_docs/project_brief.md` führt das Lager unter *Next (post-1.0)* (§10.1).
+> Erstellt: 2026-09-04 · Basis: `main` @ `43eac64` · Stufe 1 auf App-Version 1.0.0
 
 **Entschieden:**
 
@@ -32,6 +32,17 @@
 | `updateTankCore().masterChanged` | Vergleicht u. a. `before.foods` → löst `requestPlanReview("tank_change")` aus | Der Trigger muss auf Produkt-Änderungen umziehen (§7.3) |
 | Export-Format | `EXPORT_FORMAT_VERSION = 1`, `foods` optional im Tank-Schema | Braucht Version 2 **und** einen Lift-Pfad für alte Backups (§8.1) |
 | `agent_docs/project_brief.md` | **Bereinigt.** Der Ausschluss galt v1 — v1 ist als `v1.0.0` raus, das Lager steht jetzt unter *Next (post-1.0)* | Kein Widerspruch mehr (§10.1) |
+
+### Fund beim Bauen: der `feed`-Zweig im Plan-Editor ist unerreichbar
+
+`StructuredDetailsEditor` hat einen `feed`-Zweig (Dosis je Futtersorte), aber
+seit Migration `0006` ist `feed` weder `schedulable` noch `loggable` — der
+Plan-Editor bietet den Typ gar nicht mehr an. Der Zweig ist also seit `0006`
+toter Pfad. Er bleibt vorerst stehen (er ist jetzt korrekt auf das Lager
+verdrahtet und kostet nichts), aber **der praktische Nutzen des Futter-Lagers
+liegt in Stufe 2**: der Coach ist der Leser, nicht der Plan-Editor. Wer den
+Zweig endgültig entsorgen will, muss vorher entscheiden, ob Fütterung je
+wieder planbar werden soll — siehe die `feed`-Warnung in AGENTS.md.
 
 ### Das eigentliche Problem in einem Satz
 
@@ -324,7 +335,11 @@ dem 1.0-Commit gelöscht — hier ist nichts mehr anzupassen.
 
 ## 8. Randflächen
 
-### 8.1 Export / Import — der heikelste Punkt
+### 8.1 Export / Import — **erledigt, in Stufe 1 vorgezogen**
+
+Musste vorgezogen werden: sobald `tanks.foods` weg ist, würde ein Import eines
+Format-1-Backups in eine nicht mehr existierende Spalte schreiben. Ein kaputter
+Restore-Pfad auszuliefern war keine Option.
 
 - `EXPORT_FORMAT_VERSION: 1 → 2`, `products: []` im Snapshot.
 - **Import muss Format 1 weiter annehmen.** Und ein v1-Backup trägt die
@@ -344,7 +359,7 @@ Cores aus `repo.ts` wiederverwendet, Antworten über `ok()`/`failFor()`.
 Spec in `lib/api/openapi.ts` ergänzen, `tests/openapi.test.ts` prüft die
 Vollständigkeit.
 
-### 8.3 MCP
+### 8.3 MCP — **erledigt in Stufe 1**
 
 Ein **Lese**-Tool `get_products` („Fertilizer and food products the user owns,
 with nutrients and label notes."). Keine Schreib-Tools — das Toolsurface ist
@@ -363,7 +378,7 @@ laut `code_patterns.md` bewusst lesend, und ein Lager pflegt man in der App.
 
 Jede Stufe ist für sich lauffähig und ausrollbar.
 
-### Stufe 1 — Lager existiert *(der Brocken)*
+### Stufe 1 — Lager existiert *(der Brocken)* — **ERLEDIGT**
 
 Schema + Migration `0007` (inkl. Datenübernahme) · `productInputSchema` ·
 `NUTRIENT_KEYS`-Export · Repo-Cores (`createProductCore`,
@@ -387,10 +402,11 @@ Plan-Review-Trigger umgehängt.
 wird in der UI **und** vom Coach als Lücke benannt. Eval-Prompt: *„Kann ich
 meinen Düngeplan mit dem, was ich da habe, überhaupt umsetzen?"*
 
-### Stufe 3 — Schnittstellen nachziehen
+### Stufe 3 — Schnittstellen nachziehen *(Rest)*
 
-Export-Format 2 inkl. v1-Lift · REST-Routen + OpenAPI · MCP `get_products` ·
-`How-It-Works.md` und `agent_docs/project_brief.md` aktualisiert.
+~~Export-Format 2 inkl. v1-Lift~~ (Stufe 1) · REST-Routen `/api/v1/products` +
+OpenAPI · ~~MCP `get_products`~~ (Stufe 1) · `How-It-Works.md` aktualisieren.
+`agent_docs/project_brief.md` ist bereits nachgezogen.
 
 **Fertig heißt:** Export → frische Instanz → Import ergibt identischen
 Datenstand, inklusive Lager; ein v1-Backup verliert kein Futter.
@@ -408,13 +424,12 @@ verweist auf dieses Dokument. Stufe 1 ist nicht mehr blockiert.
 
 ### 10.2 Umbenennen eines Produkts trennt bestehende Pläne ab
 
-`detailData.foods` ist namensverschlüsselt (§4.4). Wer *„Flocken"* in *„JBL
-NovoBel"* umbenennt, dessen bestehender Fütterungsplan zeigt weiter *„Flocken 1
-Prise"*. **Empfehlung:** `updateProductCore()` schreibt beim Namenswechsel die
-Schlüssel in `schedules.detail_data` aktiver Pläne mit —
-`maintenance_logs` bleibt unangetastet, denn die Historie hält fest, was
-damals galt, nicht was das Produkt heute heißt. Kosten: ~20 Zeilen plus ein
-Test. Alternative: bewusst nichts tun und den Effekt dokumentieren.
+**Umgesetzt wie empfohlen.** `updateProductCore()` schreibt beim Namenswechsel
+die Schlüssel in `schedules.detail_data` **aktiver** Pläne mit und meldet die
+Anzahl zurück, die das Formular anzeigt (*„… in 1 Plan übernommen"*).
+`maintenance_logs` und inaktive Pläne bleiben unangetastet: die Historie hält
+fest, was damals galt, nicht wie das Produkt heute heißt. Beides ist in
+`tests/inventory.test.ts` festgenagelt.
 
 ### 10.3 Soft-Delete plus Unique-Index
 
@@ -433,7 +448,7 @@ etwas schreiben, weil er generell nichts schreiben kann. Ein Test in
 `coach-context.test.ts` pinnt zusätzlich, dass keine Tokens/Keys mit ins Lager
 rutschen.
 
-### 10.5 Migration ist praktisch einwegs
+### 10.5 Migration ist praktisch einweg
 
 Kein Down-Pfad im Projekt. Release-Notes müssen zum Export vor dem Upgrade
 auffordern (§4.5).

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getTank, listTanks, listSchedules, recentLogs, allLogsForTank, waterTestsForTank } from "@/lib/repo";
+import { getTank, listTanks, listSchedules, listProducts, recentLogs, allLogsForTank, waterTestsForTank } from "@/lib/repo";
 import { nextDue, missedSlots, doneOn, MISSED_SLOTS_HINT } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES } from "@/lib/domain/ranges";
 import { EditTankButton } from "@/components/edit-tank-button";
@@ -28,6 +28,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
 
   const locale = getLocale();
   const tanks = listTanks();
+  const foodProducts = listProducts("food");
   const schedules = listSchedules(tank.id);
   const logs = recentLogs(tank.id, 10);
   const adherenceLogs = allLogsForTank(tank.id); // untruncated — adherence reconstructs the occurrence chain from it
@@ -181,7 +182,7 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
         <details className="rounded-xl p-4 edge-card">
           <summary className="cursor-pointer text-sm" style={{ color: "var(--accent)" }}>{translate("schedule.add", locale)}</summary>
           <div className="pt-4">
-            <ScheduleForm tankId={tank.id} tanks={tanks} />
+            <ScheduleForm tankId={tank.id} tanks={tanks} foodProducts={foodProducts} />
           </div>
         </details>
       </section>

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { FRESHWATER_RANGES, SALTWATER_RANGES, type Range } from "./domain/ranges";
 import { SCHEDULABLE_ACTION_TYPES } from "./domain/action-types";
+import { NUTRIENT_KEYS } from "./domain/plan-structure";
 
 /**
  * Shared zod schemas — SAME schema validates the client form and the
@@ -24,7 +25,6 @@ export const tankInputSchema = z.object({
   waterType: z.enum(["fresh", "salt"]),
   plants: z.array(plantSchema).max(50).default([]),
   fish: z.array(fishSchema).max(50).default([]),
-  foods: z.array(z.object({ name: z.string().trim().min(1).max(60), amount: z.string().trim().max(30), unit: z.string().trim().max(20) })).max(20).default([]),
   hasCo2: z.boolean().default(false),
   hasHeater: z.boolean().default(false),
   hasFilter: z.boolean().default(true),
@@ -32,6 +32,46 @@ export const tankInputSchema = z.object({
   tankState: z.enum(["cycling", "established"]).default("established"),
 });
 export type TankInput = z.infer<typeof tankInputSchema>;
+
+/**
+ * Nutrient key → declared content.
+ *
+ * partialRecord, not record: a plain z.record over an enum is EXHAUSTIVE in
+ * zod 4 and would demand a value for all twelve nutrients. Unknown keys are
+ * still rejected, which is what keeps NUTRIENTS the single source of truth.
+ * The transform drops undefined values so the parsed type is a plain
+ * Record<string, string> — what the column stores, with no cast at the
+ * insert.
+ */
+export const nutrientMapSchema = z
+  .partialRecord(z.enum(NUTRIENT_KEYS), z.string().trim().max(30))
+  .default({})
+  .transform((n) => Object.fromEntries(Object.entries(n).filter(([, v]) => v !== undefined)) as Record<string, string>);
+
+/**
+ * A product in the inventory (docs/plan-produkt-lager.md).
+ *
+ * `nutrients` keys come from NUTRIENTS via NUTRIENT_KEYS — never a second
+ * hand-written list. The VALUE is the declared content off the label as free
+ * text ("0.2 %"); an empty string is legitimate and means "contained, no
+ * content given", because the key alone is what the plan comparison needs.
+ *
+ * `description` is capped well below what SQLite would take: it travels in the
+ * coach's system context on every call and therefore costs tokens.
+ */
+export const productInputSchema = z
+  .object({
+    kind: z.enum(["fertilizer", "food"]),
+    name: z.string().trim().min(1, "Name is required").max(80),
+    description: z.string().trim().max(600).optional().nullable(),
+    defaultDose: z.string().trim().max(30).optional().nullable(),
+    nutrients: nutrientMapSchema,
+  })
+  .refine((p) => p.kind === "fertilizer" || Object.keys(p.nutrients ?? {}).length === 0, {
+    message: "Only fertilizer products carry nutrients",
+    path: ["nutrients"],
+  });
+export type ProductInput = z.infer<typeof productInputSchema>;
 
 export const scheduleInputSchema = z.object({
   tankId: z.number().int().positive(),

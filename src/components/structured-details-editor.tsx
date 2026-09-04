@@ -6,7 +6,7 @@
  * - water_change: percentage slider/number → formats "30 % (18 L of 60 L)"
  * - water_top_up: liters number → formats "12 L"
  * - fertilize: dose per nutrient from the fixed catalog (macro + micro)
- * - feed: amount per food type defined at the tank
+ * - feed: amount per food product from the inventory
  * Free text stays available for types with no structured editor (and as a rendered preview).
  */
 
@@ -18,13 +18,14 @@ type DetailData = Record<string, unknown>;
 export function StructuredDetailsEditor({
   actionType,
   tankVolumeL,
-  tankFoods,
+  foodProducts,
   value,
   onChange,
 }: {
   actionType: string;
   tankVolumeL: number;
-  tankFoods: { name: string; amount: string; unit: string }[];
+  /** The inventory's food products — the dose is keyed by NAME (see repo.renameFoodInPlans). */
+  foodProducts: { name: string; defaultDose: string | null }[];
   value: DetailData | null;
   onChange: (data: DetailData | null, rendered: string) => void;
 }) {
@@ -119,7 +120,7 @@ export function StructuredDetailsEditor({
       const clean = Object.fromEntries(Object.entries(next).filter(([, v]) => v.trim() !== ""));
       onChange(Object.keys(clean).length ? { foods: clean } : null, formatDetailData("feed", { foods: clean }));
     }
-    if (tankFoods.length === 0) {
+    if (foodProducts.length === 0) {
       return (
         <p className="text-xs rounded-lg p-2.5" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
           {t("schedule.noFoodsYet")}
@@ -132,14 +133,14 @@ export function StructuredDetailsEditor({
           {t("schedule.foodAmount")}
         </label>
         <div className="space-y-1.5">
-          {tankFoods.map((f) => (
+          {foodProducts.map((f) => (
             <label key={f.name} className="flex items-center gap-2 text-xs">
               <span className="w-28 shrink-0 truncate" title={f.name}>{f.name}</span>
               <input
                 className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs"
                 style={{ background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" }}
                 maxLength={20}
-                placeholder={f.amount ? t("schedule.foodPlaceholder", { amount: f.amount, unit: f.unit }) : t("schedule.foodPlaceholderEmpty")}
+                placeholder={f.defaultDose ? f.defaultDose : t("schedule.foodPlaceholderEmpty")}
                 value={foods[f.name] ?? ""}
                 onChange={(e) => setFood(f.name, e.target.value)}
               />

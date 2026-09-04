@@ -179,6 +179,7 @@ describe("MCP tools", () => {
       "add_water_test",
       "ask_coach",
       "get_pending_maintenance",
+      "get_products",
       "get_tanks",
       "get_water_values",
       "log_maintenance",

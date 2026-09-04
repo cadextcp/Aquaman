@@ -96,7 +96,10 @@ describe("export snapshot", () => {
     const { buildExportSnapshot } = await import("../src/lib/export");
     const snap = buildExportSnapshot(new Date("2026-08-24T12:00:00Z"));
     expect(snap.app).toBe("aquaman");
-    expect(snap.format).toBe(1);
+    // 2 since the product inventory (migration 0007) — format 1 stays
+    // IMPORTABLE, see the format-1 lift in tests/inventory.test.ts.
+    expect(snap.format).toBe(2);
+    expect(snap).toHaveProperty("products");
     expect(snap).not.toHaveProperty("appSettings");
     expect(snap).not.toHaveProperty("settings");
     // secrets never leak via stringified form either

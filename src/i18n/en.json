@@ -12,7 +12,8 @@
     "today": "Today",
     "plan": "Plan",
     "coach": "Coach",
-    "aria": "Main navigation"
+    "aria": "Main navigation",
+    "inventory": "Inventory"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -168,9 +169,8 @@
     "nutrientDose": "Dosage per nutrient (verify against the product label)",
     "nutrientHint": "Macro (top): CO₂, NO₃, PO₄, K, Mg, Ca · Micro: Fe, Mn, Zn, B, Mo, Cu — free text per nutrient, e.g. “10 ml”",
     "foodAmount": "Amount per food",
-    "foodPlaceholder": "e.g. {amount} {unit}",
     "foodPlaceholderEmpty": "e.g. 1 pinch",
-    "noFoodsYet": "Add food types to this tank first (edit tank → “Foods”) — then doses per food can be planned here.",
+    "noFoodsYet": "No foods in the inventory yet (More → Inventory) — then doses per food can be planned here.",
     "detailsPlaceholder": "e.g. \"rinse media in tank water\""
   },
   "water": {
@@ -202,6 +202,37 @@
     "bandCritical": "critical",
     "nh3Message": "Free NH₃ {nh3} mg/l (from NH₄ {nh4} at pH {ph}, {temp}°C)"
   },
+  "inventory": {
+    "title": "Inventory",
+    "lede": "The fertilizers and foods you actually have. The coach recommends from this list.",
+    "fertilizers": "Fertilizers",
+    "foods": "Foods",
+    "addFertilizer": "+ Fertilizer",
+    "addFood": "+ Food",
+    "emptyFertilizers": "No fertilizers yet. Add one and its nutrients can be checked against your fertilize plan.",
+    "emptyFoods": "No foods yet. Add what you feed so the coach knows what you actually have.",
+    "name": "Name",
+    "namePlaceholderFertilizer": "e.g. Aqua Rebell Makro Basic NPK",
+    "namePlaceholderFood": "e.g. JBL NovoBel",
+    "description": "Description",
+    "descriptionHint": "This text goes to the coach — dosing off the label, which fish a food suits, anything worth knowing.",
+    "descriptionPlaceholderFertilizer": "Label says 10 ml per 100 l weekly …",
+    "descriptionPlaceholderFood": "Flake food for community fish, twice a day …",
+    "defaultDose": "Usual dose",
+    "defaultDosePlaceholderFertilizer": "10 ml",
+    "defaultDosePlaceholderFood": "1 pinch",
+    "nutrients": "Nutrients contained",
+    "nutrientsHint": "Tick what is in it. The content is optional — the tick alone is what your fertilize plan is compared against.",
+    "contentPlaceholder": "content, e.g. 0.2 %",
+    "noNutrients": "no nutrients recorded",
+    "edit": "Edit {name}",
+    "delete": "Delete {name}",
+    "deleteConfirm": "Delete “{name}” from the inventory?",
+    "renamedPlans": {
+      "one": "Saved. The new name was carried into {n} plan.",
+      "other": "Saved. The new name was carried into {n} plans."
+    }
+  },
   "more": {
     "title": "More",
     "comingSoon": "Settings, AI coach and calendar follow in the next phases.",
@@ -226,7 +257,9 @@
     "aiOnlineDetail": "today: {calls} calls · {tokens} tokens. Daily limits reset at local midnight.",
     "aiOffline": "Offline",
     "aiOfflineDetail": "no API key configured yet (set one in the AI provider section below). The app works fully without it.",
-    "aiCost": "Last 30 days: {calls} calls · {tokens} tokens · ≈{cost} cost units"
+    "aiCost": "Last 30 days: {calls} calls · {tokens} tokens · ≈{cost} cost units",
+    "inventoryTitle": "Inventory",
+    "inventoryDesc": "Fertilizers and foods you have"
   },
   "calendarPage": {
     "title": "Calendar",
@@ -404,13 +437,9 @@
     "fish": "Fish",
     "fishPlaceholder": "e.g. Neon tetra",
     "addFish": "+ add fish",
-    "foods": "Foods (for the feed plan)",
-    "foodNamePlaceholder": "e.g. Flakes",
-    "foodAmountPlaceholder": "e.g. 1",
-    "foodUnitPlaceholder": "e.g. pinch",
-    "addFood": "+ Add food",
     "remove": "remove",
-    "deleteConfirm": "Delete tank \"{name}\"? Logs and tests are kept (soft delete)."
+    "deleteConfirm": "Delete tank \"{name}\"? Logs and tests are kept (soft delete).",
+    "foodsMoved": "Food is kept in the inventory now, for all tanks at once:"
   },
   "editTank": {
     "aria": "Edit {name}"
@@ -553,7 +582,12 @@
     "token.rotateFailed": "Could not rotate the token",
     "settings.invalid": "Invalid settings",
     "proposal.invalid": "The proposal did not validate — nothing was written",
-    "import.failed": "Import failed — nothing was changed. {detail}"
+    "import.failed": "Import failed — nothing was changed. {detail}",
+    "product.notFound": "Product not found",
+    "product.createFailed": "Could not save the product",
+    "product.updateFailed": "Could not update the product",
+    "product.deleteFailed": "Could not delete the product",
+    "product.duplicateName": "You already have a product called “{name}”"
   },
   "help": {
     "topics": {
@@ -674,7 +708,8 @@
       "costUnits": "An estimate derived from token prices, not an amount in any currency.",
       "timezone": "“Today” follows the timezone Aquaman is configured with, not your browser clock.",
       "plansStat": "Active care plans, including those with nothing due this week.",
-      "feedMax": "Up to five feedings per day."
+      "feedMax": "Up to five feedings per day.",
+      "inventory": "Everything you own, in one place. A fertilizer's nutrients are compared against your fertilize plan; the description is what the coach reads."
     },
     "concepts": {
       "title": "How Aquaman plans",

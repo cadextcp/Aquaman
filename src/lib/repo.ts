@@ -1,14 +1,15 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { tanks, schedules, maintenanceLogs, waterTests, feedLogs } from "@/lib/db/schema";
+import { tanks, schedules, maintenanceLogs, waterTests, feedLogs, products } from "@/lib/db/schema";
 import { and, desc, eq, isNull, gte, sql } from "drizzle-orm";
-import type { Tank, Schedule, MaintenanceLog, WaterTest, FeedLog } from "@/lib/db/schema";
+import type { Tank, Schedule, MaintenanceLog, WaterTest, FeedLog, Product } from "@/lib/db/schema";
 import {
   snoozeInputSchema,
   waterTestInputSchema,
   validateWaterValues,
   tankInputSchema,
   scheduleInputSchema,
+  productInputSchema,
 } from "@/lib/schemas";
 import { today, addDays } from "@/lib/domain/dates";
 import { isStandardPlanType, formatDetailData } from "@/lib/domain/plan-structure";
@@ -361,7 +362,6 @@ export function createTankCore(input: unknown, photoPath?: string | null): Write
         waterType: parsed.data.waterType,
         plants: parsed.data.plants,
         fish: parsed.data.fish,
-        foods: parsed.data.foods,
         hasCo2: parsed.data.hasCo2,
         hasHeater: parsed.data.hasHeater,
         hasFilter: parsed.data.hasFilter,
@@ -381,7 +381,7 @@ export function createTankCore(input: unknown, photoPath?: string | null): Write
 export type UpdateTankResult = { ok: true; masterChanged: boolean } | Failure;
 
 /**
- * `masterChanged` tells the caller whether fish/plants/foods/volume/equipment
+ * `masterChanged` tells the caller whether fish/plants/volume/equipment
  * changed -- that is the plan-review trigger (AI coach), decided by the
  * caller (Server Action / API route), never here (same "cores do not touch
  * AI/cache" rule as logWaterTestCore).
@@ -398,7 +398,6 @@ export function updateTankCore(id: number, input: unknown, photoPath?: string | 
         waterType: parsed.data.waterType,
         plants: parsed.data.plants,
         fish: parsed.data.fish,
-        foods: parsed.data.foods,
         hasCo2: parsed.data.hasCo2,
         hasHeater: parsed.data.hasHeater,
         hasFilter: parsed.data.hasFilter,
@@ -413,7 +412,6 @@ export function updateTankCore(id: number, input: unknown, photoPath?: string | 
       before.volumeL !== parsed.data.volumeL ||
       JSON.stringify(before.fish) !== JSON.stringify(parsed.data.fish) ||
       JSON.stringify(before.plants) !== JSON.stringify(parsed.data.plants) ||
-      JSON.stringify(before.foods ?? []) !== JSON.stringify(parsed.data.foods ?? []) ||
       before.hasCo2 !== parsed.data.hasCo2 ||
       before.hasHeater !== parsed.data.hasHeater ||
       before.hasFilter !== parsed.data.hasFilter ||
@@ -434,6 +432,127 @@ export function deleteTankCore(id: number): WriteResult {
   } catch (err) {
     console.error("[deleteTankCore]", err);
     return failure("tank.deleteFailed", "Could not delete tank");
+  }
+}
+
+// ==================== Products (inventory) ====================
+//
+// The fertilizers and foods the user owns (docs/plan-produkt-lager.md).
+// Install-global, soft-deleted, and referenced from a plan's detailData BY
+// NAME -- which is why a rename has to carry the plans along (see
+// updateProductCore) and a delete never removes the row.
+
+/** Live products, fertilizers first, then alphabetical -- one stable order for every surface. */
+export function listProducts(kind?: "fertilizer" | "food"): Product[] {
+  const rows = db.select().from(products).where(isNull(products.deletedAt)).all();
+  return rows
+    .filter((p) => (kind ? p.kind === kind : true))
+    .sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === "fertilizer" ? -1 : 1));
+}
+
+export function getProduct(id: number): Product | undefined {
+  return db.select().from(products).where(and(eq(products.id, id), isNull(products.deletedAt))).get();
+}
+
+/**
+ * The partial unique index (kind, name) WHERE deleted_at IS NULL is the real
+ * guard; this turns its SQLITE_CONSTRAINT into the domain error the UI shows.
+ */
+function isDuplicateName(err: unknown): boolean {
+  return err instanceof Error && /UNIQUE constraint failed: products/.test(err.message);
+}
+
+export function createProductCore(input: unknown): WriteResultWithId {
+  const parsed = productInputSchema.safeParse(input);
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
+  try {
+    const row = db
+      .insert(products)
+      .values({
+        kind: parsed.data.kind,
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        defaultDose: parsed.data.defaultDose ?? null,
+        nutrients: parsed.data.nutrients ?? {},
+      })
+      .returning()
+      .get();
+    return { ok: true, id: row.id };
+  } catch (err) {
+    if (isDuplicateName(err)) return failure("product.duplicateName", "A product with that name already exists", { name: String((input as { name?: unknown })?.name ?? "") });
+    console.error("[createProductCore]", err);
+    return failure("product.createFailed", "Could not create product");
+  }
+}
+
+export type UpdateProductResult = { ok: true; renamedPlans: number } | Failure;
+
+/**
+ * Renaming re-keys the product in ACTIVE plans' detailData.
+ *
+ * A feed plan stores `{ foods: { "<product name>": "1 pinch" } }` -- the name
+ * IS the key. Leaving it behind would silently orphan the dose the next time
+ * the plan is opened. maintenance_logs is deliberately NOT touched: history
+ * records what was fed back then, not what the tub is called today.
+ */
+export function updateProductCore(id: number, input: unknown): UpdateProductResult {
+  const parsed = productInputSchema.safeParse(input);
+  if (!parsed.success) return failure("validation", firstZodError(parsed.error), { detail: firstZodError(parsed.error) });
+  const before = db.select().from(products).where(and(eq(products.id, id), isNull(products.deletedAt))).get();
+  if (!before) return failure("product.notFound", "Product not found");
+  try {
+    db.update(products)
+      .set({
+        kind: parsed.data.kind,
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        defaultDose: parsed.data.defaultDose ?? null,
+        nutrients: parsed.data.nutrients ?? {},
+      })
+      .where(eq(products.id, id))
+      .run();
+    const renamedPlans = before.name !== parsed.data.name ? renameFoodInPlans(before.name, parsed.data.name) : 0;
+    return { ok: true, renamedPlans };
+  } catch (err) {
+    if (isDuplicateName(err)) return failure("product.duplicateName", "A product with that name already exists", { name: parsed.data.name });
+    console.error("[updateProductCore]", err);
+    return failure("product.updateFailed", "Could not update product");
+  }
+}
+
+/** Moves a food's dose from the old key to the new one in every active plan that has it. */
+function renameFoodInPlans(oldName: string, newName: string): number {
+  const rows = db.select().from(schedules).where(eq(schedules.active, true)).all();
+  let touched = 0;
+  for (const row of rows) {
+    const data = row.detailData as DetailData | null;
+    const foods = data?.foods;
+    if (!foods || typeof foods !== "object") continue;
+    const map = foods as Record<string, unknown>;
+    if (!(oldName in map)) continue;
+    const next: Record<string, unknown> = {};
+    // Rebuild in order so the plan's rendering keeps the same sequence.
+    for (const [k, v] of Object.entries(map)) next[k === oldName ? newName : k] = v;
+    const detailData = { ...data, foods: next };
+    db.update(schedules)
+      .set({ detailData, details: formatDetailData(row.actionType, detailData) })
+      .where(eq(schedules.id, row.id))
+      .run();
+    touched++;
+  }
+  return touched;
+}
+
+/** Soft delete -- plans and logs reference products by name and must keep rendering. */
+export function deleteProductCore(id: number): WriteResult {
+  try {
+    const existing = db.select().from(products).where(and(eq(products.id, id), isNull(products.deletedAt))).get();
+    if (!existing) return failure("product.notFound", "Product not found");
+    db.update(products).set({ deletedAt: new Date().toISOString() }).where(eq(products.id, id)).run();
+    return { ok: true };
+  } catch (err) {
+    console.error("[deleteProductCore]", err);
+    return failure("product.deleteFailed", "Could not delete product");
   }
 }
 

@@ -23,8 +23,17 @@ const ACTION_TYPE_LIST = sql.raw(ACTION_TYPE_KEYS.map((k) => `'${k}'`).join(",")
 
 export type Plant = { name: string; qty: number };
 export type Fish = { species: string; qty: number };
-/** issue #42: food types kept at the tank (for the feed plan's structured details) */
-export type Food = { name: string; amount: string; unit: string };
+/**
+ * Fertilizer nutrient content: nutrient key (from NUTRIENTS in
+ * domain/plan-structure.ts) → declared content as free text ("0.2 %", "7 g/l").
+ * An empty string means "contained, no content declared" — the KEY is what the
+ * plan comparison uses, the text is extra information for the coach.
+ *
+ * Deliberately the same shape as a fertilize plan's detailData.nutrients
+ * (dose per nutrient), so comparing plan against stock is a key comparison
+ * and needs no mapping layer.
+ */
+export type ProductNutrients = Record<string, string>;
 /**
  * issue #42: structured per-action details (replaces free-text for standard
  * types). Shape depends on actionType:
@@ -45,7 +54,9 @@ export const tanks = sqliteTable("tanks", {
   photoPath: text("photo_path"),
   plants: text("plants", { mode: "json" }).$type<Plant[]>().notNull().default(sql`'[]'`),
   fish: text("fish", { mode: "json" }).$type<Fish[]>().notNull().default(sql`'[]'`),
-  foods: text("foods", { mode: "json" }).$type<Food[]>().notNull().default(sql`'[]'`),
+  // NOTE: `foods` lived here until migration 0007 — food is a PRODUCT now
+  // (see `products` below), pooled for the whole install instead of typed in
+  // again per tank.
   hasCo2: integer("has_co2", { mode: "boolean" }).notNull().default(false),
   hasHeater: integer("has_heater", { mode: "boolean" }).notNull().default(false),
   hasFilter: integer("has_filter", { mode: "boolean" }).notNull().default(true),
@@ -61,6 +72,47 @@ export const tanks = sqliteTable("tanks", {
     .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
   deletedAt: text("deleted_at"),
 });
+
+/**
+ * Product inventory (docs/plan-produkt-lager.md): the fertilizers and foods
+ * the user actually owns. Install-global on purpose — a shelf stands in the
+ * cupboard, not in a tank.
+ *
+ * Replaces the former per-tank `tanks.foods` (migration 0007). A feed plan's
+ * detailData is keyed by the food NAME, and the migration carries the names
+ * over unchanged, so existing plans keep rendering.
+ */
+export const products = sqliteTable(
+  "products",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    kind: text("kind", { enum: ["fertilizer", "food"] }).notNull(),
+    name: text("name").notNull(),
+    // The field the coach reads: dosing instructions off the label, which fish
+    // a food suits, anything worth knowing when recommending it.
+    description: text("description"),
+    // Only ever filled for kind='fertilizer'; keys come exclusively from
+    // NUTRIENTS (domain/plan-structure.ts).
+    nutrients: text("nutrients", { mode: "json" }).$type<ProductNutrients>().notNull().default(sql`'{}'`),
+    // Replaces the old Food.amount + Food.unit: the suggested dose, used as
+    // the placeholder in a plan's structured-details editor.
+    defaultDose: text("default_dose"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
+    // Soft-delete like everything else here: plans and logs reference a
+    // product by name, so a row must never actually vanish.
+    deletedAt: text("deleted_at"),
+  },
+  (t) => [
+    index("idx_products_kind").on(t.kind),
+    // Partial unique index: a second "JBL NovoBel" among the foods is a typo,
+    // not another product. Restricted to live rows so a deleted name can be
+    // reused.
+    uniqueIndex("uq_products_kind_name").on(t.kind, t.name).where(sql`${t.deletedAt} IS NULL`),
+    check("products_kind_valid", sql`${t.kind} IN ('fertilizer','food')`),
+  ],
+);
 
 export const schedules = sqliteTable(
   "schedules",
@@ -218,6 +270,7 @@ export const feedLogs = sqliteTable(
 );
 
 export type Tank = typeof tanks.$inferSelect;
+export type Product = typeof products.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;
 export type MaintenanceLog = typeof maintenanceLogs.$inferSelect;
 export type WaterTest = typeof waterTests.$inferSelect;
