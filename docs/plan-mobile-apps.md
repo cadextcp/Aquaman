@@ -1,9 +1,10 @@
 # Plan — iOS- & Android-App aus Aquaman
 
-> **Status: Entwurf, nicht verabschiedet.** Dieses Dokument ist ein Vorschlag zur
-> Entscheidung, keine Scope-Erweiterung des MVP. PRD (`PRD-Aquaman-MVP.md`) und
-> Tech Design (`TechDesign-Aquaman-MVP.md`) bleiben unverändert, bis eine Stufe
-> hier ausdrücklich beschlossen ist.
+> **Status: Stufe 0 umgesetzt, Stufe 1+ weiter Entwurf.** Der Owner hat Stufe 0
+> (PWA-Härtung) beschlossen; sie ist gebaut — siehe §3. Alles ab Stufe 1 bleibt
+> ein Vorschlag zur Entscheidung. PRD (`PRD-Aquaman-MVP.md`) und Tech Design
+> (`TechDesign-Aquaman-MVP.md`) bleiben unverändert, bis eine weitere Stufe
+> ausdrücklich beschlossen ist.
 > Erstellt: 2026-09 · Basis: `main` @ `6fb2487`
 
 ---
@@ -30,7 +31,7 @@ Bevor irgendein App-Weg bewertet wird, muss klar sein, was der Code heute hergib
 | **RSC + Server Actions + `output: 'standalone'`** | `next export` ist ausgeschlossen. Die Next-App kann **nicht** in ein App-Bundle gepackt werden — sie bleibt serverseitig. Jeder App-Weg ist entweder WebView-auf-Server oder eigener Client auf der REST-API |
 | **better-sqlite3 / sharp** (native, serverseitig) | Kein „local-first, DB im Handy" ohne kompletten Rewrite. Nicht Teil dieses Plans |
 | **Kein CORS irgendwo** (`grep Access-Control` → 0 Treffer) | Eine WebView unter `capacitor://localhost` bekommt bei `fetch` auf den Server sofort CORS-Fehler. Nur relevant, wenn Web-Code außerhalb der Server-Origin läuft |
-| **Kein PWA-Manifest, kein Service Worker, keine App-Icons** | `public/` enthält nur die Next-Default-SVGs. „Zum Homescreen" sieht heute aus wie ein Screenshot |
+| ~~Kein PWA-Manifest, kein Service Worker, keine App-Icons~~ | **Erledigt in Stufe 0.** Manifest-Route, Icon-Satz, Offline-Shell und die Apple-Meta-Tags stehen |
 | **API-Lücken:** Coach, Settings, Uploads/Fotos, Export, Statistik | `/api/coach`, `/api/export`, `/api/settings/*` liegen **außerhalb** von `/api/v1` und sind nicht Bearer-gated — für Browser-Sessions gebaut. Eine Upload-Route existiert überhaupt nicht |
 | **Kein Auth in v1, Reverse-Proxy davor** | Steht Authelia o. ä. davor, bekommt die App HTML-Login-Seiten statt JSON. Muss dokumentiert und im Client erkannt werden (§4.4) |
 | **`AQUAMAN_TIMEZONE` regiert „heute"** | Die App darf Tagesgrenzen **niemals** aus der Gerätezeitzone ableiten. Sie muss die Server-TZ kennen → braucht einen Settings-Endpoint (§4.1) |
@@ -86,7 +87,7 @@ verdoppelt das die Wartung ohne Gegenwert; die App ist kein Grafik-/Sensor-Kraft
 
 ## 3. Stufenplan
 
-### Stufe 0 — PWA-Härtung · 1–2 PT · kein Store, kein Konto
+### Stufe 0 — PWA-Härtung · **umgesetzt** · kein Store, kein Konto
 
 Ziel: Aquaman installiert sich auf iOS und Android vom Browser aus und sieht dabei
 aus wie eine App.
@@ -101,8 +102,12 @@ aus wie eine App.
    *Falle:* iOS ignoriert Manifest-Icons vollständig — ohne `apple-touch-icon` gibt es
    einen Screenshot-Thumbnail auf dem Homescreen.
 3. **`viewport` in `layout.tsx`** über den Next-`viewport`-Export: `viewport-fit=cover`
-   + `themeColor`, dazu `env(safe-area-inset-bottom)` im Padding der `BottomNav` —
-   sonst liegt die Navigation unter dem iOS-Home-Indicator.
+   + `themeColor`. Die `env(safe-area-inset-bottom)`-Paddings in `BottomNav` und
+   `body` gab es bereits — sie waren ohne `viewport-fit=cover` nur wirkungslos,
+   weil `env()` dann 0 liefert. Nichts nachzurüsten, nur zu aktivieren.
+   Dazu `appleWebApp.capable`: Next emittiert daraus nur das moderne
+   `mobile-web-app-capable`; ältere iOS-Versionen brauchen zusätzlich das
+   apple-präfixierte Tag, sonst startet das Icon doch wieder in Safari.
 4. **Service Worker, minimal und defensiv.** Nur statische Assets (`/_next/static/*`,
    Icons, Fonts) precachen, Navigationen network-first mit Offline-Fallback-Seite.
    **Niemals** POSTs cachen — Server Actions sind POSTs auf die eigene Route; ein
@@ -118,6 +123,14 @@ aus wie eine App.
 **Definition of Done:** Auf einem echten iPhone und einem echten Android-Gerät
 installieren, Vollbild, korrektes Icon, Dashboard → Aufgabe abhaken funktioniert,
 Flugmodus zeigt die Offline-Seite statt des Browser-Dinosauriers.
+
+**Stand:** Lint, Typecheck, 355 Tests und Build sind grün; Manifest, Icons,
+Meta-Tags und beide Sprachen sind gegen den laufenden Produktions-Build geprüft,
+und der Service-Worker-Lebenszyklus (Registrierung → Precache → Offline-Seite bei
+gestopptem Server) ist über das DevTools-Protokoll in Chromium nachgewiesen.
+**Offen bleibt die Gerätefreigabe durch den Owner** — echtes iPhone und echtes
+Android-Gerät, wie `agent_docs/testing.md` sie vor jedem Release verlangt.
+Der Installationsdialog erscheint nur über HTTPS, also nicht am `http://`-Testport.
 
 > **Entscheidungspunkt.** Erst hier lässt sich ehrlich beurteilen, ob Stufe 1
 > überhaupt gebraucht wird. Diese Frage nicht vorher beantworten.
@@ -323,8 +336,8 @@ Review) und direkte APK/Obtainium bzw. F-Droid für Android. Kostet 99 €/Jahr 
 
 | # | Paket | Stufe | Aufwand | Hängt ab von |
 |---|-------|-------|---------|--------------|
-| 1 | Manifest, Icons, Viewport/Safe-Area | 0 | S | — |
-| 2 | Service Worker + Offline-Seite + PWA-Test | 0 | S | 1 |
+| ~~1~~ | ~~Manifest, Icons, Viewport/Safe-Area~~ ✅ | 0 | S | — |
+| ~~2~~ | ~~Service Worker + Offline-Seite + PWA-Test~~ ✅ | 0 | S | 1 |
 | 3 | **Entscheidungspunkt: reicht die PWA?** | — | — | 2 |
 | 4 | `GET /api/v1/settings` (TZ + Locale) | 1 | S | — |
 | 5 | QR-Pairing in *More → API* | 1 | S | — |

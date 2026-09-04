@@ -724,5 +724,12 @@
     },
     "whatDoesThisMean": "What does “{term}” mean?",
     "howAquamanPlans": "How Aquaman plans"
+  },
+  "offline": {
+    "title": "No contact",
+    "subtitle": "The app cannot reach your server right now",
+    "body": "Aquaman keeps your tanks, schedules and water values on your own server — so there is nothing to show while the connection is down.",
+    "hint": "Check your Wi-Fi or VPN, then try again. Nothing is lost: anything you saved before is safely on the server.",
+    "retry": "Try again"
   }
 }

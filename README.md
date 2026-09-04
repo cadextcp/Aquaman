@@ -21,6 +21,7 @@ and an ICS calendar feed for Google Calendar.
 - **Export / import** — all data as JSON, secrets never included. Your data is yours.
 - **MCP endpoint** — remote agents (e.g. OpenClaw) read tank state and record care via the Model Context Protocol at `/api/mcp`; fully bearer-token gated (token shown/rotated under *More*), write tools can log care but **nothing can be deleted or rewritten remotely**, `ask_coach` shares the in-app AI budget
 - **English & German** — one setting under *More* switches the whole app: interface, calendar event titles in the ICS feed, and the coach's answers. Adding a language means one JSON file, no code
+- **Installable on your phone** — add it to the home screen and it launches full-screen with its own icon; an offline screen replaces the browser error when the server is out of reach
 - **Docker** — one container, one SQLite file, zero cloud
 
 ## Quick start (Docker)
@@ -52,6 +53,27 @@ Internet → Reverse Proxy (HTTPS + auth) → aquaman:3000
 
 Do **not** change `127.0.0.1:3000:3000` to `3000:3000` unless the container is
 otherwise unreachable from your proxy. Details: [`SECURITY.md`](SECURITY.md).
+
+## Install on your phone
+
+Aquaman is a progressive web app, so no app store is involved — open it in the
+phone's browser and install it from there:
+
+- **iOS/Safari:** Share → *Add to Home Screen*
+- **Android/Chrome:** menu → *Install app* (or the install prompt in the URL bar)
+
+It then launches full-screen with its own icon, and shows a proper offline
+screen instead of the browser's error page when it cannot reach your server.
+The app's name follows the language setting under *More*.
+
+Two things to know, both consequences of the setup rather than bugs:
+
+- **Installing needs HTTPS** (`localhost` excepted). Behind a reverse proxy with
+  a valid certificate this is already the case; with a self-signed certificate
+  the browser will not offer the install.
+- **Data still comes from your server.** Only the app shell is cached, never
+  schedules or water values — a stale "due today" would be worse than no answer.
+  So the app needs to reach the NAS (same network, or VPN) to show anything.
 
 ## Configuration
 

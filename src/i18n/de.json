@@ -724,5 +724,12 @@
     },
     "whatDoesThisMean": "Was bedeutet „{term}“?",
     "howAquamanPlans": "Wie Aquaman plant"
+  },
+  "offline": {
+    "title": "Kein Kontakt",
+    "subtitle": "Die App erreicht deinen Server gerade nicht",
+    "body": "Aquaman hält Becken, Pläne und Wasserwerte auf deinem eigenen Server — ohne Verbindung gibt es deshalb nichts anzuzeigen.",
+    "hint": "Prüfe WLAN oder VPN und versuch es dann erneut. Es geht nichts verloren: Alles bisher Gespeicherte liegt sicher auf dem Server.",
+    "retry": "Erneut versuchen"
   }
 }
