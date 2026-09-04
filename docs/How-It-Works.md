@@ -22,12 +22,13 @@
 - DB pragmas (src/lib/db/index.ts): `journal_mode = WAL`,
   `foreign_keys = ON`, `busy_timeout = 5000`.
 
-## Data model — 7 tables (`src/lib/db/schema.ts`)
+## Data model — 8 tables (`src/lib/db/schema.ts`)
 
 | table | role |
 | --- | --- |
 | `tanks` | core entity; soft delete via `deleted_at`; per-parameter `param_overrides` JSON |
 | `schedules` | the plans (water changes, fertilizing, …); FK → tanks; `active` flag = soft delete |
+| `products` | the inventory: fertilizers and foods the user owns, install-wide (no FK to a tank). Fertilizers carry `nutrients` keyed by the `NUTRIENTS` catalog; soft delete via `deleted_at`, with a partial unique index on live `(kind, name)` |
 | `maintenance_logs`, `water_tests`, `feed_logs` | history; FK → tanks |
 | `ai_calls` | INSERT-only ledger: one row per finished AI call, feeds the daily budget |
 | `app_settings` | key-value store: global settings (`appSettings.v1`), AI provider config (`aiSettings.v1`, **never** the API key), ICS token, MCP token, daily-suggestion cache |
@@ -41,6 +42,11 @@ with bit 0 = Monday (use `localWeekdayIndex()` from `domain/dates.ts`, never
 `tank.water_type`; per-tank `param_overrides` win. (The `freshwaterRanges` /
 `saltwaterRanges` / `defaultActions` rows that `db:seed` writes are legacy
 compat — nothing reads them at runtime.)
+
+**Plans reference a food by NAME, not by id** (`detailData.foods` is keyed by
+the product name). That is what let migration `0007` lift `tanks.foods` into
+`products` without touching a single plan — and why renaming a product
+re-keys ACTIVE plans (`updateProductCore`) while history keeps the old name.
 
 **Foreign keys have no cascade.** Manual deletes must go children-first:
 `feed_logs → water_tests → maintenance_logs → schedules → tanks`.
@@ -94,7 +100,8 @@ compat — nothing reads them at runtime.)
   endpoint is bearer-gated via the `mcpToken` in `app_settings` (shown/rotated
   under *More*); missing/wrong token → **404**, never 401; failure-only rate
   limit 30/h/IP.
-- Read tools expose tank state and recent water tests. Write tools
+- Read tools expose tank state, recent water tests and the product inventory
+  (`get_products`). Write tools
   (`add_water_test`, `log_maintenance`, `snooze_task`) reuse the exact same
   cores as the Server Actions (`repo.ts`) and set `source: 'mcp'`. **Nothing
   can be deleted or rewritten remotely.** `ask_coach` shares the coach budget
@@ -115,8 +122,9 @@ compat — nothing reads them at runtime.)
 - **Endpoint groups:** `tanks` (list/CRUD, per-tank `status`, `actions`
   history, `feedings`, `water-tests`), `schedules` (list/create, get/
   patch/delete, `done`/`snooze`/`undo`), `water-tests` (create, patch/
-  delete), read-only `tasks` + `water-parameters`, and `POST /actions` as
-  the generic event sink.
+  delete), `products` (list/create, get/patch/delete — the inventory,
+  install-wide so there is no tank in the path), read-only `tasks` +
+  `water-parameters`, and `POST /actions` as the generic event sink.
 - **Standard-events catalog:** `actionType` on `POST /api/v1/actions` must
   be one of `LOGGABLE_ACTION_TYPES` from `src/lib/domain/action-types.ts`
   — the single source of truth shared by schedules, logs, UI, MCP and this

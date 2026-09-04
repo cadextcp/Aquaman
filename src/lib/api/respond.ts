@@ -25,7 +25,9 @@ const STATUS_BY_CODE: Partial<Record<ErrorCode, number>> = {
   "tank.notFound": 404,
   "schedule.notFound": 404,
   "waterTest.notFound": 404,
+  "product.notFound": 404,
   "schedule.duplicateType": 409,
+  "product.duplicateName": 409,
 };
 
 /**

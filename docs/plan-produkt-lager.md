@@ -1,10 +1,10 @@
 # Plan — Produkt-Lager (Dünger & Futter)
 
-> **Status: Stufe 1 und 2 gebaut, Stufe 3 offen.** Die drei Grundsatzfragen
-> sind entschieden (siehe unten). Stufe 1 (Lager, Migration `0007`,
-> `/inventory`, MCP-Lesetool, Export-Format 2) und Stufe 2 (Abgleich,
-> Coverage-Streifen, Coach-Kontext) stehen; offen ist nur noch Stufe 3
-> (REST-Routen + OpenAPI, §9). PRD (`PRD-Aquaman-MVP.md`) und Tech Design
+> **Status: vollständig umgesetzt.** Alle drei Stufen (§9) sind gebaut: Lager
+> mit Migration `0007`, Abgleich samt Coach-Anbindung, REST-Routen und
+> OpenAPI. Dieses Dokument ist damit Bau-Historie, nicht mehr Vorhaben —
+> was gilt, steht im Code und in `docs/How-It-Works.md`.
+> PRD (`PRD-Aquaman-MVP.md`) und Tech Design
 > (`TechDesign-Aquaman-MVP.md`) bleiben unverändert;
 > `agent_docs/project_brief.md` führt das Lager unter *Next (post-1.0)* (§10.1).
 > Erstellt: 2026-09-04 · Basis: `main` @ `43eac64` · Stufe 1 auf App-Version 1.0.0
@@ -127,7 +127,9 @@ export const productInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(600).nullable().optional(),
   defaultDose: z.string().trim().max(30).nullable().optional(),
-  nutrients: z.record(z.enum(NUTRIENT_KEYS), z.string().trim().max(30)).default({}),
+  // partialRecord, nicht record: z.record über ein enum ist in zod 4
+  // EXHAUSTIV und würde alle zwölf Nährstoffe verlangen.
+  nutrients: z.partialRecord(z.enum(NUTRIENT_KEYS), z.string().trim().max(30)).default({}),
 }).refine((p) => p.kind === "fertilizer" || Object.keys(p.nutrients).length === 0,
   { message: "Only fertilizer products carry nutrients" });
 ```
@@ -410,11 +412,28 @@ Plan-Review-Trigger umgehängt.
 wird in der UI **und** vom Coach als Lücke benannt. Eval-Prompt: *„Kann ich
 meinen Düngeplan mit dem, was ich da habe, überhaupt umsetzen?"*
 
-### Stufe 3 — Schnittstellen nachziehen *(Rest)*
+### Stufe 3 — Schnittstellen nachziehen — **ERLEDIGT**
 
-~~Export-Format 2 inkl. v1-Lift~~ (Stufe 1) · REST-Routen `/api/v1/products` +
-OpenAPI · ~~MCP `get_products`~~ (Stufe 1) · `How-It-Works.md` aktualisieren.
-`agent_docs/project_brief.md` ist bereits nachgezogen.
+~~Export-Format 2 inkl. v1-Lift~~ (Stufe 1) · REST-Routen `/api/v1/products`
+(GET/POST) und `/api/v1/products/{id}` (GET/PATCH/DELETE) + OpenAPI ·
+~~MCP `get_products`~~ (Stufe 1) · `How-It-Works.md` und
+`agent_docs/project_brief.md` nachgezogen.
+
+**Zwei Korrekturen unterwegs, beide über das Feature hinaus:**
+
+1. `tankOutSchema` in der OpenAPI führte weiterhin `foods` — seit `0007` gibt
+   es das Feld nicht mehr, der Serializer liefert es auch nicht.
+2. Die abgeleiteten Request-Body-Schemas wurden mit zods **Output**-Seite
+   erzeugt. Das ist für einen Request-Body die falsche Seite: Felder mit
+   `.default()` standen dort als `required`, obwohl ein Client sie weglassen
+   darf, und `additionalProperties: false` behauptete Ablehnung, wo zod
+   unbekannte Schlüssel schlicht verwirft. Jetzt `io: "input"` — nebenbei die
+   einzige Seite, die sich überhaupt darstellen lässt, sobald ein Schema
+   transformiert (`productInputSchema` normalisiert seine Nährstoff-Map).
+
+**Fertig heißt:** `/api/v1/docs` zeigt die Produkt-Endpunkte, ein Client kann
+das Lager vollständig über die API pflegen, und `tests/api-products.test.ts`
+nagelt Gate, Statuscodes und das `renamedPlans`-Verhalten fest.
 
 **Fertig heißt:** Export → frische Instanz → Import ergibt identischen
 Datenstand, inklusive Lager; ein v1-Backup verliert kein Futter.

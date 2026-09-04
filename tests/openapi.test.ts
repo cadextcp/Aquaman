@@ -21,6 +21,11 @@ const ROUTES = [
   { method: "POST", path: "/water-tests" },
   { method: "PATCH", path: "/water-tests/{id}" },
   { method: "DELETE", path: "/water-tests/{id}" },
+  { method: "GET", path: "/products" },
+  { method: "POST", path: "/products" },
+  { method: "GET", path: "/products/{id}" },
+  { method: "PATCH", path: "/products/{id}" },
+  { method: "DELETE", path: "/products/{id}" },
   { method: "GET", path: "/water-parameters" },
   { method: "GET", path: "/schedules" },
   { method: "POST", path: "/schedules" },
@@ -57,12 +62,26 @@ describe("buildOpenApiDocument", () => {
     }
   });
 
+  it("does not mark defaulted fields as required — a client need not send plants or hasCo2", () => {
+    const tankInput = doc.components.schemas.TankInput as { required?: string[] };
+    expect(tankInput.required ?? []).not.toContain("plants");
+    expect(tankInput.required ?? []).not.toContain("hasCo2");
+    expect(tankInput.required ?? []).toContain("name");
+  });
+
   it("request-body schemas are the SAME zod schemas the routes validate with, not hand copies", async () => {
     const { tankInputSchema } = await import("../src/lib/schemas");
     const { z } = await import("zod");
     const fromDoc = doc.components.schemas.TankInput as { properties: Record<string, unknown> };
-    const fromSchema = z.toJSONSchema(tankInputSchema) as { properties: Record<string, unknown> };
+    // io: "input" — a request body describes what a client SENDS, which is
+    // also the only side representable once a schema transforms (ProductInput).
+    const fromSchema = z.toJSONSchema(tankInputSchema, { io: "input" }) as { properties: Record<string, unknown> };
     expect(Object.keys(fromDoc.properties).sort()).toEqual(Object.keys(fromSchema.properties).sort());
+
+    const { productInputSchema } = await import("../src/lib/schemas");
+    const productDoc = doc.components.schemas.ProductInput as { properties: Record<string, unknown> };
+    const productSchema = z.toJSONSchema(productInputSchema, { io: "input" }) as { properties: Record<string, unknown> };
+    expect(Object.keys(productDoc.properties).sort()).toEqual(Object.keys(productSchema.properties).sort());
   });
 });
 

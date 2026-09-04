@@ -6,14 +6,20 @@
  * GET /api/v1/docs.
  */
 import { z } from "zod";
-import { tankInputSchema, scheduleInputSchema, waterTestInputSchema, snoozeInputSchema } from "@/lib/schemas";
+import { tankInputSchema, scheduleInputSchema, waterTestInputSchema, snoozeInputSchema, productInputSchema } from "@/lib/schemas";
 import { logActionSchema, waterTestUpdateSchema } from "@/lib/repo";
 import { APP_VERSION } from "@/lib/version";
 
 type JsonSchema = Record<string, unknown>;
 
+/**
+ * Every schema derived here describes a REQUEST BODY, so the INPUT side is
+ * what a client needs — what it may send, before any transform runs. Zod's
+ * default is the output side, which additionally cannot be represented at all
+ * once a field transforms (productInputSchema normalises its nutrient map).
+ */
 function schema(s: z.ZodType): JsonSchema {
-  const js = z.toJSONSchema(s) as JsonSchema;
+  const js = z.toJSONSchema(s, { io: "input" }) as JsonSchema;
   delete js.$schema;
   return js;
 }
@@ -53,7 +59,6 @@ const tankOutSchema: JsonSchema = {
     waterType: { type: "string", enum: ["fresh", "salt"] },
     plants: { type: "array", items: { type: "object" } },
     fish: { type: "array", items: { type: "object" } },
-    foods: { type: "array", items: { type: "object" } },
     hasCo2: { type: "boolean" },
     hasHeater: { type: "boolean" },
     hasFilter: { type: "boolean" },
@@ -81,6 +86,24 @@ const scheduleOutSchema: JsonSchema = {
     endsOn: { type: ["string", "null"], format: "date" },
     scheduleVersion: { type: "integer" },
     active: { type: "boolean" },
+  },
+};
+
+const productOutSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    id: { type: "integer" },
+    kind: { type: "string", enum: ["fertilizer", "food"] },
+    name: { type: "string" },
+    description: { type: ["string", "null"], description: "Label notes; also what the AI coach reads" },
+    nutrients: {
+      type: "object",
+      additionalProperties: { type: "string" },
+      description:
+        "Fertilizers only: nutrient key -> declared content as free text (\"0.2 %\"). An empty string means contained but not quantified — the KEY is what a fertilize plan is compared against. Keys come from the nutrient catalog (see /water-parameters' sibling catalog in the app: c_co2, n_no3, p_po4, k, mg, ca, fe, mn, zn, b, mo, cu).",
+    },
+    defaultDose: { type: ["string", "null"], description: "Suggested dose, free text (\"10 ml\", \"1 pinch\")" },
+    createdAt: { type: "string", format: "date-time" },
   },
 };
 
@@ -118,6 +141,8 @@ const componentSchemas: Record<string, JsonSchema> = {
   WaterTestUpdateInput: schema(waterTestUpdateSchema),
   ActionInput: schema(logActionSchema),
   Log: logOutSchema,
+  ProductInput: schema(productInputSchema),
+  Product: productOutSchema,
   FeedingInput: {
     type: "object",
     properties: {
@@ -241,6 +266,53 @@ const paths: Record<string, JsonSchema> = {
       responses: { 204: { description: "Deleted" }, 404: NOT_FOUND },
     },
   },
+  "/products": {
+    get: {
+      summary: "List inventory products (the fertilizers and foods the user owns)",
+      tags: ["Products"],
+      parameters: [
+        {
+          name: "kind",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["fertilizer", "food"] },
+          description: "Restrict to one kind; anything else is a 400",
+        },
+      ],
+      responses: { 200: jsonOk("Products", undefined), 400: BAD_REQUEST },
+    },
+    post: {
+      summary: "Add a product to the inventory",
+      tags: ["Products"],
+      requestBody: jsonBody("ProductInput"),
+      responses: { 201: jsonOk("Created", undefined), 400: BAD_REQUEST, 409: errorResponse("A live product of that kind already has this name") },
+    },
+  },
+  "/products/{id}": {
+    parameters: [idParam("id", "Product id")],
+    get: {
+      summary: "Get one product",
+      tags: ["Products"],
+      responses: { 200: jsonOk("Product", "Product"), 404: NOT_FOUND },
+    },
+    patch: {
+      summary:
+        "Update a product (full replace of the editable fields, same shape as create). Renaming also re-keys the product in ACTIVE plans' detailData and reports how many were touched as `renamedPlans`; history is left as it was.",
+      tags: ["Products"],
+      requestBody: jsonBody("ProductInput"),
+      responses: {
+        200: jsonOk("Updated", undefined),
+        400: BAD_REQUEST,
+        404: NOT_FOUND,
+        409: errorResponse("A live product of that kind already has this name"),
+      },
+    },
+    delete: {
+      summary: "Soft-delete a product (products.deletedAt; plans and history keep rendering, and the name becomes reusable)",
+      tags: ["Products"],
+      responses: { 204: { description: "Deleted" }, 404: NOT_FOUND },
+    },
+  },
   "/water-parameters": {
     get: {
       summary: "Known water-test parameter keys and target ranges, per water type",
@@ -341,6 +413,7 @@ export function buildOpenApiDocument(baseUrl: string): JsonSchema {
       { name: "Actions", description: "Point-in-time maintenance history" },
       { name: "Feedings", description: "Daily feed count, not a schedule" },
       { name: "Water tests" },
+      { name: "Products", description: "The fertilizers and foods the user owns — install-wide, not per tank" },
     ],
     components: {
       securitySchemes: {
