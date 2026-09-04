@@ -23,11 +23,26 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # --no-audit is not a shortcut: `npm ci` runs an audit of its OWN at the
+      # end, against the same retiring endpoint as the step below. On 2026-09-04
+      # that turned a 7-second install into a 6-minute one (runs #72/#73) — the
+      # packages were in place at 09:28:40, the step ended at 09:34:36.
+      - run: npm ci --no-audit --no-fund
       # Audit visibility (issue #13): log-only, does not block the build —
-      # triage findings in a follow-up instead of freezing development
+      # triage findings in a follow-up instead of freezing development.
+      #
+      # Capped at 2 minutes: npm posts this to /-/npm/v1/security/audits/quick,
+      # which npm itself now answers with "This endpoint is being retired. Use
+      # the bulk advisory endpoint instead" — it stalls ~5 minutes and then
+      # returns 400 "Invalid package tree" — plausibly over this repo's
+      # `overrides` block, though that part is unverified. So the step is
+      # currently red anyway, just hidden by continue-on-error; the cap stops it
+      # from setting this pipeline's runtime. GitHub's Dependabot alerts are the
+      # standing safety net while it is. Drop the cap once npm's bulk endpoint
+      # is what npm reaches for here.
       - run: npm audit --audit-level=high
         continue-on-error: true
+        timeout-minutes: 2
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
