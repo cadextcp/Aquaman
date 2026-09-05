@@ -1,11 +1,22 @@
 # Plan — Coach-Prompts anpassbar (Editor unter „Mehr")
 
-> **Status: geplant** (noch nichts gebaut). Erstellt: 2026-09-05 ·
-> Basis: `main` @ `e15cf09` · App-Version 1.0.0.
+> **Status: gebaut** (2026-09-05, live verifiziert — unten). Erstellt:
+> 2026-09-05 · Basis: `main` @ `e15cf09` · App-Version 1.0.0.
 > Owner-Vorgabe: Bereich unter „Mehr", standardmäßig zusammengeklappt, pro
 > Prompt die Verwendung erklärt, einfügbare Variablen (mindestens die heute
 > genutzten), Prompt-Test — und ein Test kann niemals echte Änderungen
-> durchführen.
+> durchführen. Owner-Entscheidungen vor dem Bau: Guardrail-Anhang fix
+> („1. passt") und feedingPlanDraft bleibt dabei („2. ja").
+
+**Live verifiziert am 2026-09-05** (Browser, echter Provider): Testpanel mit
+TEST-Badge + ehrlicher Kostenzeile, Antwort am echten Tank-Kontext geerdet,
+ein Proposal kam als inertes JSON ohne Bestätigen-Knopf zurück. Ein als
+Piraten-Kapitän umgeschriebener Chat-Prompt wurde ungespeichert getestet,
+gespeichert („angepasst"-Badge, überlebt Reload) — und der echte /coach
+antwortete mit „Arr, here's one, captain" bei korrekt geerdeten Fakten
+(2-Minuten-Regel, 8 Guppys, Fastentag). Reset entfernte den Override.
+Nebeneffekt mitgebaut: MCP `ask_coach` nutzt jetzt denselben Resolver und
+bekam damit erstmals die Sprach-Direktive.
 
 **Das Problem in einem Satz:** Ton, Schwerpunkte und Nachdrücklichkeit des
 Coachs sind in vier System-Prompts hartkodiert — wer den Coach „knapper",

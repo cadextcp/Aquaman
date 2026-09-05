@@ -95,6 +95,15 @@ re-keys ACTIVE plans (`updateProductCore`) while history keeps the old name.
   write path for AI proposals. It re-validates the proposal against live data
   at write time and applies changes partially (one stale id doesn't block the
   rest). The AI never writes on its own.
+- **User-editable prompts** (`docs/plan-prompt-anpassung.md`): the four coach
+  system prompts live in a registry (`src/lib/ai/prompts.ts`) — default text
+  unless an override is stored in `appSettings` (`promptOverrides.v1`),
+  placeholders `{{context}}`/`{{plan_types}}` substituted per call, then a
+  FIXED guardrail appendix and the language directive. The editor sits
+  collapsed under *More*; its test endpoint (`/api/more/prompts/test`) runs
+  real calls (purpose `prompt_test`, own rate limit) whose results render
+  read-only — no write affordance exists there on purpose. Tool contracts
+  and the product-import prompt are deliberately NOT editable.
 - Coach answers render as markdown in the chat bubbles (react-markdown +
   `remark-gfm` for tables + `remark-breaks` so plain-prose answers keep their
   line structure). No `rehype-raw`: model output stays escaped text, never
