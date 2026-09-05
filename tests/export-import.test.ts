@@ -44,6 +44,7 @@ async function seedRichState() {
       plants: [{ name: "Vallisneria", qty: 5 }], fish: [{ species: "Guppy", qty: 12 }],
       hasCo2: true, hasHeater: true, hasFilter: true, filterType: "canister",
       tankState: "established", paramOverrides: { no3: { max: 20 } },
+      feedingPlan: "**Mo/Do:** Flocken\n**Sa:** Fastentag",
     })
     .returning()
     .get();

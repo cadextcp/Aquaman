@@ -79,6 +79,8 @@ export const tankRowSchema = z.object({
   hasFilter: z.boolean(),
   filterType: z.string().max(60).nullable(),
   tankState: z.enum(["cycling", "established"]),
+  // Free-text feeding plan (0009) — optional so pre-0009 exports stay importable.
+  feedingPlan: z.string().max(4000).nullable().optional(),
   // Format 1 only (v0.3–v1.0): the food list used to live on the tank. The
   // column is gone since migration 0007, so this is read on import purely to
   // lift the names into `products` — never written back to `tanks`.
