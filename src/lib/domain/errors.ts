@@ -69,6 +69,14 @@ export const ERROR_CODES = [
   // so an unreadable or oversized file costs zero tokens (plan §10).
   "productImport.imageTooLarge",
   "productImport.unsupportedImage",
+  // "Suggest a feeding plan" button on the tank page. Same split logic as
+  // productImport: the UI reacts differently per code, and the rate limit is
+  // the route's own, not the shared AI budget's.
+  "feedingPlan.tankNotFound",
+  "feedingPlan.aiOffline",
+  "feedingPlan.limitReached",
+  "feedingPlan.rateLimited",
+  "feedingPlan.draftFailed",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
