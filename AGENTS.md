@@ -83,6 +83,7 @@ documents that get read every session anyway:
 ### AI
 
 - Provider is Anthropic-compatible but NOT necessarily Anthropic: `AQUAMAN_AI_BASE_URL` may point at z.ai. Never hardcode `api.anthropic.com`. **Verify current z.ai compatibility before build start (research data from Feb 2026).**
+- **AI settings from *More* override the env — ALL of them, not just key/base URL**: `aiSettings.v1` also carries `maxCallsPerDay`/`maxTokensPerDay`, and `getAiConfig()` lets the stored values win over `AQUAMAN_AI_MAX_*`. Bumping the env var on a box that has configured AI in the UI does nothing (bit exactly this during verification on 2026-09-05).
 - Structured output (calendar proposals) only via tool-use + zod — never parse free-text JSON; malformed → reject, never repair.
 - Streaming cost counting: read `usage` from the FINAL stream event, otherwise you count zero tokens.
 - Cost ceiling is two-tier: `AQUAMAN_AI_MAX_CALLS_PER_DAY` AND `AQUAMAN_AI_MAX_TOKENS_PER_DAY` — enforce both; reset at local midnight (`AQUAMAN_TIMEZONE`).
@@ -115,6 +116,7 @@ documents that get read every session anyway:
   `action.*` / `param.* `/ `nutrient.*` for people. Write failures carry a
   `code` (`lib/domain/errors.ts`) next to the English `error`: the UI translates
   the code, the API keeps serving the message.
+- **react-markdown does NOT render tables (or strikethrough) without `remark-gfm`** — a coach proposal with a markdown table shipped as raw pipe text until the plugin was added (owner report, 2026-09-05). Every markdown surface (coach chat bubbles, feeding-plan view) must pass `remarkPlugins={[remarkGfm, remarkBreaks]}` and never `rehype-raw` (model output stays escaped text, never HTML).
 - Beware `const t = todayStr()` — a local `t` shadows the translator and has done
   so on three pages already.
 - `.claude/skills/` is canonical; `.agents/skills/` mirrors it — update BOTH or only `.claude` and sync, never let them drift.

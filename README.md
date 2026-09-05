@@ -15,10 +15,12 @@ and an ICS calendar feed for Google Calendar.
 - **Flexible scheduling** ⭐ — intervals + preferred weekdays (e.g. weekends only), snooze in one tap, auto-reschedule that keeps a **clean plan without ever hiding your honest backlog** (stress-week friendly by design)
 - **Water parameters** — full test suite with target bands; free ammonia (NH₃) computed from NH₄ + pH + temperature (Emerson 1975) and evaluated against fish-toxic thresholds
 - **Calendar & ICS feed** — in-app month view + subscribable feed for Google Calendar; stable event identities (snooze moves an event instead of duplicating it)
-- **AI coach** — tank-aware advice and schedule proposals via any Anthropic-compatible API (z.ai GLM or Claude); every proposal lands behind an **approval gate** — the AI never writes on its own; two-tier daily cost ceiling (calls + tokens); the app is **fully functional without any AI key**
+- **AI coach** — tank-aware advice and schedule proposals via any Anthropic-compatible API (z.ai GLM or Claude); answers render as **markdown** (lists, tables, bold); every proposal lands behind an **approval gate** — the AI never writes on its own; two-tier daily cost ceiling (calls + tokens); the app is **fully functional without any AI key**
 - **Daily habits** — feeding as a one-tap checkbox (no calendar spam)
+- **Feeding plan per tank** — free-text markdown for what to feed on which days (tables welcome). One button has the coach draft it, grounded in your shelf and using its **exact product names** — the draft opens in the editor, and nothing is saved until you press Save. In `/coach` the plan can be reviewed and rewritten through the same approval gate as schedules
 - **Product shelf** — the fertilizers and foods you actually own, in one place. A fertilizer's declared nutrients are matched against your fertilize plan, so a nutrient no product on the shelf supplies shows up as a gap instead of a surprise
 - **Add a product from a link** ⭐ — paste a shop or manufacturer URL and the app reads the page and fills the form in: name, a compressed description with the declared analysis, dosing, and the nutrient ticks. It keeps the numbers as printed, drops the marketing, and says what the page did *not* state rather than inventing it. Nothing is saved until you press Save. If a shop blocks automatic retrieval — many do — paste the text instead, which also works with only the tin in your hand
+- **…or from a label photo** ⭐ — photograph the front or back of the bottle: the app downscales the picture, has the coach read the declared analysis off it, and fills the same form. The photo is analysed and immediately discarded — **never stored**
 - **Statistics** — monthly care activity, median care delay, "interval too tight?" indicators, AI usage/cost retrospective
 - **Export / import** — all data as JSON, secrets never included. Your data is yours.
 - **MCP endpoint** — remote agents (e.g. OpenClaw) read tank state and record care via the Model Context Protocol at `/api/mcp`; fully bearer-token gated (token shown/rotated under *More*), write tools can log care but **nothing can be deleted or rewritten remotely**, `ask_coach` shares the in-app AI budget
@@ -30,7 +32,7 @@ and an ICS calendar feed for Google Calendar.
 
 ```bash
 # 1. Get the code
-git clone https://github.com/cadextcp/aquaman.git && cd aquaman
+git clone https://github.com/cadextcp/Aquaman.git && cd Aquaman
 
 # 2. Configure (optional — works without AI keys)
 cp .env.example .env   # edit if you want AI features

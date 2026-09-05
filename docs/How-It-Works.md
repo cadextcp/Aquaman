@@ -26,7 +26,7 @@
 
 | table | role |
 | --- | --- |
-| `tanks` | core entity; soft delete via `deleted_at`; per-parameter `param_overrides` JSON |
+| `tanks` | core entity; soft delete via `deleted_at`; per-parameter `param_overrides` JSON; free-text `feeding_plan` markdown (prose — deliberately NOT a schedule, see the feeding-plan section) |
 | `schedules` | the plans (water changes, fertilizing, …); FK → tanks; `active` flag = soft delete |
 | `products` | the inventory: fertilizers and foods the user owns, install-wide (no FK to a tank). Fertilizers carry `nutrients` keyed by the `NUTRIENTS` catalog; soft delete via `deleted_at`, with a partial unique index on live `(kind, name)` |
 | `maintenance_logs`, `water_tests`, `feed_logs` | history; FK → tanks |
@@ -83,16 +83,42 @@ re-keys ACTIVE plans (`updateProductCore`) while history keeps the old name.
   bubble). The z.ai path additionally sends `thinking: {type: "disabled"}`
   (their Anthropic-compat layer accepts it, verified live; api.anthropic.com
   would reject that shape, so it is gated to z.ai base URLs).
-- The `propose_schedule` tool schema mirrors the zod schema's required fields
-  (`kind, intervalDays, tankId, actionType, preferredDays`) — pinned by
-  `tests/proposal-schema.test.ts`. A drift between the two schemas made the
-  model omit `preferredDays` and every create-proposal failed validation.
+- The `propose_schedule` tool schema mirrors the zod schema's per-kind
+  required fields — `intervalDays` deliberately lives in the create/adjust
+  branches only, because `kind=set_feeding_plan` (a full feeding-plan
+  rewrite) has no interval — pinned by `tests/proposal-schema.test.ts`. A
+  drift between the two schemas made the model omit `preferredDays` and every
+  create-proposal failed validation.
 - `/api/coach`: POST-only NDJSON stream; guards run **before** any provider
   call (503 unconfigured, 429 over budget); failure-only rate limit 30/h/IP.
 - **Approval gate:** `applyProposal` (`src/app/actions-ai.ts`) is the only
   write path for AI proposals. It re-validates the proposal against live data
   at write time and applies changes partially (one stale id doesn't block the
   rest). The AI never writes on its own.
+- Coach answers render as markdown in the chat bubbles (react-markdown +
+  `remark-gfm` for tables + `remark-breaks` so plain-prose answers keep their
+  line structure). No `rehype-raw`: model output stays escaped text, never
+  HTML.
+
+## Feeding plan (per tank, markdown)
+
+`tanks.feeding_plan` holds the owner's free-text feeding regime — which food
+on which days, fasting days, portion rules. Design and rationale:
+`docs/plan-fuetterungsplan.md`. Two things it deliberately is NOT:
+
+- **Not a schedule.** Feeding is the daily counter (`feed_logs`); a feeding
+  *plan* as a schedule row was removed by migration `0006` as unsatisfiable
+  by construction. This text never ticks anything off, never reaches the ICS
+  feed, and `missedSlots()` never counts it.
+- **Not AI-written.** Two coach surfaces, both gated: the "Suggest a feeding
+  plan" button (`POST /api/feeding-plan/draft` → `lib/ai/feeding-plan-draft.ts`,
+  one tool call grounded in the tank's coach context) drops a draft into the
+  EDITOR — the manual Save is the approval; and in `/coach`,
+  `kind=set_feeding_plan` proposals go through the normal `applyProposal`
+  gate with an editable card. Both must name foods by their EXACT shelf names
+  (owner-reported bug: "Granulat" was unmappable). One write path for humans
+  and AI alike: `setTankFeedingPlanCore` (`repo.ts`), deliberately outside
+  `tankInputSchema` so the full-replace profile edit can't wipe the field.
 
 ## MCP endpoint (v0.4.0 — for OpenClaw & co.)
 
@@ -145,8 +171,10 @@ re-keys ACTIVE plans (`updateProductCore`) while history keeps the old name.
 ## Product import (`/api/inventory/import`)
 
 Adding a product to the shelf used to mean distilling a label or a shop page
-into four fields by hand. The create form now opens with a URL row; the result
-is a DRAFT in the form fields, and a person still presses Save.
+into four fields by hand. The create form now opens with a **photo** row (the
+bottle is usually in the hand while the shelf is where the typing happens);
+link and pasted text sit beside it as switches. The result is a DRAFT in the
+form fields, and a person still presses Save.
 Design and rationale: `docs/plan-produkt-import-url.md`.
 
 The chain, in this order on purpose:
@@ -154,6 +182,9 @@ The chain, in this order on purpose:
 ```
 URL ─▶ url-guard ─▶ fetch-page ─▶ extract ─▶ budget ─▶ model ─▶ zod ─▶ form fields
        (SSRF)       (403/timeout) (thin?)    (limit)                    (human saves)
+
+photo ──────────▶ prepare-image ─▶ budget ─▶ model ─▶ zod ─▶ form fields
+                  (decode+downscale) (limit)                   (human saves)
 ```
 
 Everything before the model is decided without spending a token, so a blocked
@@ -164,7 +195,8 @@ shop or a JavaScript shell can never turn into an invented product. Modules:
 | `lib/import/url-guard.ts` | Scheme, credentials, local suffixes, and every private/loopback/link-local/CGNAT range — in v4, v6 and v4-mapped-v6 spellings. Resolves DNS and rejects if ANY answer is private |
 | `lib/import/fetch-page.ts` | 8 s, 2 MB, HTML only, 3 hops. Redirects are followed **manually** so each hop is re-checked by the guard |
 | `lib/import/extract.ts` | HTML → ~3 k characters of product text (measured: 197 KB of one shop, 85 KB of another). Noise stretches close on the next wanted heading, because one shop prints "similar products" above the description |
-| `lib/ai/product-draft.ts` | One tool (`draft_product`), the editorial rules, zod. `kind` is an input, so a food page cannot come back carrying nutrients |
+| `lib/import/prepare-image.ts` | The photo path: type judged by DECODING (never name/Content-Type), 5 MB byte cap, 120 MP pixel cap against decompression bombs, EXIF-aware downscale to 1200 px — measured: the phone original cost 5× the tokens AND drafted worse. HEIC decodes via sharp |
+| `lib/ai/product-draft.ts` | One tool (`draft_product`), the editorial rules, zod. `kind` is an input, so a food page cannot come back carrying nutrients. `draftProductFromImage` sends the prepared JPEG as an image block next to the same tool contract; the debug log swaps the base64 for its size so one call can't drop megabytes into SQLite |
 
 **This is the app's only outbound HTTP call** other than the AI provider —
 see `SECURITY.md`.
@@ -183,7 +215,10 @@ to something typed by hand.
 
 The paste fallback takes the same path minus fetch and extraction. It exists
 because shops block server-side retrieval often, and because a tin in your
-hand has no URL at all.
+hand has no URL at all. The photo path also skips the fetch (no outbound
+request → no SSRF surface) and never writes the image anywhere: decode,
+downscale, send, discard — there is no upload folder and no DB column, and
+`source_url` stays empty because a photo has no verifiable source.
 
 ## Security model
 

@@ -57,3 +57,11 @@
 - Tool/action check: `propose_schedule` → zod-validated JSON renders in approval UI; DB unchanged until confirm; after confirm schedule exists and ICS reflects it
 - Data check: API keys, tokens, `.env` values never appear in coach answers or logs; `aiCalls` contains only counters/cost estimates
 - Language check: with the app set to German, an ENGLISH question must still get a German answer (the directive in `lib/ai/language.ts` overrides the question's language); suggestion chips and the plan-review summary follow the setting too, and switching language discards cached chips instead of showing them in the wrong one
+
+## AI Checks — feeding plan & product import (post-1.0)
+
+- Shelf with foods (e.g. "sera Flora Nature", "Artemia Frostfutter") + tank with fish → "Suggest a feeding plan" button: the draft must use those EXACT names on every feeding day and in the table. A generic word on a feeding day ("Granulat", "flakes") is a FAIL (owner-reported bug, 2026-09-05). The draft opens in the editor and the DB is unchanged until Save
+- Fishless tank (`fish: NONE` in context) → suggest button: an honest "plants-only tank is not fed" plan, NOT a feeding schedule for fish; coach chat: no `set_feeding_plan` proposing livestock-dependent feeding
+- Coach chat: "review my feeding plan and propose a better version" → `kind=set_feeding_plan` proposal card (editable textarea, whole-plan replacement), `tanks.feeding_plan` unchanged before confirm, updated after
+- Label photo: a rendered label photo → correct draft with decimal commas as printed; blurry/no-product photo → refusal (`noProduct`), zero invented data; garbage bytes → 422 before any provider call
+- Markdown surfaces: coach chat answers and the feeding-plan view render markdown (tables, lists, bold) — no raw pipes or asterisks visible in either language

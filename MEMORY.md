@@ -15,14 +15,12 @@ manages its own memory automatically — this file serves other agents and human
   data `/mnt/nvda/Aquaman`, host port 3100. Architecture + deploy runbook:
   `docs/How-It-Works.md`. Deploy order is **pull → hot backup → recreate** —
   do not stop the container to back it up, see the runbook for why.
-- **Next:** deploy the label-photo import (stage 3) — it is merged to `main`
-  and live-smoke-tested on 2026-09-05: a rendered oversized label (1600 px,
-  real provider `glm-5.3-flash`, one call, ~10 s) came back as a clean draft
-  with decimal commas intact, catalog-only nutrient keys and honest notes;
-  garbage bytes got 422 `unsupportedImage` before any token was spent; the
-  debug-log kept the request trace at ~5 kB (base64 swapped for its size).
-  Photo is the default import tab, link and pasted text stay beside it (owner
-  decision); the photo is downscaled to 1200 px and never stored.
+- **Next: deploy the post-1.0 stack to the NAS** (Runbook in
+  `docs/How-It-Works.md`: pull → hot backup → recreate; migrations `0009`
+  applies on boot). Three features are merged, verified and image-built but
+  not yet in production: the label-photo import (stage 3), the per-tank
+  feeding plan with the suggest button and exact-shelf-names contract, and
+  markdown rendering in the coach chat.
 - **Housekeeping on the NAS:** backups accumulate in `/mnt/nvda/` and are safe
   to delete once a production state is trusted.
 
@@ -114,10 +112,13 @@ manages its own memory automatically — this file serves other agents and human
       end-to-end against the real provider: edit/save/rendered markdown on
       the tank page, coach review proposing `set_feeding_plan` with an
       editable approval card, "Applied: new feeding plan for tank 1" wrote
-      the DB. Bonus verification: on a fishless tank the coach correctly
-      made NO feeding proposal (the fish:NONE guard held) and proposed a
-      "no feeding" plants-only plan instead. Deploy pending together with
-      the photo import.
+      the DB. Follow-ups the same day, all live-verified: the "Suggest a
+      feeding plan" button (draft lands in the editor, the manual Save is
+      the gate), the exact-shelf-names contract for every AI-written plan,
+      GFM tables (remark-gfm) and markdown coach-chat answers
+      (remark-breaks). Bonus verification: on a fishless tank the coach made
+      NO feeding proposal (the fish:NONE guard held). Deploy pending
+      together with the photo import.
 - [x] Label-photo import, stage 3 (`docs/plan-produkt-import-url.md` §10) —
       merged to `main` 2026-09-05, live-smoke-tested, deploy pending
 - [x] Product inventory (`docs/plan-produkt-lager.md`, migration `0007`) — shipped, in production

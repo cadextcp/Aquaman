@@ -11,7 +11,7 @@ Thanks for considering a contribution! 🐠
 ## Development setup
 
 ```bash
-git clone https://github.com/cadextcp/aquaman.git && cd aquaman
+git clone https://github.com/cadextcp/Aquaman.git && cd Aquaman
 npm ci
 npm run db:ensure   # migrate + create data/aquaman.db
 npm run db:seed     # default actions + water ranges

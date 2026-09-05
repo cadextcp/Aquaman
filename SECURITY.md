@@ -29,7 +29,11 @@ model has exactly two layers — both are required:
    - `GET /api/calendar.ics?t=<token>` — ICS feed (Google Calendar). Invalid
      token → **404** (existence is not confirmed), 30 failed attempts/IP/h → 429.
    - `/api/coach` — AI chat endpoint, POST-only, failure-rate-limited, and
-     guarded by the two-tier daily AI budget (calls AND tokens).
+     guarded by the two-tier daily AI budget (calls AND tokens). The other
+     unauthenticated-but-capped AI/form endpoints are the same class:
+     `/api/inventory/import` (10/IP/h) and `/api/feeding-plan/draft`
+     (10/IP/h) — both share the daily AI budget and never write; their result
+     is a draft a person must save.
 
 Everything else (tanks, water tests, schedules) assumes the reverse proxy
 did its job. If the app is reachable without auth, an attacker can read and
@@ -42,6 +46,9 @@ modify all data — that is the documented trade-off of v1 (see README).
   sent to the model.
 - AI output is untrusted: it renders as text and can only write through
   `applyProposal` (zod-validated, live-data-checked, explicit user approval).
+  Markdown rendering (coach answers, feeding plan) goes through react-markdown
+  **without** `rehype-raw` — model content stays escaped text and can never
+  become HTML/script.
 - Tokens are generated with `crypto.randomBytes(24)` and compared as
   SHA-256 hashes in constant time (no length leak, no `RangeError` 500s).
 - Uploads (when enabled) are path-normalized with a hard `..`-reject and a
@@ -90,6 +97,25 @@ tool (`draft_product`) and no way to fetch or write, its answer is validated
 by the same zod schema the form uses, and the result only ever lands in form
 fields a person then saves. The approval gate is the boundary — there is no
 path from a web page to the database that does not pass through a human.
+
+## Inbound files (label photo — the app's first file input)
+
+The photo mode of `/api/inventory/import` accepts foreign bytes, which is its
+own small attack surface — none of the URL-guard machinery applies because
+nothing is fetched:
+
+- The type is judged by **decoding** (sharp/libvips), never by file name or
+  declared Content-Type; anything that does not decode is a 422 before a
+  token is spent.
+- Size caps run before anything expensive: 5 MB decoded bytes, and a
+  120-megapixel limit that blunts decompression bombs (a small JPEG may
+  legally expand to enormous dimensions). Route handlers get **no** Next.js
+  body limit (`bodySizeLimit` is Server-Actions-only), so the route's own
+  base64-length cap is the real request-size guard.
+- The image is **never stored**: decode → downscale to ~1200 px → one provider
+  call → discard. No upload folder, no DB column, nothing in backups — and
+  the debug log replaces the base64 payload with its byte size so traces stay
+  kilobytes, not megabytes.
 
 ## AI specifics
 
