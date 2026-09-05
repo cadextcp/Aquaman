@@ -55,6 +55,12 @@ manages its own memory automatically — this file serves other agents and human
   reject every feeding-plan change for lacking an interval it cannot have).
   react-markdown joined the deps for the view (first markdown surface; no
   rehype-raw, HTML stays escaped).
+- 2026-09-05 (Nachtrag): "Suggest a feeding plan" button on the tank page —
+  `draftFeedingPlan` + `POST /api/feeding-plan/draft` drop a coach draft
+  into the EDITOR; the manual Save stays the approval gate (same shape as the
+  product import). Shares the daily AI budget (`feeding_plan_draft`), 10/IP/h.
+  And: react-markdown needs `remark-gfm` for tables — a coach proposal with a
+  GFM table rendered as raw pipe text until the plugin was added.
 - 2026-09-05 MCP writes deliberately do NOT trigger the proactive coach plan
   review — `requestPlanReview()` stays UI-only (`src/app/actions.ts`; the
   cores in `repo.ts` and the MCP tools never call it). Owner decision: an
