@@ -15,6 +15,7 @@ import { NUTRIENTS } from "@/lib/domain/plan-structure";
 import { plansUsingProduct } from "@/lib/domain/inventory";
 import type { Product } from "@/lib/db/schema";
 import { StatusNote } from "./ui/status-note";
+import { ProductImportRow } from "./product-import-row";
 
 type Kind = "fertilizer" | "food";
 
@@ -244,6 +245,21 @@ function ProductForm({ kind, product, onDone }: { kind: Kind; product?: Product;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {/* Creating only — never when editing. A model call must not be able to
+          overwrite fields a person has already corrected (plan §2). */}
+      {!product && (
+        <ProductImportRow
+          kind={kind}
+          onDraft={(draft) => {
+            setName(draft.name);
+            setDescription(draft.description ?? "");
+            setDefaultDose(draft.defaultDose ?? "");
+            setNutrients(kind === "fertilizer" ? draft.nutrients : {});
+            setError(null);
+          }}
+        />
+      )}
+
       <label className="flex flex-col gap-1.5">
         <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
           {t("inventory.name")}

@@ -1,8 +1,15 @@
 # Plan — Produkt-Import per URL (Lager-Entwurf durch den Coach)
 
-> **Status: Vorhaben, nichts gebaut.** Erstellt: 2026-09-05 · Basis: `main` @
-> `4f79f76` · App-Version 1.0.0 · Setzt auf dem umgesetzten Lager auf
-> (`docs/plan-produkt-lager.md`, Migration `0007`).
+> **Status: Stufe 1 gebaut** (§10), Stufen 2 und 3 offen. Erstellt: 2026-09-05 ·
+> Basis: `main` @ `4f79f76` · App-Version 1.0.0 · Setzt auf dem umgesetzten
+> Lager auf (`docs/plan-produkt-lager.md`, Migration `0007`).
+>
+> Zwei Dinge, die erst der Bau gezeigt hat: die Extraktion drückt echte
+> Shop-Seiten auf **3,1–3,3 k Zeichen** (aus 197 KB bzw. 85 KB HTML), deutlich
+> unter dem 12-k-Deckel aus §5 — und ein Import kostet gemessen **~1,6 k
+> Tokens**, nicht die geschätzten 4–5 k. Der GLM-„thinking"-Stolperstein aus
+> `client.ts` gilt auch hier und hat beim ersten Live-Lauf zugeschlagen; die
+> Gegenmaßnahme steht jetzt in `product-draft.ts`.
 
 **Das Problem in einem Satz:** Ein Produkt ins Lager zu legen heißt heute, ein
 Etikett oder eine Shop-Seite von Hand in vier Felder zu destillieren — Name,

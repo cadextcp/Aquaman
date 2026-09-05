@@ -38,6 +38,25 @@ export function recordSuccess(key: string): void {
   failuresByKey.delete(key);
 }
 
+/**
+ * Count EVERY attempt against `max` in the same window, and report whether
+ * this one is over the line.
+ *
+ * The failure-only counters above fit token-gated endpoints, where a valid
+ * request costs nothing and only guessing is abuse. The product import is the
+ * other shape: a *successful* call makes an outbound request and spends AI
+ * budget, so success is exactly what needs capping.
+ */
+export function hitLimit(key: string, max: number, now: number = Date.now()): boolean {
+  const bucket = failuresByKey.get(key);
+  if (freshWindow(bucket, now)) {
+    failuresByKey.set(key, { count: 1, windowStart: now });
+    return false;
+  }
+  bucket!.count++;
+  return bucket!.count > max;
+}
+
 /** Test-only: reset all state. */
 export function __resetRateLimiter(): void {
   failuresByKey.clear();

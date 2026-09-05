@@ -51,6 +51,20 @@ export const ERROR_CODES = [
   "settings.invalid",
   "proposal.invalid",
   "import.failed",
+  // URL import for new inventory products (docs/plan-produkt-import-url.md §7).
+  // Split fine because the UI reacts differently: only the network-shaped
+  // failures offer "paste the text instead"; a blocked address does not.
+  "productImport.invalidUrl",
+  "productImport.blockedAddress",
+  "productImport.unreachable",
+  "productImport.blocked",
+  "productImport.notHtml",
+  "productImport.tooThin",
+  "productImport.noProduct",
+  "productImport.aiOffline",
+  "productImport.limitReached",
+  "productImport.rateLimited",
+  "productImport.draftInvalid",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
