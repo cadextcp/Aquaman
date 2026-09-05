@@ -91,8 +91,14 @@ manages its own memory automatically — this file serves other agents and human
 ## Completed
 
 - [x] Free-text feeding plan per tank (`docs/plan-fuetterungsplan.md`,
-      migration `0009`) — built on `feat/feeding-plan` 2026-09-05, not yet
-      merged/deployed
+      migration `0009`) — merged to `main` 2026-09-05 and browser-verified
+      end-to-end against the real provider: edit/save/rendered markdown on
+      the tank page, coach review proposing `set_feeding_plan` with an
+      editable approval card, "Applied: new feeding plan for tank 1" wrote
+      the DB. Bonus verification: on a fishless tank the coach correctly
+      made NO feeding proposal (the fish:NONE guard held) and proposed a
+      "no feeding" plants-only plan instead. Deploy pending together with
+      the photo import.
 - [x] Label-photo import, stage 3 (`docs/plan-produkt-import-url.md` §10) —
       merged to `main` 2026-09-05, live-smoke-tested, deploy pending
 - [x] Product inventory (`docs/plan-produkt-lager.md`, migration `0007`) — shipped, in production

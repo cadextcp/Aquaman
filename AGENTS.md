@@ -4,7 +4,7 @@
 
 - **What this is:** Self-hosted aquarium care & water tracking app with AI coach, flexible scheduling and ICS calendar feed
 - **Who it is for:** Self-hosting aquarium hobbyists (analytical, dashboard-loving) — primary: owner with 2 freshwater tanks on TrueNAS SCALE
-- **Current phase:** v1.0 shipped (tag `v1.0.0`), plus four features on `main` since: the product inventory (`docs/plan-produkt-lager.md`, migration `0007`), drafting a new inventory product from a URL or pasted label text (`docs/plan-produkt-import-url.md`, stages 1+2, migration `0008`), stage 3 of that plan — the same draft from a label PHOTO (§10, no migration; photo is the default import tab, never stored) — and the free-text per-tank feeding plan (`docs/plan-fuetterungsplan.md`, migration `0009`; markdown on the tank page, coach reads it and proposes rewrites via `set_feeding_plan` through the approval gate). The first two are live in production; the photo import is merged and live-smoke-tested (2026-09-05), deploy pending
+- **Current phase:** v1.0 shipped (tag `v1.0.0`), plus four features on `main` since: the product inventory (`docs/plan-produkt-lager.md`, migration `0007`), drafting a new inventory product from a URL or pasted label text (`docs/plan-produkt-import-url.md`, stages 1+2, migration `0008`), stage 3 of that plan — the same draft from a label PHOTO (§10; photo is the default import tab, never stored) — and the free-text per-tank feeding plan (`docs/plan-fuetterungsplan.md`, migration `0009`; markdown on the tank page, coach reads it and proposes rewrites via `set_feeding_plan` through the approval gate). The first two are live in production; the photo import and the feeding plan are merged and live-verified (2026-09-05), deploy pending
 
 ## Commands
 
