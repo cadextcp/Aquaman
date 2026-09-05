@@ -19,11 +19,18 @@
   - Docker deployment via docker compose (local-only port binding)
   - JSON export/import of all data
   - MCP server + bearer-gated REST API `/api/v1`, i18n (en/de), installable PWA
-- Next (post-1.0):
+- Shipped after v1.0, on `main` and in production:
   - Product inventory: fertilizer & food products with description and nutrient
-    content, compared against the fertilize plan — see `docs/plan-produkt-lager.md`.
-    This supersedes the earlier "no inventory management" scoping: it was ruled
-    out for v1, and v1 has shipped.
+    content, compared against the fertilize plan — `docs/plan-produkt-lager.md`,
+    migration `0007`. This superseded the earlier "no inventory management"
+    scoping: it was ruled out for v1, and v1 had shipped.
+  - Drafting a new inventory product from a shop/manufacturer URL or from
+    pasted label text — `docs/plan-produkt-import-url.md`, migration `0008`
+    for provenance columns.
+- Next (nothing committed):
+  - Stage 3 of the import plan: photograph the label instead of pasting a URL.
+    Feasibility checked 2026-09-05 (the provider does images, and refuses
+    unreadable ones); the work is that this app has no upload path at all yet.
 - Not planned:
   - Sensor integration & real-time data (architecture stays API-first)
   - Multi-user / OIDC auth

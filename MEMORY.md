@@ -5,14 +5,23 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Current State
 
-- Current task: none open — v1 REST API + aquarium wall display shipped, production incident resolved, docs pass done (2026-08-31). Details + deploy recipe: `HANDOFF.md`
-- Current phase: MVP complete through v0.3.0; v0.4.0 = MCP endpoint + coach hardening + v1 REST API (`/api/v1/*`) + standard-events catalog (not yet tagged)
-- **2026-08-30 PRODUCTION LIVE on TrueNAS** (container `ix-aquaman-aquaman-1`, data `/mnt/nvda/Aquaman`, host port 3100); all test data wiped before go-live (backup: `/mnt/nvda/Aquaman-backup-20260830`). Ops runbook + architecture summary: `docs/How-It-Works.md`
-- 2026-08-31 v1 REST API live (PR #52): bearer-gated `/api/v1/*` with OpenAPI at `/api/v1/docs`; ESPHome wall display "display-aquarium" (sister repo `../haDisplay/`) reads tank status via the HA bridge (`V:\packages\aquamon.yaml`, rest sensors + scripts) and logs `water_change`/`fertilize` through `POST /api/v1/actions` — full loop display → HA → API → `maintenance_logs (source:'api')` verified end-to-end
-- 2026-08-31 Production incident RESOLVED: PR #53 (standard-events catalog) deploy crash-looped the container — Dockerfile runner stage was missing `tsconfig.json`, so `tsx` couldn't resolve `@/*` in `migrate.ts`'s graph; fixed by PR #54 (one COPY line), deployed, healthy on revision `b27b8811`
-- Coach hardening (4096 budget, thinking off on z.ai, strict proposal schema) is ON MAIN since `ff4ba66` — earlier "uncommitted" note is obsolete
-- Next step: tag v0.4.0; NAS backups `/mnt/nvda/Aquaman-backup-20260830-2214` + `-20260831-1811` can be deleted once production is trusted
-- Blocked by: Docker Desktop on the Windows dev machine won't start (stale `AppData\Local\Docker\run\dockerInference` socket file; deleting it with Docker fully stopped is the untried first fix) — NAS-side docker engine works fine, builds happen there
+- **Current phase:** `v1.0.0` is tagged and shipped. Two features landed on
+  `main` after it and are live in production: the product inventory
+  (`docs/plan-produkt-lager.md`, migration `0007`) and drafting a new
+  inventory product from a URL or pasted label text
+  (`docs/plan-produkt-import-url.md`, stages 1 and 2, migration `0008`).
+- **Current task:** none open.
+- **Production** (since 2026-08-30): TrueNAS, container `ix-aquaman-aquaman-1`,
+  data `/mnt/nvda/Aquaman`, host port 3100. Architecture + deploy runbook:
+  `docs/How-It-Works.md`. Deploy order is **pull → hot backup → recreate** —
+  do not stop the container to back it up, see the runbook for why.
+- **Next, nothing committed:** stage 3 of the import plan — photograph the
+  label instead of pasting a URL. Feasibility settled on 2026-09-05 (the
+  provider handles images and refuses unreadable ones); the open work is that
+  this app has no upload path at all yet, and the design question of whether a
+  photo replaces the paste fallback or sits beside it.
+- **Housekeeping on the NAS:** backups accumulate in `/mnt/nvda/` and are safe
+  to delete once a production state is trusted.
 
 ## Decisions
 
@@ -54,10 +63,16 @@ manages its own memory automatically — this file serves other agents and human
 ## Known Issues
 
 - docs/research-Aquaman.md contains ~15 editorial artifacts (marked historical, non-authoritative); PRD v1.2 + TechDesign v1.1 supersede it
-- z.ai Anthropic-compat: last verified Feb 2026 — re-verify before build start
+- z.ai Anthropic-compat (`glm-5.3-flash`): re-verified live 2026-09-05 — tool
+  use, and image blocks alongside tools, both work. Two standing quirks: the
+  provider bills its `thinking` block against `max_tokens` (disable thinking
+  and give it room, see `lib/ai/client.ts` and `lib/ai/product-draft.ts`), and
+  a large image is both far more expensive and *worse* than a downscaled one.
 
 ## Completed
 
+- [x] Product inventory (`docs/plan-produkt-lager.md`, migration `0007`) — shipped, in production
+- [x] Product import from URL or pasted label text, stages 1+2 (`docs/plan-produkt-import-url.md`, migration `0008`) — shipped, in production 2026-09-05
 - [x] Planning v1 (research, PRD v1.1, TechDesign v1.0, agent config) — 2026-08-23
 - [x] External plan review (docs/plan-review.md) — 2026-08-23
 - [x] Review incorporated: PRD v1.2, TechDesign v1.1, AGENTS.md, agent_docs/* — 2026-08-23
@@ -81,5 +96,5 @@ manages its own memory automatically — this file serves other agents and human
 - [x] Post-v0.3.0 on main: proactive plan review (tank/water-test changes trigger coach plan check, 876cf38) + fishless-tank "no phantom feeding" coach fix (63c1b30) — 2026-08-25, 198 tests green
 - [x] Windows dev fix: tests use os.tmpdir() + closeDb() before rmSync (open WAL handles → EPERM on Windows); suite green on Windows — 2026-08-27
 - [x] v1.1: MCP + OpenClaw wiring — v0.4.0 (`/api/mcp` bearer-gated stateless Streamable HTTP; 7 tools per TechDesign §4.6 incl. ask_coach behind the shared AI budget; Settings UI with token copy/rotate; README OpenClaw config example; 21 new tests, 219 total green; live smoke-tested against `next start`) — 2026-08-27
-- [ ] v0.4.0 tag + push after owner review
+- [x] v0.4.0 tagged and pushed; `v1.0.0` followed
 - [ ] v2+: sensors, multi-user/OIDC, web push

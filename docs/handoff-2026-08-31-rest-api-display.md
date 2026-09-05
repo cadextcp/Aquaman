@@ -1,4 +1,15 @@
-# Handoff — AquaMon REST API + Aquarium display
+# Historical — REST API + aquarium display, handed over 2026-08-31
+
+> **This is a record of one finished piece of work, not the current state.**
+> Archived from the repo root on 2026-09-05 because a file called `HANDOFF.md`
+> gets read as "where the project stands", and this one had been overtaken:
+> `v1.0.0` shipped after it, then the product inventory and the URL import.
+> Where things stand now: `AGENTS.md` (phase), `MEMORY.md` (state and open
+> points), `docs/How-It-Works.md` (architecture and the deploy runbook).
+>
+> Kept because the deploy gotchas and the display/HA bridge wiring below are
+> still accurate and still the only written record of them.
+
 
 Snapshot written 2026-08-31. **The incident described below is RESOLVED**
 — kept as reference for the deploy gotchas and the still-pending docs work.

@@ -4,7 +4,7 @@
 
 - **What this is:** Self-hosted aquarium care & water tracking app with AI coach, flexible scheduling and ICS calendar feed
 - **Who it is for:** Self-hosting aquarium hobbyists (analytical, dashboard-loving) — primary: owner with 2 freshwater tanks on TrueNAS SCALE
-- **Current phase:** v1.0 shipped (tag `v1.0.0`). Next up: the product inventory — `docs/plan-produkt-lager.md`
+- **Current phase:** v1.0 shipped (tag `v1.0.0`), plus two features on `main` since: the product inventory (`docs/plan-produkt-lager.md`, migration `0007`) and drafting a new inventory product from a URL or pasted label text (`docs/plan-produkt-import-url.md`, migration `0008`). Both are live in production. Next up is nothing committed — the nearest planned thing is stage 3 of the import plan (label photo instead of URL), which is researched but unbuilt
 
 ## Commands
 
@@ -28,6 +28,22 @@ scripts, required flags, environment setup.
 
 `docs/research-Aquaman.md` is historical context, not authoritative — decisions
 live in PRD/TechDesign. `docs/plan-review.md` documents why v1.2/v1.1 differ.
+
+**Picking the project up cold?** There is no `HANDOFF.md` — a file with that
+name goes stale the day after it is written, so the handover lives in the
+documents that get read every session anyway:
+
+- **Where things stand and what is open:** `MEMORY.md` (§Current State).
+- **How the thing works, and how to deploy it:** `docs/How-It-Works.md`.
+- **What is deliberately dangerous:** the *Gotchas* section below, then
+  `SECURITY.md`.
+- **Why a feature is shaped the way it is:** the `docs/plan-*.md` for it. Each
+  carries a status line saying what is built. Read that plan before changing
+  the feature — most of them record a decision that looks arbitrary until you
+  see the reason.
+- `docs/handoff-2026-08-31-rest-api-display.md` is one finished episode
+  (REST API + wall display), kept for its deploy and HA-bridge notes. It is
+  not the current state.
 
 ## Gotchas
 

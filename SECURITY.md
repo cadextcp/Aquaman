@@ -47,6 +47,50 @@ modify all data — that is the documented trade-off of v1 (see README).
 - Uploads (when enabled) are path-normalized with a hard `..`-reject and a
   content-type whitelist.
 
+## Outbound requests (product import)
+
+`POST /api/inventory/import` is the **only** place this app fetches a URL a
+person typed, and the only outbound HTTP it makes besides the AI provider.
+That matters more than it sounds: a self-hosted box usually sits on a LAN with
+a NAS API, a Grafana, a broker — so an unguarded "fetch this URL" endpoint is a
+port scanner with a nice form around it.
+
+What `src/lib/import/url-guard.ts` refuses, before any request goes out:
+
+- Anything but `http:`/`https:`, and any URL carrying credentials
+  (`https://user:pass@host`).
+- `localhost` and the `.local` / `.internal` / `.home` / `.lan` / `.intranet`
+  suffixes.
+- Every private, loopback, link-local, CGNAT and reserved range — in IPv4,
+  IPv6 and IPv4-mapped-IPv6 spellings, with lenient forms (`0177.0.0.1`)
+  treated as unclassifiable and therefore blocked.
+- A **hostname that resolves** into any of those. All DNS answers are checked,
+  not just the first.
+- Redirects: `fetch-page.ts` follows them manually (max 3) and re-runs the
+  guard on every hop, because a shop's 302 to `http://192.168.178.3` would
+  otherwise walk straight past the check on the typed URL.
+
+Plus the boring limits that stop the endpoint being a resource sink: 8 s
+timeout, 2 MB response cap (streamed, not buffered), `text/html` only, and
+10 imports per IP per hour.
+
+**Known residual risk — DNS rebinding.** The guard resolves the name, checks
+the answers, and then lets `fetch` connect, which resolves again. A resolver
+that returns a public address on the first query and a private one on the
+second would slip through that gap. Closing it properly means connecting to
+the validated IP and passing the hostname as a `Host` header. For a
+single-user app on a home LAN this was judged an acceptable trade against the
+complexity; it is written down here rather than left as folklore, and it is
+the first thing to fix if this endpoint ever becomes reachable by more than
+the owner.
+
+**Fetched pages are untrusted input**, like AI output. The page text is handed
+to the model as data inside explicit delimiters, the model has exactly one
+tool (`draft_product`) and no way to fetch or write, its answer is validated
+by the same zod schema the form uses, and the result only ever lands in form
+fields a person then saves. The approval gate is the boundary — there is no
+path from a web page to the database that does not pass through a human.
+
 ## AI specifics
 
 - Tank/measurement/log data is sent to the configured AI provider

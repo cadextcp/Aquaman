@@ -142,6 +142,49 @@ re-keys ACTIVE plans (`updateProductCore`) while history keeps the old name.
   "Fe 10 ml") from the tank's matching active plan — a bare
   `{actionType: "fertilize"}` log reads exactly like a dashboard tick-off.
 
+## Product import (`/api/inventory/import`)
+
+Adding a product to the shelf used to mean distilling a label or a shop page
+into four fields by hand. The create form now opens with a URL row; the result
+is a DRAFT in the form fields, and a person still presses Save.
+Design and rationale: `docs/plan-produkt-import-url.md`.
+
+The chain, in this order on purpose:
+
+```
+URL ─▶ url-guard ─▶ fetch-page ─▶ extract ─▶ budget ─▶ model ─▶ zod ─▶ form fields
+       (SSRF)       (403/timeout) (thin?)    (limit)                    (human saves)
+```
+
+Everything before the model is decided without spending a token, so a blocked
+shop or a JavaScript shell can never turn into an invented product. Modules:
+
+| File | Job |
+|---|---|
+| `lib/import/url-guard.ts` | Scheme, credentials, local suffixes, and every private/loopback/link-local/CGNAT range — in v4, v6 and v4-mapped-v6 spellings. Resolves DNS and rejects if ANY answer is private |
+| `lib/import/fetch-page.ts` | 8 s, 2 MB, HTML only, 3 hops. Redirects are followed **manually** so each hop is re-checked by the guard |
+| `lib/import/extract.ts` | HTML → ~3 k characters of product text (measured: 197 KB of one shop, 85 KB of another). Noise stretches close on the next wanted heading, because one shop prints "similar products" above the description |
+| `lib/ai/product-draft.ts` | One tool (`draft_product`), the editorial rules, zod. `kind` is an input, so a food page cannot come back carrying nutrients |
+
+**This is the app's only outbound HTTP call** other than the AI provider —
+see `SECURITY.md`.
+
+Two behaviours worth knowing before changing anything here. A model answer
+that overshoots 600 characters is cut at a sentence boundary, but an
+over-long **dosing instruction is dropped entirely** rather than truncated —
+half a feeding instruction is worse than none. And "no tool call" is the
+model's way of saying *there is no product here*; do not force `tool_choice`,
+or a privacy policy becomes a fish food.
+
+Provenance (migration `0008`): an entry created from a URL records
+`source_url` and a server-stamped `source_fetched_at`, shown as "Taken from
+<host> on <date>". Editing never changes them, so the line cannot be attached
+to something typed by hand.
+
+The paste fallback takes the same path minus fetch and extraction. It exists
+because shops block server-side retrieval often, and because a tin in your
+hand has no URL at all.
+
 ## Security model
 
 Designed to sit behind a reverse proxy that does auth; the container binds
