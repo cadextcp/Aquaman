@@ -117,6 +117,14 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Completed
 
+- [x] Product archive "used up" (`docs/plan-produkt-archiv.md`, migration
+      `0010`) — merged to `main` 2026-09-05, browser-verified: archive button
+      takes the product off the shelf AND out of the coach context (which
+      lists it under "used up — do not recommend"), the affected-plans notice
+      links tank pages + offers a prefilled coach question (no automatic AI
+      call), archive section with reactivation (refuses a taken name), the
+      archived name may be bought again (partial index rebuilt). Deploy
+      pending with the rest of the post-1.0 stack.
 - [x] Free-text feeding plan per tank (`docs/plan-fuetterungsplan.md`,
       migration `0009`) — merged to `main` 2026-09-05 and browser-verified
       end-to-end against the real provider: edit/save/rendered markdown on
