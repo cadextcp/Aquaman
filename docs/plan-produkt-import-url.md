@@ -316,9 +316,46 @@ Fütterungsanweisung ist schlechter als keine, deshalb bleibt das Feld leer und
 eine Notiz verweist auf die Packung. Fließtext darf weiter an der Satzgrenze
 enden.
 
-**Stufe 3 — optional, später.** Foto des Etiketts statt URL. Braucht ein
-Modell mit Bildeingabe und eine Prüfung, ob der konfigurierte Provider (z.ai)
-das kann; an der Struktur ändert es nichts, nur an der Quelle des Textes.
+**Stufe 3 — Foto des Etiketts statt URL. Geprüft am 2026-09-05, machbar.**
+
+Der Provider kann es: `glm-5.3-flash` über `https://api.z.ai/api/anthropic`
+nimmt `image`-Blöcke an, und zwar **auch zusammen mit `tools`** — der
+`draft_product`-Vertrag aus §6 bleibt unverändert, nur die Quelle des Inhalts
+wechselt vom extrahierten Text zum Bild. Live gegen ein gerendertes Etikett
+geprüft; Analyse, Zutaten und Fütterungshinweis kamen korrekt zurück,
+Dezimalkomma inklusive (`45,0 %`), sofern der Prompt „exactly as printed"
+betont — ohne diese Zeile wurde daraus `45.0 %`.
+
+**Das Verweigern funktioniert ohne Zutun.** Unscharfes Foto → kein Tool-Aufruf,
+stattdessen „too blurry to transcribe reliably … without inventing data". Bild
+ohne Produkt → kein Tool-Aufruf. Damit trägt der §7-Mechanismus (kein Tool =
+kein Produkt) unverändert.
+
+**Die Bildgröße ist der Knackpunkt, nicht die Fähigkeit.** Dasselbe Etikett:
+
+| Eingang | Input-Tokens | Ergebnis |
+|---|---|---|
+| 900 × 620 | 1 162 | vollständig, sauber |
+| 1 200 px (herunterskaliert) | 1 638 | vollständig, sauber |
+| 3 024 × 2 083 (Handyformat) | **8 340** | Analyse und Zutaten landeten in `notes` statt in `description` |
+
+Das große Bild ist also fünfmal teurer **und** schlechter. Serverseitiges
+Verkleinern auf ~1 200 px längste Kante ist daher Pflicht, nicht Optimierung.
+`sharp` ist bereits Dependency und dekodiert **HEIC**, iPhone-Fotos gehen nach
+Konvertierung nach JPEG.
+
+**Der eigentliche Aufwand liegt in der App, nicht im Modell.** Es gibt heute
+*keinen* Upload-Pfad: kein `formData`, keine Upload-Route, kein `sharp`-Aufruf
+in `src/`, und `tanks.photoPath` ist eine tote Spalte, die nichts beschreibt.
+Stufe 3 baut also die erste Dateiannahme dieser App.
+
+Damit verschiebt sich auch die Sicherheitsfrage aus §4: SSRF entfällt (kein
+ausgehender Abruf), neu ist die Annahme einer fremden Datei — Typprüfung am
+Inhalt statt am Namen, Größendeckel, Schutz vor Dekomprimierungsbomben.
+**Empfehlung: das Bild nie speichern.** Entgegennehmen, dekodieren,
+verkleinern, senden, verwerfen. Dann gibt es nichts zu sichern, nichts zu
+löschen und nichts, was ein Backup aufbläht — und `source_url` aus §8 bleibt
+für den Foto-Pfad schlicht leer, so wie beim Einfüge-Pfad heute schon.
 
 ---
 
