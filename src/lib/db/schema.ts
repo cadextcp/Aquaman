@@ -97,6 +97,13 @@ export const products = sqliteTable(
     // Replaces the old Food.amount + Food.unit: the suggested dose, used as
     // the placeholder in a plan's structured-details editor.
     defaultDose: text("default_dose"),
+    // Where an imported entry came from (docs/plan-produkt-import-url.md §8).
+    // NULL for everything typed by hand, and that absence is the information:
+    // a source line says these numbers were transcribed off that page on that
+    // day, so a year later nobody has to wonder whether the analysis came from
+    // the tin or from a shop that has since changed the recipe.
+    sourceUrl: text("source_url"),
+    sourceFetchedAt: text("source_fetched_at"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),

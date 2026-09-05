@@ -1,6 +1,6 @@
 # Plan — Produkt-Import per URL (Lager-Entwurf durch den Coach)
 
-> **Status: Stufe 1 gebaut** (§10), Stufen 2 und 3 offen. Erstellt: 2026-09-05 ·
+> **Status: Stufen 1 und 2 gebaut** (§10), Stufe 3 offen. Erstellt: 2026-09-05 ·
 > Basis: `main` @ `4f79f76` · App-Version 1.0.0 · Setzt auf dem umgesetzten
 > Lager auf (`docs/plan-produkt-lager.md`, Migration `0007`).
 >
@@ -306,7 +306,15 @@ Nach der Matrix in `agent_docs/testing.md`:
 Formularzeile, Text-einfügen-Fallback, Tests. Ohne Migration, ohne
 Herkunftsanzeige. Für sich allein auslieferbar und nützlich.
 
-**Stufe 2 — Herkunft.** Migration `0008`, Anzeige, Export-Format.
+**Stufe 2 — Herkunft.** Migration `0008`, Anzeige, Export-Format. **Gebaut.**
+Kein Versionssprung des Export-Formats nötig: die beiden Felder sind optional,
+also validiert ein älteres Format-2-Backup unverändert. Beim Bauen kam eine
+dritte Regel dazu, die §6 so nicht vorsah — eine **zu lange Dosierung wird
+verworfen statt gekürzt**. Ein Live-Lauf machte aus „Feed only as much as eaten
+within an hour" das Fragment „Feed as much as eaten within"; eine halbe
+Fütterungsanweisung ist schlechter als keine, deshalb bleibt das Feld leer und
+eine Notiz verweist auf die Packung. Fließtext darf weiter an der Satzgrenze
+enden.
 
 **Stufe 3 — optional, später.** Foto des Etiketts statt URL. Braucht ein
 Modell mit Bildeingabe und eine Prüfung, ob der konfigurierte Provider (z.ai)

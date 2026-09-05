@@ -253,6 +253,7 @@
     "importPasteAction": "Read text",
     "importFilled": "Draft filled in below — check it before saving.",
     "importNotFound": "Not on the source:",
+    "sourceLine": "Taken from {host} on {date}",
     "importOffline": "AI is offline — fill the fields in yourself.",
     "usedInNoPlan": "in no fertilize plan"
   },

@@ -23,6 +23,8 @@ export type ImportedDraft = {
   description: string | null;
   defaultDose: string | null;
   nutrients: Record<string, string>;
+  /** Set only on the URL path — pasted text has no verifiable source. */
+  sourceUrl?: string | null;
 };
 
 /** Failures that a pasted page text can still get around — §7 of the plan. */
@@ -67,7 +69,7 @@ export function ProductImportRow({
         body: JSON.stringify(mode === "url" ? { kind, url } : { kind, text }),
       });
       const json = (await res.json()) as
-        | { ok: true; draft: ImportedDraft; notes: string[] }
+        | { ok: true; draft: ImportedDraft; notes: string[]; sourceUrl?: string }
         | { ok: false; error: string; code: ErrorCode };
 
       if (!json.ok) {
@@ -77,7 +79,7 @@ export function ProductImportRow({
         setOfferPaste(mode === "url" && PASTE_HELPS.has(json.code));
         return;
       }
-      onDraft(json.draft);
+      onDraft({ ...json.draft, sourceUrl: json.sourceUrl ?? null });
       setNotes(json.notes);
       setFilled(true);
     } catch {

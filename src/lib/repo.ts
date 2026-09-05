@@ -474,6 +474,11 @@ export function createProductCore(input: unknown): WriteResultWithId {
         description: parsed.data.description ?? null,
         defaultDose: parsed.data.defaultDose ?? null,
         nutrients: parsed.data.nutrients ?? {},
+        sourceUrl: parsed.data.sourceUrl ?? null,
+        // Stamped here, never taken from the caller: the date has to mean
+        // "when this install read that page", and a client-supplied one would
+        // be a number nobody could trust.
+        sourceFetchedAt: parsed.data.sourceUrl ? new Date().toISOString() : null,
       })
       .returning()
       .get();
@@ -508,6 +513,10 @@ export function updateProductCore(id: number, input: unknown): UpdateProductResu
         description: parsed.data.description ?? null,
         defaultDose: parsed.data.defaultDose ?? null,
         nutrients: parsed.data.nutrients ?? {},
+        // sourceUrl/sourceFetchedAt are deliberately absent: an edit keeps the
+        // provenance the row already has and cannot invent one. The import
+        // runs on creation only (plan §2), so no legitimate caller needs to
+        // change it here.
       })
       .where(eq(products.id, id))
       .run();

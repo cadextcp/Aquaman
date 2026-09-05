@@ -34,6 +34,8 @@ export function serializeProduct(p: Product) {
     description: p.description,
     nutrients: p.nutrients,
     defaultDose: p.defaultDose,
+    sourceUrl: p.sourceUrl,
+    sourceFetchedAt: p.sourceFetchedAt,
     createdAt: p.createdAt,
   };
 }

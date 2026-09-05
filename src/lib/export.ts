@@ -165,6 +165,11 @@ const productRowSchema = z.object({
   description: z.string().max(600).nullable().optional(),
   nutrients: nutrientMapSchema,
   defaultDose: z.string().max(30).nullable().optional(),
+  // Optional, so a format-2 backup taken before the source columns existed
+  // still validates; present ones survive the round trip instead of being
+  // stripped by zod and silently lost on restore.
+  sourceUrl: z.string().max(2048).nullable().optional(),
+  sourceFetchedAt: nullableIso.optional(),
   createdAt: isoString,
   deletedAt: nullableIso.optional(),
 });

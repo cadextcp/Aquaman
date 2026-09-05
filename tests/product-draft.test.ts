@@ -6,7 +6,7 @@
  * to reach a person's form — the length handling and the nutrient filter.
  */
 import { describe, it, expect } from "vitest";
-import { clipText, pickNutrients } from "../src/lib/ai/product-draft";
+import { clipText, exactDose, pickNutrients } from "../src/lib/ai/product-draft";
 import { NUTRIENT_KEYS } from "../src/lib/domain/plan-structure";
 
 describe("clipText", () => {
@@ -78,5 +78,24 @@ describe("pickNutrients", () => {
   it("accepts every key the catalogue defines", () => {
     const all = Object.fromEntries(NUTRIENT_KEYS.map((k) => [k, "1 %"]));
     expect(Object.keys(pickNutrients(all, "fertilizer"))).toHaveLength(NUTRIENT_KEYS.length);
+  });
+});
+
+describe("exactDose", () => {
+  it("keeps a dose that fits", () => {
+    expect(exactDose("1-2x daily, briefly eaten", 30)).toBe("1-2x daily, briefly eaten");
+    expect(exactDose("  10 ml / 50 L weekly  ", 30)).toBe("10 ml / 50 L weekly");
+  });
+
+  // A live run turned "Feed only as much as eaten within an hour" into
+  // "Feed as much as eaten within" — not a shorter instruction, a wrong one.
+  it("drops an over-long dose instead of truncating it", () => {
+    expect(exactDose("Feed only as much as eaten within an hour", 30)).toBeNull();
+  });
+
+  it("treats blank and non-strings as absent", () => {
+    expect(exactDose("   ", 30)).toBeNull();
+    expect(exactDose(undefined, 30)).toBeNull();
+    expect(exactDose(7, 30)).toBeNull();
   });
 });

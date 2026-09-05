@@ -103,6 +103,15 @@ const productOutSchema: JsonSchema = {
         "Fertilizers only: nutrient key -> declared content as free text (\"0.2 %\"). An empty string means contained but not quantified — the KEY is what a fertilize plan is compared against. Keys come from the nutrient catalog (see /water-parameters' sibling catalog in the app: c_co2, n_no3, p_po4, k, mg, ca, fe, mn, zn, b, mo, cu).",
     },
     defaultDose: { type: ["string", "null"], description: "Suggested dose, free text (\"10 ml\", \"1 pinch\")" },
+    sourceUrl: {
+      type: ["string", "null"],
+      description: "Where an imported entry was read from. Null means the entry was typed by hand — that absence is meaningful, not missing data.",
+    },
+    sourceFetchedAt: {
+      type: ["string", "null"],
+      format: "date-time",
+      description: "When the app read sourceUrl. Stamped server-side on creation; never accepted from a client.",
+    },
     createdAt: { type: "string", format: "date-time" },
   },
 };

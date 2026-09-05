@@ -45,9 +45,13 @@ describe("migration 0007 lifts tanks.foods into the inventory", () => {
         if (stmt.trim()) db.exec(stmt);
       }
     };
-    for (const f of files.filter((f) => !f.startsWith("0007"))) apply(f);
+    // Strictly in file order, pausing at 0007 to seed. Applying "everything
+    // except 0007" and then 0007 worked only while 0007 was the last one:
+    // 0008 ALTERs `products`, which 0007 is what creates.
+    const at = files.findIndex((f) => f.startsWith("0007"));
+    for (const f of files.slice(0, at)) apply(f);
     seed(db);
-    apply(files.find((f) => f.startsWith("0007"))!);
+    for (const f of files.slice(at)) apply(f);
     return db;
   }
 

@@ -100,7 +100,7 @@ function ProductCard({
   onEdit: () => void;
 }) {
   const router = useRouter();
-  const { t, plural, nutrientLabel, errorText } = useI18n();
+  const { t, plural, nutrientLabel, errorText, formatDateShort } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const keys = Object.keys(product.nutrients ?? {});
@@ -183,6 +183,17 @@ function ProductCard({
           {product.description}
         </p>
       )}
+
+      {/* Provenance, only for entries that came from a page. Its absence says
+          "somebody typed this", which is worth just as much a year later. */}
+      {product.sourceUrl && product.sourceFetchedAt && (
+        <p className="text-xs mt-1.5" style={{ color: "var(--faint)" }}>
+          {t("inventory.sourceLine", {
+            host: hostOf(product.sourceUrl),
+            date: formatDateShort(product.sourceFetchedAt.slice(0, 10)),
+          })}
+        </p>
+      )}
       {error && (
         <div className="mt-2">
           <StatusNote tone="error">{error}</StatusNote>
@@ -190,6 +201,19 @@ function ProductCard({
       )}
     </div>
   );
+}
+
+/**
+ * "www.zoomalia.de/tierhandlung/..." -> "zoomalia.de". The host is the part a
+ * person recognises; the full URL is noise under a description. Falls back to
+ * the raw string rather than throwing on anything unparseable.
+ */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 function ProductForm({ kind, product, onDone }: { kind: Kind; product?: Product; onDone: () => void }) {
@@ -204,6 +228,9 @@ function ProductForm({ kind, product, onDone }: { kind: Kind; product?: Product;
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Only ever set by the import row, and only on the URL path. Carried through
+  // to createProduct so the saved row records where its numbers came from.
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
 
   function toggleNutrient(key: string) {
     setNutrients((cur) => {
@@ -227,6 +254,7 @@ function ProductForm({ kind, product, onDone }: { kind: Kind; product?: Product;
       description: description.trim() || null,
       defaultDose: defaultDose.trim() || null,
       nutrients: kind === "fertilizer" ? nutrients : {},
+      sourceUrl,
     };
     const res = product ? await updateProduct(product.id, input) : await createProduct(input);
     if (!res.ok) {
@@ -255,6 +283,7 @@ function ProductForm({ kind, product, onDone }: { kind: Kind; product?: Product;
             setDescription(draft.description ?? "");
             setDefaultDose(draft.defaultDose ?? "");
             setNutrients(kind === "fertilizer" ? draft.nutrients : {});
+            setSourceUrl(draft.sourceUrl ?? null);
             setError(null);
           }}
         />

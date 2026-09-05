@@ -66,6 +66,23 @@ export const productInputSchema = z
     description: z.string().trim().max(600).optional().nullable(),
     defaultDose: z.string().trim().max(30).optional().nullable(),
     nutrients: nutrientMapSchema,
+    /**
+     * Where an imported entry came from. Only ever set when creating; the
+     * update path ignores it, so a source line can never be attached to, or
+     * swapped on, a product someone typed themselves.
+     *
+     * Checked with a plain scheme test rather than the real URL guard on
+     * purpose: this schema is imported by client components, and the guard
+     * reaches for node:dns. The guard already ran server-side before anything
+     * could produce this value.
+     */
+    sourceUrl: z
+      .string()
+      .trim()
+      .max(2048)
+      .regex(/^https?:\/\/\S+$/i, "Source must be an http(s) URL")
+      .optional()
+      .nullable(),
   })
   .refine((p) => p.kind === "fertilizer" || Object.keys(p.nutrients ?? {}).length === 0, {
     message: "Only fertilizer products carry nutrients",

@@ -253,6 +253,7 @@
     "importPasteAction": "Text auswerten",
     "importFilled": "Entwurf unten eingetragen — vor dem Speichern prüfen.",
     "importNotFound": "Nicht in der Quelle:",
+    "sourceLine": "Übernommen von {host} am {date}",
     "importOffline": "Die KI ist offline — trage die Felder selbst ein.",
     "usedInNoPlan": "in keinem Düngeplan"
   },
