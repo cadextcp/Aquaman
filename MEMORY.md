@@ -41,6 +41,11 @@ manages its own memory automatically — this file serves other agents and human
 - 2026-08-23 NH3 calculated from NH4+pH+temp (Emerson 1975), evaluated instead of raw NH4; NO2 target 0 established; tankState cycling|established
 - 2026-08-23 Docker in Phase 1 as vertical slice (avoid late deployment surprises); ports 127.0.0.1-only
 - 2026-08-23 Timeline corrected: 6–8 weeks part-time (was 2–4, review called it unrealistic)
+- 2026-09-05 MCP writes deliberately do NOT trigger the proactive coach plan
+  review — `requestPlanReview()` stays UI-only (`src/app/actions.ts`; the
+  cores in `repo.ts` and the MCP tools never call it). Owner decision: an
+  MCP/HA-written water test or maintenance log not starting a coach plan
+  check is intended. Do not "fix" `src/lib/mcp/tools.ts` to add it.
 
 ## AI / Tooling Decisions
 
