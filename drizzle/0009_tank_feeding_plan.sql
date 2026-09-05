@@ -1,0 +1,1 @@
+ALTER TABLE `tanks` ADD `feeding_plan` text;

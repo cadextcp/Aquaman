@@ -34,6 +34,16 @@ export const tankInputSchema = z.object({
 export type TankInput = z.infer<typeof tankInputSchema>;
 
 /**
+ * Free-form feeding plan (docs/plan-fuetterungsplan.md): markdown the owner
+ * writes about WHAT to feed on which days. It is deliberately NOT part of
+ * tankInputSchema — updateTankCore is a full replace, and the feeding plan
+ * has its own write path (setTankFeedingPlanCore) so editing the tank profile
+ * can never wipe it. The cap is shared by the proposal tool and the textarea.
+ */
+export const FEEDING_PLAN_MAX_CHARS = 4000;
+export const tankFeedingPlanSchema = z.string().trim().max(FEEDING_PLAN_MAX_CHARS).nullable();
+
+/**
  * Nutrient key → declared content.
  *
  * partialRecord, not record: a plain z.record over an enum is EXHAUSTIVE in

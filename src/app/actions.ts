@@ -71,6 +71,29 @@ export async function deleteTank(id: number): Promise<ActionResult> {
   }
 }
 
+/**
+ * The feeding plan's UI write path (docs/plan-fuetterungsplan.md) — a
+ * tank-profile edit in spirit, so it revalidates the same surfaces and fires
+ * the same plan-review trigger updateTank does (the coach's context includes
+ * the plan; it may have something to say about the new one).
+ */
+export async function setTankFeedingPlan(tankId: number, plan: string | null): Promise<ActionResult> {
+  try {
+    const { setTankFeedingPlanCore } = await import("@/lib/repo");
+    const res = setTankFeedingPlanCore(tankId, plan);
+    if (!res.ok) return res;
+    revalidatePath(`/tanks/${tankId}`);
+    revalidatePath("/tanks");
+    revalidatePath("/coach");
+    const { requestPlanReview } = await import("@/lib/ai/plan-review");
+    requestPlanReview("tank_change");
+    return { ok: true };
+  } catch (err) {
+    console.error("[setTankFeedingPlan]", err);
+    return failure("tank.updateFailed", "Could not save the feeding plan");
+  }
+}
+
 // ==================== Schedules ====================
 
 export async function createSchedule(input: ScheduleInput): Promise<ActionResult<{ id: number }>> {

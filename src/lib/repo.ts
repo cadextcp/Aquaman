@@ -8,6 +8,7 @@ import {
   waterTestInputSchema,
   validateWaterValues,
   tankInputSchema,
+  tankFeedingPlanSchema,
   scheduleInputSchema,
   productInputSchema,
 } from "@/lib/schemas";
@@ -432,6 +433,30 @@ export function deleteTankCore(id: number): WriteResult {
   } catch (err) {
     console.error("[deleteTankCore]", err);
     return failure("tank.deleteFailed", "Could not delete tank");
+  }
+}
+
+/**
+ * The feeding plan's one write path (docs/plan-fuetterungsplan.md). Kept out
+ * of updateTankCore on purpose: that is a full replace driven by the profile
+ * form, which must not be able to blank a field its form never showed.
+ * `null` or an empty/whitespace string clears the plan.
+ */
+export function setTankFeedingPlanCore(tankId: number, plan: unknown): WriteResult {
+  const parsed = tankFeedingPlanSchema.safeParse(plan);
+  if (!parsed.success) return failure("validation", "Feeding plan must be text of at most 4000 characters");
+  const value = parsed.data !== null && parsed.data === "" ? null : parsed.data;
+  try {
+    const res = db
+      .update(tanks)
+      .set({ feedingPlan: value })
+      .where(and(eq(tanks.id, tankId), isNull(tanks.deletedAt)))
+      .run();
+    if (res.changes === 0) return failure("tank.notFound", "Tank not found");
+    return { ok: true };
+  } catch (err) {
+    console.error("[setTankFeedingPlanCore]", err);
+    return failure("tank.updateFailed", "Could not save the feeding plan");
   }
 }
 

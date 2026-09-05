@@ -67,6 +67,11 @@ export const tanks = sqliteTable("tanks", {
     .$type<ParamOverrides>()
     .notNull()
     .default(sql`'{}'`),
+  // Free-form feeding plan (docs/plan-fuetterungsplan.md): the owner's own
+  // markdown — which food on which days, amounts, fasting days. Deliberately
+  // NOT a schedule: feeding is a daily counter (feed_logs), and this text is
+  // context for humans and the coach, never a plan that ticks anything off.
+  feedingPlan: text("feeding_plan"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
