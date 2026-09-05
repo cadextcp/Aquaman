@@ -65,6 +65,10 @@ export const ERROR_CODES = [
   "productImport.limitReached",
   "productImport.rateLimited",
   "productImport.draftInvalid",
+  // Stage 3 (label photo): both refusals are decided before the provider call,
+  // so an unreadable or oversized file costs zero tokens (plan §10).
+  "productImport.imageTooLarge",
+  "productImport.unsupportedImage",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
