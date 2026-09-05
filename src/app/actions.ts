@@ -432,3 +432,34 @@ export async function saveGlobalSettingsAction(input: unknown): Promise<ActionRe
     return failure("settings.invalid", "Invalid settings");
   }
 }
+
+// ==================== Coach prompt overrides (docs/plan-prompt-anpassung.md) ====================
+
+/**
+ * Save one prompt override (empty/null = reset to default). Validation is the
+ * SAME gate the test endpoint uses — what was tested is exactly what saves.
+ * A changed suggestions prompt also drops today's chip cache so the chips
+ * regenerate under the new prompt instead of showing the old one's output.
+ */
+export async function savePromptAction(id: string, text: string | null): Promise<ActionResult> {
+  try {
+    const { PROMPT_IDS, validatePromptText, savePromptOverride } = await import("@/lib/ai/prompts");
+    if (!PROMPT_IDS.includes(id as never)) return failure("prompt.invalid", "Unknown prompt");
+    const promptId = id as "coach" | "suggestions" | "planReview" | "feedingPlanDraft";
+    if (text !== null && text.trim() !== "") {
+      const check = validatePromptText(promptId, text);
+      if (!check.ok) return failure("prompt.invalid", check.error, { detail: check.error });
+    }
+    savePromptOverride(promptId, text);
+    if (promptId === "suggestions") {
+      const { clearDailySuggestions } = await import("@/lib/settings");
+      clearDailySuggestions();
+    }
+    revalidatePath("/more");
+    if (promptId === "coach") revalidatePath("/coach");
+    return { ok: true };
+  } catch (err) {
+    console.error("[savePromptAction]", err);
+    return failure("prompt.saveFailed", "Could not save the prompt");
+  }
+}

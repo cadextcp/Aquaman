@@ -77,6 +77,13 @@ export const ERROR_CODES = [
   "feedingPlan.limitReached",
   "feedingPlan.rateLimited",
   "feedingPlan.draftFailed",
+  // Coach prompt editor (docs/plan-prompt-anpassung.md) — saving validates
+  // placeholders; the test endpoint shares the module's failure codes.
+  "prompt.invalid",
+  "prompt.saveFailed",
+  "prompt.rateLimited",
+  "prompt.aiOffline",
+  "prompt.limitReached",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
