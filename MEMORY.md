@@ -68,6 +68,12 @@ manages its own memory automatically — this file serves other agents and human
   tables may only name shelf products; a gap stays generic WITH an explicit
   note. Live-verified: draft used "sera Flora Nature"/"Artemia Frostfutter"
   verbatim, zero generic food names on feeding days.
+- 2026-09-05 (3. Nachtrag): coach CHAT answers render as markdown too —
+  react-markdown + remark-gfm + remark-breaks in the assistant bubbles
+  (`coach-chat.tsx`); tone-carrying error notes and user messages stay plain.
+  remark-breaks keeps single newlines as breaks so prose answers don't
+  collapse; `.markdown table` scrolls horizontally instead of overflowing the
+  85 % bubble.
 - 2026-09-05 MCP writes deliberately do NOT trigger the proactive coach plan
   review — `requestPlanReview()` stays UI-only (`src/app/actions.ts`; the
   cores in `repo.ts` and the MCP tools never call it). Owner decision: an

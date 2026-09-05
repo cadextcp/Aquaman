@@ -428,3 +428,6 @@ main :where(h1, h2, h3, p, li, span, div) {
 .markdown th, .markdown td { border: 1px solid var(--border); padding: 0.3em 0.6em; }
 .markdown a { color: var(--accent); text-decoration: underline; }
 .markdown hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+/* Markdown tables live in narrow places (chat bubbles cap at 85 %) — make the
+   table itself the scroll container instead of letting it overflow the bubble. */
+.markdown table { display: block; max-width: 100%; overflow-x: auto; }

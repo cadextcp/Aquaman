@@ -9,6 +9,9 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { applyProposal } from "@/app/actions-ai";
 import { PlanReviewBanner } from "./plan-review-banner";
 import { MAX_HISTORY_MESSAGES } from "@/lib/ai/constants";
@@ -254,14 +257,27 @@ export function CoachChat({
       {messages.map((m, i) => (
         <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
           <div
-            className="rounded-xl px-4 py-3 max-w-[85%] text-sm whitespace-pre-wrap"
+            className={`rounded-xl px-4 py-3 max-w-[85%] text-sm ${m.role === "user" || m.tone ? "whitespace-pre-wrap" : ""}`}
             style={
               m.role === "user"
                 ? { background: "var(--accent-soft)", boxShadow: "inset 0 0 0 1px var(--accent-edge)", borderRadius: "13px 13px 4px 13px" }
                 : { background: "var(--surface)", boxShadow: "inset 0 1px 0 var(--surface)", borderRadius: "13px 13px 13px 4px" }
             }
           >
-            {m.tone ? <StatusNote tone={m.tone}>{m.content}</StatusNote> : m.content}
+            {/* The coach writes markdown (lists, tables, bold) — render it as
+                such. tone-carrying messages are OUR error/notice strings and
+                the user's own questions stay plain text. remark-breaks keeps
+                single newlines as line breaks, so answers written as plain
+                prose keep their shape instead of collapsing into one blob. */}
+            {m.tone ? (
+              <StatusNote tone={m.tone}>{m.content}</StatusNote>
+            ) : m.role === "assistant" ? (
+              <div className="markdown">
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{m.content}</ReactMarkdown>
+              </div>
+            ) : (
+              m.content
+            )}
             {m.proposal && <ProposalCard proposal={m.proposal} />}
           </div>
         </div>
