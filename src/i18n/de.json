@@ -287,6 +287,44 @@
     "aiOffline": "Offline",
     "aiOfflineDetail": "noch kein API-Schlüssel hinterlegt (unten im Abschnitt KI-Anbieter). Die App funktioniert vollständig ohne ihn.",
     "aiCost": "Letzte 30 Tage: {calls} Anfragen · {tokens} Tokens · ≈{cost} Kosteneinheiten",
+    "prompts": {
+      "summary": "Coach-Prompts (für Fortgeschrittene)",
+      "intro": "Die vier System-Prompts, die Ton und Schwerpunkte des Coachs steuern. Bei jedem steht, wo er benutzt wird; ein Klick auf eine Variable fügt sie an der Cursor-Position ein. Die App hängt immer einen festen Sicherheitsblock und die Sprach-Direktive an — du bearbeitest den Stil, nicht die Sicherungen.",
+      "costNote": "Das Testen führt einen echten KI-Aufruf aus — er zählt ins Tagesbudget. Testergebnisse sind nur zur Ansicht und ändern niemals Daten.",
+      "modified": "angepasst",
+      "variables": "Variablen",
+      "noVariables": "keine — Daten (Kontext, Futterliste) hängt die App automatisch an",
+      "var": {
+        "context": "Der komplette Coach-Kontext: Aquarien, Besatz, Werte inkl. NH₃, Pläne, Rückstand, Fütterungsplan, Lager",
+        "plan_types": "Eine Zeile mit den vorhandenen Plantypen (oder „(none)“)"
+      },
+      "appended": "Wird immer angehängt (nicht editierbar)",
+      "appendedNote": "Guardrails und Sprach-Direktive gelten für jeden Prompt — angepasst oder Standard.",
+      "label": {
+        "coach": "Coach-Chat",
+        "suggestions": "Tagesvorschläge",
+        "planReview": "Planprüfung",
+        "feedingPlanDraft": "Fütterungsplan-Entwurf"
+      },
+      "where": {
+        "coach": "— der Chat unter /coach und MCP ask_coach",
+        "suggestions": "— die anklickbaren Chips auf dem Dashboard (einmal pro Tag)",
+        "planReview": "— die proaktive Prüfung nach Aquarien- oder Messwertsänderungen",
+        "feedingPlanDraft": "— der „Fütterungsplan vorschlagen“-Button auf der Aquarium-Seite"
+      },
+      "save": "Speichern",
+      "saving": "Speichern …",
+      "saved": "Gespeichert",
+      "reset": "Auf Standard zurücksetzen",
+      "test": "Prompt testen",
+      "testing": "Test läuft …",
+      "testIntro": "Führt den Text oben (inkl. ungespeicherter Änderungen) einmal gegen das echte Modell aus. Das Ergebnis dient nur der Ansicht.",
+      "questionPlaceholder": "Testfrage, z. B. „Nitrat ist 40, was soll ich tun?“",
+      "testBadge": "TEST — es wird nichts gespeichert",
+      "testUsage": "{in} + {out} Tokens ≈ {cost} €",
+      "testNoProposal": "Kein Vorschlag in dieser Antwort.",
+      "testNoResult": "(kein gültiges Ergebnis — prüfe den Prompt)"
+    },
     "inventoryTitle": "Lager",
     "inventoryDesc": "Dünger und Futter, die du hast"
   },
@@ -637,6 +675,11 @@
     "productImport.draftInvalid": "Der Entwurf war unbrauchbar und wurde verworfen — es wurde nichts eingetragen.",
     "productImport.imageTooLarge": "Das Foto ist zu groß — Fotos bis 5 MB funktionieren.",
     "productImport.unsupportedImage": "Diese Datei ist kein lesbares Foto — nimm JPG, PNG, WebP oder das HEIC der Kamera.",
+    "prompt.invalid": "Der Prompt ist ungültig — {detail}",
+    "prompt.saveFailed": "Der Prompt konnte nicht gespeichert werden.",
+    "prompt.rateLimited": "Zu viele Prompt-Tests in kurzer Zeit. Versuch es später noch einmal.",
+    "prompt.aiOffline": "Die KI ist offline — leg erst unter „Mehr“ → KI-Anbieter einen Key fest.",
+    "prompt.limitReached": "Das KI-Budget für heute ist aufgebraucht. Morgen geht das Testen wieder.",
     "feedingPlan.tankNotFound": "Dieses Aquarium existiert nicht.",
     "feedingPlan.aiOffline": "Die KI ist offline — schreibe den Plan selbst.",
     "feedingPlan.limitReached": "Das KI-Budget für heute ist aufgebraucht. Morgen geht der Button wieder.",

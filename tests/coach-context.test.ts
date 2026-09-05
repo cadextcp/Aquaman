@@ -356,9 +356,10 @@ describe("fishless tanks must be explicit in the AI context (no phantom feeding)
   });
 
   it("plan-review SYSTEM prompt ALSO forbids feeding proposals for fishless tanks", async () => {
-    // read the module source (the prompt is a private const) and pin the rule —
-    // the plan review is the OTHER path that could suggest feeding
-    const src = await import("node:fs").then((fs) => fs.readFileSync("src/lib/ai/plan-review-runner.ts", "utf-8"));
+    // read the registry source (the prompt default lives there since the
+    // prompt editor moved it out of the runner) and pin the rule — the plan
+    // review is the OTHER path that could suggest feeding
+    const src = await import("node:fs").then((fs) => fs.readFileSync("src/lib/ai/prompts.ts", "utf-8"));
     expect(src).toMatch(/fish:\s*"?NONE"?/);
     expect(src).toMatch(/NEVER propose feeding/i);
   });

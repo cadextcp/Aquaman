@@ -287,6 +287,44 @@
     "aiOffline": "Offline",
     "aiOfflineDetail": "no API key configured yet (set one in the AI provider section below). The app works fully without it.",
     "aiCost": "Last 30 days: {calls} calls · {tokens} tokens · ≈{cost} cost units",
+    "prompts": {
+      "summary": "Coach prompts (advanced)",
+      "intro": "The four system prompts that steer the coach's tone and focus. Each shows where it is used; click a variable chip to insert it at the cursor. The app always appends a fixed safety block and the language directive — you edit the style, not the guardrails.",
+      "costNote": "Testing runs a real AI call — it counts against the daily budget. Test results are read-only and never change any data.",
+      "modified": "customized",
+      "variables": "Variables",
+      "noVariables": "none — data (context, food list) is appended automatically",
+      "var": {
+        "context": "The full coach context: tanks, stock, water values incl. NH₃, plans, backlog, feeding plan, inventory",
+        "plan_types": "One line listing the existing plan types (or \"(none)\")"
+      },
+      "appended": "Always appended (not editable)",
+      "appendedNote": "Guardrails and language directive apply to every prompt, customized or default.",
+      "label": {
+        "coach": "Coach chat",
+        "suggestions": "Daily suggestions",
+        "planReview": "Plan review",
+        "feedingPlanDraft": "Feeding-plan draft"
+      },
+      "where": {
+        "coach": "— the /coach chat and MCP ask_coach",
+        "suggestions": "— the clickable chips on the dashboard (once per day)",
+        "planReview": "— the proactive review after tank or water-test changes",
+        "feedingPlanDraft": "— the \"Suggest a feeding plan\" button on the tank page"
+      },
+      "save": "Save",
+      "saving": "Saving …",
+      "saved": "Saved",
+      "reset": "Reset to default",
+      "test": "Test prompt",
+      "testing": "Testing …",
+      "testIntro": "Runs the text above (unsaved changes included) once against the real model. The result is display-only.",
+      "questionPlaceholder": "Test question, e.g. \"Nitrate is 40, what should I do?\"",
+      "testBadge": "TEST — nothing is saved",
+      "testUsage": "{in} + {out} tokens ≈ {cost} €",
+      "testNoProposal": "No proposal in this answer.",
+      "testNoResult": "(no valid result — check the prompt)"
+    },
     "inventoryTitle": "Inventory",
     "inventoryDesc": "Fertilizers and foods you have"
   },
@@ -637,6 +675,11 @@
     "productImport.draftInvalid": "The draft was unusable and has been discarded — nothing was filled in.",
     "productImport.imageTooLarge": "That photo is too large — photos up to 5 MB work.",
     "productImport.unsupportedImage": "That file is not a readable photo — use a JPG, PNG, WebP or the camera's HEIC.",
+    "prompt.invalid": "The prompt is not valid — {detail}",
+    "prompt.saveFailed": "Could not save the prompt.",
+    "prompt.rateLimited": "Too many prompt tests in a short time. Try again later.",
+    "prompt.aiOffline": "AI is offline — configure a key under More → AI provider first.",
+    "prompt.limitReached": "The AI budget for today is used up. Testing works again tomorrow.",
     "feedingPlan.tankNotFound": "That aquarium does not exist.",
     "feedingPlan.aiOffline": "AI is offline — write the plan yourself.",
     "feedingPlan.limitReached": "The AI budget for today is used up. The button works again tomorrow.",

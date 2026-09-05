@@ -10,7 +10,9 @@ import { DataCard } from "@/components/data-card";
 import { TightGapSettings } from "@/components/tightgap-settings";
 import { LanguageSettings } from "@/components/language-settings";
 import { AiProviderSettings } from "@/components/ai-provider-settings";
+import { PromptEditor } from "@/components/prompt-editor";
 import { getGlobalSettings, getAiSettings } from "@/lib/settings";
+import { PROMPT_IDS, promptDefault, promptVariables, PROMPT_MAX_CHARS, GUARDRAILS, getPromptOverrides } from "@/lib/ai/prompts";
 import { isAiConfigured, hasApiKey } from "@/lib/ai/config";
 import { usageForSettings } from "@/lib/ai/cost-guard";
 import { monthlyStats, careReliabilityStats, chronicOverload, aiCostStats } from "@/lib/stats";
@@ -186,6 +188,24 @@ export default async function MorePage() {
           initial={aiSettings}
           envConfigured={!!process.env.AQUAMAN_AI_API_KEY}
           keyConfigured={hasApiKey()}
+        />
+      </div>
+
+      {/* Coach prompts (advanced — collapsed, docs/plan-prompt-anpassung.md) */}
+      <div className="mb-4">
+        <PromptEditor
+          guardrails={GUARDRAILS}
+          entries={(() => {
+            const overrides = getPromptOverrides();
+            return PROMPT_IDS.map((id) => ({
+              id,
+              defaultValue: promptDefault(id),
+              value: overrides[id] ?? promptDefault(id),
+              isOverride: overrides[id] !== undefined,
+              variables: promptVariables(id),
+              maxChars: PROMPT_MAX_CHARS,
+            }));
+          })()}
         />
       </div>
 
