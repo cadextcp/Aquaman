@@ -61,6 +61,13 @@ manages its own memory automatically — this file serves other agents and human
   product import). Shares the daily AI budget (`feeding_plan_draft`), 10/IP/h.
   And: react-markdown needs `remark-gfm` for tables — a coach proposal with a
   GFM table rendered as raw pipe text until the plugin was added.
+- 2026-09-05 (2. Nachtrag): feeding plans must name foods by their EXACT
+  shelf names (owner report: "Granulat" was unmappable). `foodsDirective()`
+  hands the verbatim food list to the draft prompt and pins the contract in a
+  test; the coach-chat `set_feeding_plan` rule says the same. Feed days and
+  tables may only name shelf products; a gap stays generic WITH an explicit
+  note. Live-verified: draft used "sera Flora Nature"/"Artemia Frostfutter"
+  verbatim, zero generic food names on feeding days.
 - 2026-09-05 MCP writes deliberately do NOT trigger the proactive coach plan
   review — `requestPlanReview()` stays UI-only (`src/app/actions.ts`; the
   cores in `repo.ts` and the MCP tools never call it). Owner decision: an

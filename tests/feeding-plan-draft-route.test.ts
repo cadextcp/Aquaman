@@ -104,6 +104,41 @@ describe("POST /api/feeding-plan/draft", () => {
   });
 });
 
+describe("foodsDirective", () => {
+  // The owner's report: the coach wrote "Granulat" and nothing on the shelf
+  // is called that. The directive is the contract that fixes it — the shelf's
+  // names, verbatim, and nothing else.
+  const food = (name: string, dose: string | null) =>
+    ({
+      id: 1,
+      kind: "food",
+      name,
+      description: null,
+      nutrients: {},
+      defaultDose: dose,
+      sourceUrl: null,
+      sourceFetchedAt: null,
+      createdAt: "2026-09-05T00:00:00.000Z",
+      deletedAt: null,
+    }) as const;
+
+  it("lists shelf foods under their exact names, with their usual dose", async () => {
+    const { foodsDirective } = await import("../src/lib/ai/feeding-plan-draft");
+    const text = foodsDirective([food("sera Flora Nature", "1 kleine Prise"), food("Artemia Frostfutter", null)]);
+    expect(text).toContain('- "sera Flora Nature" (usual dose 1 kleine Prise)');
+    expect(text).toContain('- "Artemia Frostfutter"');
+    expect(text).toContain("EXACT names");
+    expect(text).not.toContain("usual dose )"); // no dose → no empty parens
+  });
+
+  it("says plainly when the shelf has no foods at all", async () => {
+    const { foodsDirective } = await import("../src/lib/ai/feeding-plan-draft");
+    const text = foodsDirective([]);
+    expect(text).toContain("FOODS ON THE SHELF: none");
+    expect(text).toContain("shelf is empty");
+  });
+});
+
 describe("fitToField", () => {
   it("keeps a plan within the cap untouched", async () => {
     const { fitToField } = await import("../src/lib/ai/feeding-plan-draft");

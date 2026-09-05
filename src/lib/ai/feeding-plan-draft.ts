@@ -19,7 +19,8 @@ import { withLanguage } from "./language";
 import { logAiCall } from "./debug-log";
 import { checkBudget, recordAiCall } from "./cost-guard";
 import { buildCoachContext } from "./context";
-import { getTank } from "@/lib/repo";
+import { getTank, listProducts } from "@/lib/repo";
+import type { Product } from "@/lib/db/schema";
 import { FEEDING_PLAN_MAX_CHARS } from "@/lib/schemas";
 import { z } from "zod";
 import type { ErrorCode } from "@/lib/domain/errors";
@@ -49,6 +50,8 @@ The plan should say:
 - a fasting day where sensible for the livestock,
 - short practical notes (rinse frozen food, crushing flakes for juveniles, vacation behaviour).
 
+Food names are the user's shelf, not your vocabulary: name foods using EXACTLY the names from the FOODS ON THE SHELF list below — verbatim, never translated, never shortened, never a generic word like "flakes" or "granulate" where a shelf food fits. The user maps the plan to bottles and tins on a shelf; a word they cannot look up there is a bug in the plan, not style.
+
 Hard rules:
 - A plants-only tank (context "fish: NONE") is NOT fed — draft a short plan that says exactly that, so the field is honest instead of empty.
 - No medication dosages, ever.
@@ -69,6 +72,21 @@ export function fitToField(plan: string): string {
   return (cut > FEEDING_PLAN_MAX_CHARS * 0.5 ? head.slice(0, cut) : head).trim();
 }
 
+/**
+ * The shelf's foods, verbatim — the one list a feeding plan may name (owner
+ * report 2026-09-05: the coach wrote "Granulat" and the user could not map
+ * that to any bottle on the shelf). Pure so a test can pin the contract.
+ */
+export function foodsDirective(foods: Product[]): string {
+  if (foods.length === 0) {
+    return "FOODS ON THE SHELF: none — the inventory has no foods at all. Describe food TYPES generically and say plainly that the shelf is empty, so the plan says what to BUY, not what to pour.";
+  }
+  const lines = foods.map((f) => `- "${f.name}"${f.defaultDose ? ` (usual dose ${f.defaultDose})` : ""}`);
+  return `FOODS ON THE SHELF (the ONLY foods the plan may name — use these EXACT names, verbatim, never a generic word like "flakes" or "granulate" where one of these fits):
+${lines.join("\n")}
+If a feeding day needs something none of these covers, keep that day generic AND add a note saying the shelf has nothing suitable for it.`;
+}
+
 export async function draftFeedingPlan(params: {
   tankId: number;
   locale: Locale;
@@ -86,6 +104,7 @@ export async function draftFeedingPlan(params: {
   if (!budget.allowed) return { ok: false, code: "feedingPlan.limitReached" };
 
   const context = buildCoachContext(now, undefined, params.tankId);
+  const foods = listProducts("food");
 
   const startedAt = Date.now();
   let requestBody: Anthropic.Messages.MessageCreateParamsNonStreaming | null = null;
@@ -102,7 +121,7 @@ export async function draftFeedingPlan(params: {
       messages: [
         {
           role: "user",
-          content: `Draft the feeding plan for this tank.\n\n=== TANK CONTEXT ===\n${context}`,
+          content: `Draft the feeding plan for this tank.\n\n${foodsDirective(foods)}\n\n=== TANK CONTEXT ===\n${context}`,
         },
       ],
       tools: [
