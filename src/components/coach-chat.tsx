@@ -394,50 +394,69 @@ function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
         onChange={(e) => setProposal((p) => ({ ...p, rationale: e.target.value }))}
       />
       <div className="space-y-2 mb-2">
-        {proposal.changes.map((c, i) => (
-          <div key={i} className="rounded-lg p-2.5 text-sm" style={{ background: "var(--secondary)" }}>
-            <div className="mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-              {c.kind === "create"
-                ? t("coach.proposalCreate", { action: actionLabel(c.actionType) })
-                : t("coach.proposalAdjust", { id: c.scheduleId })}
-            </div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="flex-1 text-xs" style={{ color: "var(--secondary-foreground)" }}>
-                {c.kind === "adjust" ? t("coach.proposalInterval") : t("coach.proposalEvery")}
-              </span>
-              {c.kind === "adjust" && (
-                <span className="text-xs tnum" style={{ color: "var(--faint)", textDecoration: "line-through" }}>
-                  {initial.changes[i]?.intervalDays ?? c.intervalDays} d
-                </span>
-              )}
-              <i aria-hidden className="ph ph-arrow-right text-[11px]" style={{ color: "var(--faint)" }} />
-              <button type="button" onClick={() => updateChange(i, { intervalDays: Math.max(1, c.intervalDays - 1) })}
-                className="rounded-[7px] text-sm font-medium"
-                style={{ width: 26, height: 26, background: "transparent", boxShadow: "inset 0 0 0 1px var(--control-edge)", color: "var(--muted-foreground)", cursor: "pointer" }}>−</button>
-              <span className="text-sm font-medium tnum w-7 text-center">{c.intervalDays}</span>
-              <button type="button" onClick={() => updateChange(i, { intervalDays: Math.min(365, c.intervalDays + 1) })}
-                className="rounded-[7px] text-sm font-medium"
-                style={{ width: 26, height: 26, background: "var(--accent-soft)", boxShadow: "inset 0 0 0 1px var(--accent-edge)", color: "var(--accent-light)", cursor: "pointer" }}>+</button>
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>d</span>
-            </div>
-            {c.kind === "adjust" && initial.changes[i]?.details && initial.changes[i].details !== (c.details ?? "") && (
-              <div className="flex items-center gap-2 text-xs mb-1.5">
-                <span className="tnum" style={{ color: "var(--faint)", textDecoration: "line-through" }}>
-                  {initial.changes[i].details}
-                </span>
-                <i aria-hidden className="ph ph-arrow-right text-[10px]" style={{ color: "var(--faint)" }} />
+        {proposal.changes.map((c, i) =>
+          c.kind === "set_feeding_plan" ? (
+            // The feeding-plan change is pure markdown, not a schedule: no
+            // interval stepper, no details line — one editable textarea that
+            // replaces the whole plan on approval (the same issue-#36 idea:
+            // correct the AI before confirming).
+            <div key={i} className="rounded-lg p-2.5 text-sm" style={{ background: "var(--secondary)" }}>
+              <div className="mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                {t("coach.proposalFeedingPlan", { tank: c.tankId })}
               </div>
-            )}
-            <input
-              className="w-full rounded px-2 py-1.5 text-sm"
-              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit" }}
-              placeholder={t("coach.proposalDetailsPlaceholder")}
-              defaultValue={c.details ?? ""}
-              onChange={(e) => updateChange(i, { details: e.target.value || undefined })}
-              maxLength={300}
-            />
-          </div>
-        ))}
+              <textarea
+                className="w-full rounded px-2 py-1.5 text-sm"
+                style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit", minHeight: 180, resize: "vertical" }}
+                value={c.feedingPlan}
+                maxLength={4000}
+                onChange={(e) => updateChange(i, { feedingPlan: e.target.value })}
+              />
+            </div>
+          ) : (
+            <div key={i} className="rounded-lg p-2.5 text-sm" style={{ background: "var(--secondary)" }}>
+              <div className="mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                {c.kind === "create"
+                  ? t("coach.proposalCreate", { action: actionLabel(c.actionType) })
+                  : t("coach.proposalAdjust", { id: c.scheduleId })}
+              </div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="flex-1 text-xs" style={{ color: "var(--secondary-foreground)" }}>
+                  {c.kind === "adjust" ? t("coach.proposalInterval") : t("coach.proposalEvery")}
+                </span>
+                {c.kind === "adjust" && (
+                  <span className="text-xs tnum" style={{ color: "var(--faint)", textDecoration: "line-through" }}>
+                    {(initial.changes[i] as { intervalDays?: number } | undefined)?.intervalDays ?? c.intervalDays} d
+                  </span>
+                )}
+                <i aria-hidden className="ph ph-arrow-right text-[11px]" style={{ color: "var(--faint)" }} />
+                <button type="button" onClick={() => updateChange(i, { intervalDays: Math.max(1, c.intervalDays - 1) })}
+                  className="rounded-[7px] text-sm font-medium"
+                  style={{ width: 26, height: 26, background: "transparent", boxShadow: "inset 0 0 0 1px var(--control-edge)", color: "var(--muted-foreground)", cursor: "pointer" }}>−</button>
+                <span className="text-sm font-medium tnum w-7 text-center">{c.intervalDays}</span>
+                <button type="button" onClick={() => updateChange(i, { intervalDays: Math.min(365, c.intervalDays + 1) })}
+                  className="rounded-[7px] text-sm font-medium"
+                  style={{ width: 26, height: 26, background: "var(--accent-soft)", boxShadow: "inset 0 0 0 1px var(--accent-edge)", color: "var(--accent-light)", cursor: "pointer" }}>+</button>
+                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>d</span>
+              </div>
+              {c.kind === "adjust" && (initial.changes[i] as { details?: string } | undefined)?.details !== undefined && (initial.changes[i] as { details?: string }).details !== (c.details ?? "") && (
+                <div className="flex items-center gap-2 text-xs mb-1.5">
+                  <span className="tnum" style={{ color: "var(--faint)", textDecoration: "line-through" }}>
+                    {(initial.changes[i] as { details?: string }).details}
+                  </span>
+                  <i aria-hidden className="ph ph-arrow-right text-[10px]" style={{ color: "var(--faint)" }} />
+                </div>
+              )}
+              <input
+                className="w-full rounded px-2 py-1.5 text-sm"
+                style={{ background: "var(--card)", border: "1px solid var(--border)", color: "inherit" }}
+                placeholder={t("coach.proposalDetailsPlaceholder")}
+                defaultValue={c.details ?? ""}
+                onChange={(e) => updateChange(i, { details: e.target.value || undefined })}
+                maxLength={300}
+              />
+            </div>
+          ),
+        )}
       </div>
       {state === "pending" ? (
         <button

@@ -437,6 +437,13 @@
     "noPlansHint": "No care plans yet — add your first routine below. Each plan gets a target date, lands only on the weekdays you pick, and shows up in the calendar and the feed.",
     "intervalTooTight": "interval too tight? ({n} missed slots)",
     "logAllActivity": "Log all activity",
+    "feedingTitle": "Feeding plan",
+    "feedingEmpty": "No feeding plan yet — describe which food on which days. Markdown works.",
+    "feedingPlaceholder": "**Mon/Thu/Sun:** flakes, one small pinch\n\n**Tue/Fri:** frozen food\n\n**Sat:** fasting day",
+    "feedingEdit": "Edit",
+    "feedingSave": "Save",
+    "feedingSaving": "Saving …",
+    "feedingCancel": "Cancel",
     "nothingLogged": "Nothing logged yet.",
     "waterTestEntry": "Water test",
     "valuesCount": {
@@ -536,7 +543,9 @@
     "skipScheduleGone": "schedule no longer exists (or is inactive)",
     "skipWriteFailed": "write failed",
     "changeCreate": "create {action}, every {n} d (tank {tank})",
-    "changeAdjust": "adjust plan #{id} → every {n} d"
+    "changeAdjust": "adjust plan #{id} → every {n} d",
+    "changeFeedingPlan": "new feeding plan for tank {tank}",
+    "proposalFeedingPlan": "Feeding plan for tank {tank} — edit before approving:"
   },
   "debug": {
     "title": "Debug",

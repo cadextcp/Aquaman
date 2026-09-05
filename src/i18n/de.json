@@ -437,6 +437,13 @@
     "noPlansHint": "Noch keine Pflegepläne — leg unten deine erste Routine an. Jeder Plan bekommt einen Soll-Termin, landet nur auf den Wochentagen, die du wählst, und taucht in Kalender und Feed auf.",
     "intervalTooTight": "Intervall zu eng? ({n} verpasste Termine)",
     "logAllActivity": "Verlauf aller Aktivitäten",
+    "feedingTitle": "Fütterungsplan",
+    "feedingEmpty": "Noch kein Fütterungsplan — beschreibe, welches Futter an welchen Tagen. Markdown funktioniert.",
+    "feedingPlaceholder": "**Mo/Do/So:** Flocken, eine kleine Portion\n\n**Di/Fr:** Frostfutter\n\n**Sa:** Fastentag",
+    "feedingEdit": "Bearbeiten",
+    "feedingSave": "Speichern",
+    "feedingSaving": "Speichern …",
+    "feedingCancel": "Abbrechen",
     "nothingLogged": "Noch nichts erfasst.",
     "waterTestEntry": "Wassermessung",
     "valuesCount": {
@@ -536,7 +543,9 @@
     "skipScheduleGone": "Plan existiert nicht mehr (oder ist pausiert)",
     "skipWriteFailed": "Schreiben fehlgeschlagen",
     "changeCreate": "{action} anlegen, alle {n} T. (Aquarium {tank})",
-    "changeAdjust": "Plan #{id} ändern → alle {n} T."
+    "changeAdjust": "Plan #{id} ändern → alle {n} T.",
+    "changeFeedingPlan": "neuer Fütterungsplan für Aquarium {tank}",
+    "proposalFeedingPlan": "Fütterungsplan für Aquarium {tank} — vor dem Übernehmen bearbeiten:"
   },
   "debug": {
     "title": "Debug",

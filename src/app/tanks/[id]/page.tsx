@@ -15,6 +15,7 @@ import { ScheduleCard } from "@/components/schedule-card";
 import { today as todayStrLocal } from "@/lib/domain/dates";
 import { WaterTestForm } from "@/components/water-test-form";
 import { WaterTestHistory } from "@/components/water-test-history";
+import { FeedingPlanCard } from "@/components/feeding-plan-card";
 import { StatusNote } from "@/components/ui/status-note";
 import { HelpDot, HelpNote } from "@/components/ui/help";
 import { PageHeader } from "@/components/ui/page-header";
@@ -187,6 +188,12 @@ export default async function TankDetail({ params }: { params: Promise<{ id: str
             <ScheduleForm tankId={tank.id} tanks={tanks} foodProducts={foodProducts} />
           </div>
         </details>
+      </section>
+
+      {/* Feeding plan (free-form markdown — prose, deliberately not a schedule) */}
+      <section className="mb-6">
+        <h2 className="text-lg font-semibold mb-3">{translate("tankDetail.feedingTitle", locale)}</h2>
+        <FeedingPlanCard tankId={tank.id} initialPlan={tank.feedingPlan} />
       </section>
 
       {/* Water test */}
