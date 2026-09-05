@@ -112,6 +112,12 @@ export const products = sqliteTable(
     createdAt: text("created_at")
       .notNull()
       .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
+    // "Used up" (owner decision): off the shelf, out of the coach context and
+    // the plan-vs-shelf coverage — but still a real product that WAS owned,
+    // so it stays visible in the inventory archive and reactivatable when the
+    // same bottle is bought again. deletedAt stays what it is: "never really
+    // existed" (typo, import mistake).
+    archivedAt: text("archived_at"),
     // Soft-delete like everything else here: plans and logs reference a
     // product by name, so a row must never actually vanish.
     deletedAt: text("deleted_at"),
@@ -119,9 +125,9 @@ export const products = sqliteTable(
   (t) => [
     index("idx_products_kind").on(t.kind),
     // Partial unique index: a second "JBL NovoBel" among the foods is a typo,
-    // not another product. Restricted to live rows so a deleted name can be
-    // reused.
-    uniqueIndex("uq_products_kind_name").on(t.kind, t.name).where(sql`${t.deletedAt} IS NULL`),
+    // not another product. Restricted to live rows (not deleted, not archived)
+    // so a used-up name can be bought again.
+    uniqueIndex("uq_products_kind_name").on(t.kind, t.name).where(sql`${t.deletedAt} IS NULL AND ${t.archivedAt} IS NULL`),
     check("products_kind_valid", sql`${t.kind} IN ('fertilizer','food')`),
   ],
 );

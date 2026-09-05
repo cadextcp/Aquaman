@@ -71,6 +71,13 @@
       "when": 1788615746183,
       "tag": "0009_tank_feeding_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1788630728562,
+      "tag": "0010_product_archived_at",
+      "breakpoints": true
     }
   ]
 }

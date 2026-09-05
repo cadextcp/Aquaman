@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { tanks, schedules, maintenanceLogs, waterTests, feedLogs, products } from "@/lib/db/schema";
-import { and, desc, eq, isNull, gte, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, isNotNull, gte, sql } from "drizzle-orm";
+import { coverFertilizePlan } from "@/lib/domain/inventory";
 import type { Tank, Schedule, MaintenanceLog, WaterTest, FeedLog, Product } from "@/lib/db/schema";
 import {
   snoozeInputSchema,
@@ -469,14 +470,32 @@ export function setTankFeedingPlanCore(tankId: number, plan: unknown): WriteResu
 
 /** Live products, fertilizers first, then alphabetical -- one stable order for every surface. */
 export function listProducts(kind?: "fertilizer" | "food"): Product[] {
-  const rows = db.select().from(products).where(isNull(products.deletedAt)).all();
+  const rows = db
+    .select()
+    .from(products)
+    .where(and(isNull(products.deletedAt), isNull(products.archivedAt)))
+    .all();
   return rows
     .filter((p) => (kind ? p.kind === kind : true))
     .sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === "fertilizer" ? -1 : 1));
 }
 
+/** Used-up products, newest first — visible in the inventory archive, never in the coach context. */
+export function listArchivedProducts(): Product[] {
+  const rows = db
+    .select()
+    .from(products)
+    .where(and(isNull(products.deletedAt), isNotNull(products.archivedAt)))
+    .all();
+  return rows.sort((a, b) => (a.archivedAt! < b.archivedAt! ? 1 : -1));
+}
+
 export function getProduct(id: number): Product | undefined {
-  return db.select().from(products).where(and(eq(products.id, id), isNull(products.deletedAt))).get();
+  return db
+    .select()
+    .from(products)
+    .where(and(eq(products.id, id), isNull(products.deletedAt), isNull(products.archivedAt)))
+    .get();
 }
 
 /**
@@ -587,6 +606,113 @@ export function deleteProductCore(id: number): WriteResult {
   } catch (err) {
     console.error("[deleteProductCore]", err);
     return failure("product.deleteFailed", "Could not delete product");
+  }
+}
+
+// ==================== product archive ("used up", docs/plan-produkt-archiv.md) ====================
+
+export type AffectedPlans = {
+  /** Active schedules that lose their only supplier for a nutrient, or name the product in their details. */
+  schedules: { id: number; tankId: number; tankName: string; actionType: string; reason: "coverage" | "named" }[];
+  /** Tanks whose free-text feeding plan names the product (the exact-names contract makes this a plain text match). */
+  feedingPlans: { tankId: number; tankName: string }[];
+};
+
+/**
+ * Which plans does this product actually carry? Honest on purpose: a fertilize
+ * plan is "affected" when archiving leaves one of its dosed nutrients with no
+ * supplier on the shelf — not merely when the product could theoretically dose
+ * something the plan doses (a second iron fertilizer makes the first one
+ * redundant, and archiving it changes nothing). Plans that only NAME the
+ * product in their details text count as named.
+ */
+export function plansUsingProductDetailed(product: Product, fertilizers: Product[]): AffectedPlans {
+  const affected: AffectedPlans = { schedules: [], feedingPlans: [] };
+  const liveTanks = db.select().from(tanks).where(isNull(tanks.deletedAt)).all();
+  const tankName = (id: number) => liveTanks.find((t) => t.id === id)?.name ?? `#${id}`;
+  const activeSchedules = db.select().from(schedules).where(eq(schedules.active, true)).all();
+
+  for (const s of activeSchedules) {
+    const data = s.detailData as DetailData | null;
+    const namesProduct =
+      (s.details ?? "").includes(product.name) ||
+      (data?.foods !== undefined && data.foods !== null && typeof data.foods === "object" && product.name in (data.foods as Record<string, unknown>));
+
+    let losesCoverage = false;
+    if (product.kind === "fertilizer" && s.actionType === "fertilize") {
+      const { covered } = coverFertilizePlan((data as { nutrients?: Record<string, unknown> } | null)?.nutrients, fertilizers);
+      losesCoverage = covered.some(
+        (c) => c.providedBy.length === 1 && c.providedBy[0].name === product.name,
+      );
+    }
+
+    if (losesCoverage) {
+      affected.schedules.push({ id: s.id, tankId: s.tankId, tankName: tankName(s.tankId), actionType: s.actionType, reason: "coverage" });
+    } else if (namesProduct) {
+      affected.schedules.push({ id: s.id, tankId: s.tankId, tankName: tankName(s.tankId), actionType: s.actionType, reason: "named" });
+    }
+  }
+
+  for (const t of liveTanks) {
+    if (t.feedingPlan && t.feedingPlan.includes(product.name)) {
+      affected.feedingPlans.push({ tankId: t.id, tankName: t.name });
+    }
+  }
+  return affected;
+}
+
+export type ArchiveProductResult = { ok: true; affected: AffectedPlans } | Failure;
+
+/**
+ * "Used up": off the shelf and out of the coach context, but a real product
+ * that WAS owned — the archive keeps it visible and reactivatable. Computed
+ * BEFORE the write so the UI can offer plan updates for exactly the plans
+ * that just lost something.
+ */
+export function archiveProductCore(id: number): ArchiveProductResult {
+  try {
+    const existing = getProduct(id);
+    if (!existing) return failure("product.notFound", "Product not found");
+    const affected = plansUsingProductDetailed(existing, listProducts("fertilizer"));
+    db.update(products).set({ archivedAt: new Date().toISOString() }).where(eq(products.id, id)).run();
+    return { ok: true, affected };
+  } catch (err) {
+    console.error("[archiveProductCore]", err);
+    return failure("product.updateFailed", "Could not archive product");
+  }
+}
+
+/**
+ * Bought the same bottle again: back on the shelf with doses and provenance
+ * intact. Refused while a live product of the same name exists — that name is
+ * taken, and the partial unique index would reject the write anyway.
+ */
+export function unarchiveProductCore(id: number): WriteResult {
+  try {
+    const row = db
+      .select()
+      .from(products)
+      .where(and(eq(products.id, id), isNull(products.deletedAt), isNotNull(products.archivedAt)))
+      .get();
+    if (!row) return failure("product.notFound", "Product not found");
+    const clash = db
+      .select({ id: products.id })
+      .from(products)
+      .where(
+        and(
+          eq(products.kind, row.kind),
+          eq(products.name, row.name),
+          isNull(products.deletedAt),
+          isNull(products.archivedAt),
+        ),
+      )
+      .get();
+    if (clash) return failure("product.duplicateName", "A live product with that name already exists", { name: row.name });
+    db.update(products).set({ archivedAt: null }).where(eq(products.id, id)).run();
+    return { ok: true };
+  } catch (err) {
+    console.error("[unarchiveProductCore]", err);
+    return failure("product.updateFailed", "Could not restore product");
   }
 }
 
