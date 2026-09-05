@@ -44,6 +44,17 @@ manages its own memory automatically — this file serves other agents and human
 - 2026-08-23 NH3 calculated from NH4+pH+temp (Emerson 1975), evaluated instead of raw NH4; NO2 target 0 established; tankState cycling|established
 - 2026-08-23 Docker in Phase 1 as vertical slice (avoid late deployment surprises); ports 127.0.0.1-only
 - 2026-08-23 Timeline corrected: 6–8 weeks part-time (was 2–4, review called it unrealistic)
+- 2026-09-05 Feeding plan is PROSE, not a schedule: `tanks.feedingPlan` (markdown, ≤ 4000 chars,
+  migration `0009`, `docs/plan-fuetterungsplan.md`) with its own write path
+  `setTankFeedingPlanCore` — deliberately NOT in `tankInputSchema`, because
+  `updateTankCore` is a full replace and the profile form must not be able to
+  wipe a field it never shows. The coach sees it in context (capped 2400 chars)
+  and proposes full rewrites via `kind: "set_feeding_plan"` through the normal
+  approval gate; `intervalDays` had to move from the proposal tool's base
+  `required` into the create/adjust branches for that (a base field would
+  reject every feeding-plan change for lacking an interval it cannot have).
+  react-markdown joined the deps for the view (first markdown surface; no
+  rehype-raw, HTML stays escaped).
 - 2026-09-05 MCP writes deliberately do NOT trigger the proactive coach plan
   review — `requestPlanReview()` stays UI-only (`src/app/actions.ts`; the
   cores in `repo.ts` and the MCP tools never call it). Owner decision: an
@@ -79,6 +90,9 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Completed
 
+- [x] Free-text feeding plan per tank (`docs/plan-fuetterungsplan.md`,
+      migration `0009`) — built on `feat/feeding-plan` 2026-09-05, not yet
+      merged/deployed
 - [x] Label-photo import, stage 3 (`docs/plan-produkt-import-url.md` §10) —
       merged to `main` 2026-09-05, live-smoke-tested, deploy pending
 - [x] Product inventory (`docs/plan-produkt-lager.md`, migration `0007`) — shipped, in production
