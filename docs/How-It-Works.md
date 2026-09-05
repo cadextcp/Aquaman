@@ -163,9 +163,50 @@ Docker app. SSH works with key auth as `alex`; docker on the host needs sudo.
 - Every container start runs migrations — idempotent. Ranges/catalog ship
   with the image code, so pulling a new image brings range corrections
   automatically.
-- **Backup:** stop container → `cp -a /mnt/nvda/Aquaman /mnt/nvda/<name>` →
-  start. Always copy `aquaman.db` + `-wal` + `-shm` together, and only while
-  the container is stopped.
+- **Backup — do NOT stop the container for this.** SQLite can snapshot itself
+  while it is being written to, so the stop the old procedure demanded bought
+  nothing and cost availability:
+
+  ```bash
+  # consistent snapshot of the LIVE database, app keeps serving
+  sudo docker run --rm -v /mnt/nvda/Aquaman:/app/data ghcr.io/cadextcp/aquaman:main \
+    node -e "new (require('better-sqlite3'))('/app/data/aquaman.db',{readonly:true}) \
+             .exec(\"VACUUM INTO '/app/data/backup-<name>.db'\")"
+  sudo mv /mnt/nvda/Aquaman/backup-<name>.db /mnt/nvda/Aquaman-backup-<name>.db
+  ```
+
+  The snapshot is a single file with the WAL already folded in — no `-wal` /
+  `-shm` to keep together. It has to be written **inside** the bind mount and
+  moved afterwards: the container runs as non-root `node` and cannot write to
+  `/mnt/nvda` itself. Verify it before trusting it (open it read-only and count
+  `__drizzle_migrations` plus a table or two).
+
+  `cp -a` of the whole directory is still correct, but only with the container
+  stopped, and only for `aquaman.db` + `-wal` + `-shm` copied together.
+
+- **Deploy order: pull → backup → recreate.** Pull first, while the app is
+  still up, so a failure at that step costs nothing:
+
+  ```bash
+  sudo docker pull ghcr.io/cadextcp/aquaman:main
+  # …backup as above…
+  cd /mnt/.ix-apps/app_configs/aquaman/versions/<v>/templates/rendered
+  sudo docker compose -p ix-aquaman up -d aquaman   # -p is mandatory
+  ```
+
+  `compose up -d` stops and starts in one step, so the app is never left
+  stopped waiting for a second command. That is not hypothetical: on
+  2026-09-05 a deploy that stopped first for the backup could not be started
+  again by the agent doing it, and the app was down for five minutes for no
+  reason. Recreating is also what actually re-resolves a moved `:main` tag —
+  `docker restart` reuses the old image layer.
+
+  After the recreate, the boot log must say
+  `[db:ensure] done — N migrations applied`; the guard in `scripts/migrate.ts`
+  aborts the container rather than serving a database older than the code.
+  Then check `curl localhost:3100/` → 200 and that `docker ps` shows only
+  `ix-aquaman-aquaman-1` — a missing `-p ix-aquaman` creates a stray
+  `rendered-aquaman-1` alongside it.
 - **Data reset for a fresh production start** (done 2026-08-30): stop
   container → run a one-off container with the image's own better-sqlite3:
   `docker run --rm -v /mnt/nvda/Aquaman:/app/data ghcr.io/cadextcp/aquaman:main node -e '<script>'`
