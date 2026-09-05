@@ -21,6 +21,10 @@ manages its own memory automatically — this file serves other agents and human
   not yet in production: the label-photo import (stage 3), the per-tank
   feeding plan with the suggest button and exact-shelf-names contract, and
   markdown rendering in the coach chat.
+- **Planned, not built:** user-editable coach prompts —
+  `docs/plan-prompt-anpassung.md` (More-section, collapsed, variable chips
+  `{{context}}`/`{{plan_types}}`, read-only prompt testing that can never
+  write; tool contracts and the product-import prompt stay fixed).
 - **Housekeeping on the NAS:** backups accumulate in `/mnt/nvda/` and are safe
   to delete once a production state is trusted.
 
