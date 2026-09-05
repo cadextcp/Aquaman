@@ -12,6 +12,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { NextRequest } from "next/server";
+import sharp from "sharp";
 
 const TMP = path.join(tmpdir(), `aquaman-import-route-${Date.now()}`);
 process.env.AQUAMAN_DATA_DIR = TMP;
@@ -23,6 +24,7 @@ let pageResult: PageFetch;
 let draftResult: DraftResult;
 const fetchSpy = vi.fn();
 const draftSpy = vi.fn();
+const draftImageSpy = vi.fn();
 
 vi.mock("@/lib/import/fetch-page", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/lib/import/fetch-page")>();
@@ -38,6 +40,10 @@ vi.mock("@/lib/import/fetch-page", async (importOriginal) => {
 vi.mock("@/lib/ai/product-draft", () => ({
   draftProductFromText: (...args: unknown[]) => {
     draftSpy(...args);
+    return Promise.resolve(draftResult);
+  },
+  draftProductFromImage: (...args: unknown[]) => {
+    draftImageSpy(...args);
     return Promise.resolve(draftResult);
   },
 }));
@@ -58,6 +64,10 @@ const DRAFT_OK: DraftResult = {
 
 let POST: (req: NextRequest) => Promise<Response>;
 
+/** A real decodable photo (900×620 png) and a non-image, both as base64. */
+let PHOTO_B64: string;
+const GARBAGE_B64 = Buffer.from("definitely not a photo").toString("base64");
+
 function post(body: unknown, ip = "203.0.113.10") {
   return POST(
     new NextRequest("http://localhost/api/inventory/import", {
@@ -70,6 +80,10 @@ function post(body: unknown, ip = "203.0.113.10") {
 
 beforeAll(async () => {
   mkdirSync(TMP, { recursive: true });
+  PHOTO_B64 = await sharp({ create: { width: 900, height: 620, channels: 3, background: { r: 210, g: 205, b: 190 } } })
+    .png()
+    .toBuffer()
+    .then((b) => b.toString("base64"));
   const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
   const { db } = await import("../src/lib/db");
   migrate(db, { migrationsFolder: "./drizzle" });
@@ -81,6 +95,7 @@ beforeEach(async () => {
   __resetRateLimiter();
   fetchSpy.mockClear();
   draftSpy.mockClear();
+  draftImageSpy.mockClear();
   pageResult = { ok: true, html: GOOD_PAGE, finalUrl: "https://shop.example.com/p/1" };
   draftResult = DRAFT_OK;
 });
@@ -143,11 +158,53 @@ describe("POST /api/inventory/import", () => {
   });
 
   it("rejects a body with neither url nor text", async () => {
-    for (const body of [{ kind: "food" }, { kind: "food", url: "  " }, { url: "https://x.example.com" }, { kind: "toy", url: "https://x.example.com" }]) {
+    for (const body of [
+      { kind: "food" },
+      { kind: "food", url: "  " },
+      { url: "https://x.example.com" },
+      { kind: "toy", url: "https://x.example.com" },
+      { kind: "food", text: "Analytische Bestandteile: Rohprotein 47,0 %. ", imageBase64: "AAAA" },
+    ]) {
       const res = await post(body);
       expect(res.status, JSON.stringify(body)).toBe(400);
       expect(draftSpy).not.toHaveBeenCalled();
     }
+  });
+
+  it("drafts from a label photo — downscaled jpeg to the model, no fetch, no sourceUrl", async () => {
+    const res = await post({ kind: "food", imageBase64: PHOTO_B64 });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.ok).toBe(true);
+    expect(json.draft.name).toBe("sera Flora Nature");
+    // A photo has no verifiable source — unlike the URL path.
+    expect(json.sourceUrl).toBeUndefined();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(draftSpy).not.toHaveBeenCalled();
+    expect(draftImageSpy).toHaveBeenCalledTimes(1);
+    const arg = draftImageSpy.mock.calls[0][0] as { image: { base64: string; mediaType: string } };
+    expect(arg.image.mediaType).toBe("image/jpeg");
+    // The pipeline ran: the model sees the re-encoded, size-capped jpeg.
+    const meta = await sharp(Buffer.from(arg.image.base64, "base64")).metadata();
+    expect(meta.format).toBe("jpeg");
+    expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(1200);
+  });
+
+  it("never calls the model for bytes that decode to nothing", async () => {
+    const res = await post({ kind: "food", imageBase64: GARBAGE_B64 });
+    expect(res.status).toBe(422);
+    expect((await res.json()).code).toBe("productImport.unsupportedImage");
+    expect(draftImageSpy).not.toHaveBeenCalled();
+    expect(draftSpy).not.toHaveBeenCalled();
+  });
+
+  it("refuses a photo over the decoded-byte cap as 413, before the model", async () => {
+    // ~5 MB decoded ≈ 6.9M base64 chars — inside the schema cap, over the byte cap.
+    const tooBig = Buffer.alloc(5 * 1024 * 1024 + 1024, 1).toString("base64");
+    const res = await post({ kind: "food", imageBase64: tooBig });
+    expect(res.status).toBe(413);
+    expect((await res.json()).code).toBe("productImport.imageTooLarge");
+    expect(draftImageSpy).not.toHaveBeenCalled();
   });
 
   it("surfaces the daily AI limit as 429 and offline as 503", async () => {
