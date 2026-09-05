@@ -37,13 +37,17 @@ export type ProposalApplyResult = {
  * UI string (the action type itself is localized too).
  */
 function describeChange(c: ProposalChange, locale: Locale): string {
-  return c.kind === "create"
-    ? t("coach.changeCreate", locale, {
-        action: actionLabelFor(c.actionType, locale),
-        n: c.intervalDays,
-        tank: c.tankId,
-      })
-    : t("coach.changeAdjust", locale, { id: c.scheduleId, n: c.intervalDays });
+  if (c.kind === "create") {
+    return t("coach.changeCreate", locale, {
+      action: actionLabelFor(c.actionType, locale),
+      n: c.intervalDays,
+      tank: c.tankId,
+    });
+  }
+  if (c.kind === "set_feeding_plan") {
+    return t("coach.changeFeedingPlan", locale, { tank: c.tankId });
+  }
+  return t("coach.changeAdjust", locale, { id: c.scheduleId, n: c.intervalDays });
 }
 
 export async function applyProposal(input: unknown): Promise<ActionResult<ProposalApplyResult>> {
@@ -58,7 +62,23 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
 
   for (const c of proposal.changes) {
     try {
-      if (c.kind === "create") {
+      if (c.kind === "set_feeding_plan") {
+        // Direct write, like the other branches: the proposal was zod-validated
+        // above and the liveness check is the same one kind=create performs —
+        // setTankFeedingPlanCore would only re-run both for one UPDATE.
+        const tank = db
+          .select({ id: tanks.id })
+          .from(tanks)
+          .where(and(eq(tanks.id, c.tankId), isNull(tanks.deletedAt)))
+          .get();
+        if (!tank) {
+          skipped.push({ change: describeChange(c, locale), reason: t("coach.skipTankGone", locale) });
+          continue;
+        }
+        db.update(tanks).set({ feedingPlan: c.feedingPlan }).where(eq(tanks.id, c.tankId)).run();
+        revalidatePath(`/tanks/${c.tankId}`);
+        applied.push(describeChange(c, locale));
+      } else if (c.kind === "create") {
         const tank = db
           .select()
           .from(tanks)
@@ -96,7 +116,7 @@ export async function applyProposal(input: unknown): Promise<ActionResult<Propos
           .run();
         applied.push(describeChange(c, locale));
       } else {
-        // join tanks so soft-deleted tank schedules are treated as gone too
+        // kind=adjust — join tanks so soft-deleted tank schedules are treated as gone too
         const s = db
           .select({ id: schedules.id })
           .from(schedules)

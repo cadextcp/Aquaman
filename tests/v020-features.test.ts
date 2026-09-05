@@ -248,7 +248,8 @@ describe("proposal details (issue #36)", () => {
       changes: [{ kind: "create", tankId: 1, actionType: "fertilize", intervalDays: 7, preferredDays: 127, details: "10 ml iron fertilizer (verify against product label)" }],
     });
     expect(okCreate).not.toBeNull();
-    expect(okCreate!.changes[0].details).toContain("verify");
+    const c0 = okCreate!.changes[0];
+    expect(c0.kind === "create" && c0.details).toContain("verify");
 
     const okAdjust = parseProposal({
       rationale: "x",

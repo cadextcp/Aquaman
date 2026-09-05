@@ -126,4 +126,52 @@ describe("applyProposal (approval gate)", () => {
       expect(res.data!.skipped).toHaveLength(1);
     }
   });
+
+  it("set_feeding_plan: writes tanks.feedingPlan after approval, and only then", async () => {
+    const { applyProposal } = await import("../src/app/actions-ai");
+    const { createTankDirect } = await import("./helpers");
+    const { db } = await import("../src/lib/db");
+    const { tanks } = await import("../src/lib/db/schema");
+    const tankId = await createTankDirect("Feeding Tank");
+    const PLAN = "**Mo/Do/So:** Flocken, kleine Portion\n**Sa:** Fastentag";
+    const proposal = {
+      rationale: "grounded in the foods the shelf lists",
+      changes: [{ kind: "set_feeding_plan" as const, tankId, feedingPlan: PLAN }],
+    };
+
+    // the approval gate IS the write path — nothing lands before applyProposal
+    expect(db.select().from(tanks).where(eq(tanks.id, tankId)).get()!.feedingPlan).toBeNull();
+
+    const res = await applyProposal(proposal);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data!.applied).toHaveLength(1);
+      expect(res.data!.skipped).toHaveLength(0);
+    }
+    expect(db.select().from(tanks).where(eq(tanks.id, tankId)).get()!.feedingPlan).toBe(PLAN);
+  });
+
+  it("set_feeding_plan on a soft-deleted tank → skipped, plan untouched", async () => {
+    const { applyProposal } = await import("../src/app/actions-ai");
+    const { db } = await import("../src/lib/db");
+    const { tanks } = await import("../src/lib/db/schema");
+    const dead = db
+      .insert(tanks)
+      .values({ name: "Dead Feeding Tank", volumeL: 50, waterType: "fresh" })
+      .returning()
+      .get();
+    db.update(tanks).set({ deletedAt: new Date().toISOString() }).where(eq(tanks.id, dead.id)).run();
+
+    const res = await applyProposal({
+      rationale: "stale tank id",
+      changes: [{ kind: "set_feeding_plan", tankId: dead.id, feedingPlan: "**Mo:** Flocken" }],
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data!.applied).toHaveLength(0);
+      expect(res.data!.skipped).toHaveLength(1);
+      expect(res.data!.skipped[0].reason).toContain("no longer exists");
+    }
+    expect(db.select().from(tanks).where(eq(tanks.id, dead.id)).get()!.feedingPlan).toBeNull();
+  });
 });

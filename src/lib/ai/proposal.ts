@@ -9,16 +9,17 @@
  */
 import { z } from "zod";
 import { SCHEDULABLE_ACTION_TYPES } from "@/lib/domain/action-types";
+import { FEEDING_PLAN_MAX_CHARS } from "@/lib/schemas";
 
 export const PROPOSAL_TOOL_NAME = "propose_schedule";
 
 const ACTION_TYPE_LIST = SCHEDULABLE_ACTION_TYPES.join(", ");
 
-export const PROPOSAL_TOOL_DESCRIPTION = `Propose maintenance schedule changes as a draft for the user to approve.
-Use when: a tank has no schedules yet, water values suggest a different cadence (e.g. nitrate rising → shorter water-change interval), or a task repeatedly misses its slots (missedSlots >= 3 → suggest a LONGER interval).
+export const PROPOSAL_TOOL_DESCRIPTION = `Propose maintenance schedule changes or a feeding-plan rewrite as a draft for the user to approve.
+Use when: a tank has no schedules yet, water values suggest a different cadence (e.g. nitrate rising → shorter water-change interval), a task repeatedly misses its slots (missedSlots >= 3 → suggest a LONGER interval), or the user asks you to review/rewrite the tank's feeding plan.
 STRICT output contract — the app rejects any change that misses a required field:
-- Every change MUST include kind and intervalDays. For kind=create ALSO include tankId, actionType and preferredDays. For kind=adjust ALSO include scheduleId of the existing schedule (never tankId/actionType — the schedule already has those).
-- actionType must be exactly one of: ${ACTION_TYPE_LIST} — no other values, no custom labels.
+- Every change MUST include kind. For kind=create ALSO include tankId, actionType, preferredDays and intervalDays. For kind=adjust ALSO include scheduleId and intervalDays (never tankId/actionType — the schedule already has those). For kind=set_feeding_plan ALSO include tankId and feedingPlan (the COMPLETE new markdown text, max ${FEEDING_PLAN_MAX_CHARS} characters — it replaces the whole plan on approval, so never send a fragment or a diff).
+- actionType must be exactly one of: ${ACTION_TYPE_LIST} — no other values, no custom labels. "feed" is NOT among them on purpose: feeding is a daily counter, and a feeding REGIME is prose that belongs in kind=set_feeding_plan, never a schedule.
 - preferredDays is a 7-bit weekday bitmask: bit0=Mon(1) Tue(2) Wed(4) Thu(8) Fri(16) Sat(32) Sun(64). Examples: 127=every day, 96=weekend only (Sat+Sun), 31=weekdays. Use 127 when the user gives no weekday preference.
 - Never send an empty changes array, and always also write a short visible summary of what you proposed.
 Keep it minimal: only the changes that matter, with a short rationale each.`;
@@ -34,12 +35,13 @@ export const PROPOSAL_TOOL_INPUT_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["create", "adjust"], description: "create = new schedule, adjust = change an existing one" },
-          tankId: { type: "integer", description: "REQUIRED. Tank for kind=create (from context TANK #id); for kind=adjust the tank that owns the schedule" },
+          kind: { type: "string", enum: ["create", "adjust", "set_feeding_plan"], description: "create = new schedule, adjust = change an existing one, set_feeding_plan = rewrite the tank's free-text feeding plan" },
+          tankId: { type: "integer", description: "REQUIRED for kind=create and kind=set_feeding_plan (from context TANK #id); for kind=adjust the tank that owns the schedule" },
           scheduleId: { type: "integer", description: "REQUIRED for kind=adjust: the existing schedule (from context #id)" },
-          actionType: { type: "string", enum: [...SCHEDULABLE_ACTION_TYPES], description: `REQUIRED. Exact standard type: ${ACTION_TYPE_LIST} — no other values` },
-          intervalDays: { type: "integer", description: "REQUIRED. Interval in days (1–365)" },
-          preferredDays: { type: "integer", description: "REQUIRED. 7-bit weekday mask: 1=Mon … 64=Sun; 127=every day; 96=weekend. Use 127 if the user names no weekdays" },
+          actionType: { type: "string", enum: [...SCHEDULABLE_ACTION_TYPES], description: `REQUIRED for kind=create. Exact standard type: ${ACTION_TYPE_LIST} — no other values` },
+          intervalDays: { type: "integer", description: "REQUIRED for kind=create and kind=adjust. Interval in days (1–365)" },
+          preferredDays: { type: "integer", description: "REQUIRED for kind=create. 7-bit weekday mask: 1=Mon … 64=Sun; 127=every day; 96=weekend. Use 127 if the user names no weekdays" },
+          feedingPlan: { type: "string", description: `REQUIRED for kind=set_feeding_plan: the COMPLETE new feeding-plan markdown (max ${FEEDING_PLAN_MAX_CHARS} chars). It replaces the whole plan — never a fragment or a diff` },
           details: { type: "string", description: "Concrete instructions for the task, e.g. '30 L of 60 L (50 %) water change' or '10 ml iron fertilizer'. Fertilizer/water-change amounts only — NEVER medication. Always append: (verify dosage against the product label)" },
           detailData: { type: "object", description: "Structured details. water_change: {percent}; water_top_up: {liters}; fertilize: {nutrients:{c_co2|n_no3|p_po4|k|mg|ca|fe|mn|zn|b|mo|cu: 'dose'}}; feed: {foods:{'Food name':'amount'}}. Keep it consistent with details." },
           note: { type: "string", description: "Optional short reason for this single change" },
@@ -52,15 +54,22 @@ export const PROPOSAL_TOOL_INPUT_SCHEMA = {
         // scheduleId only for adjust" — it either over-requires create-only
         // fields on adjust or never requires scheduleId at all, so this uses
         // if/then per kind exactly like the zod discriminated union below.
-        required: ["kind", "intervalDays"],
+        // intervalDays moved into the create/adjust branches when
+        // set_feeding_plan joined: a base-level requirement would reject
+        // every feeding-plan change for lacking an interval it cannot have.
+        required: ["kind"],
         allOf: [
           {
             if: { properties: { kind: { const: "create" } } },
-            then: { required: ["tankId", "actionType", "preferredDays"] },
+            then: { required: ["tankId", "actionType", "preferredDays", "intervalDays"] },
           },
           {
             if: { properties: { kind: { const: "adjust" } } },
-            then: { required: ["scheduleId"] },
+            then: { required: ["scheduleId", "intervalDays"] },
+          },
+          {
+            if: { properties: { kind: { const: "set_feeding_plan" } } },
+            then: { required: ["tankId", "feedingPlan"] },
           },
         ],
       },
@@ -88,6 +97,14 @@ export const proposalChangeSchema = z.discriminatedUnion("kind", [
     intervalDays: z.number().int().min(1).max(365),
     details: z.string().trim().max(300).optional(),
     detailData: z.record(z.string(), z.unknown()).optional(),
+    note: z.string().trim().max(200).optional(),
+  }),
+  z.object({
+    kind: z.literal("set_feeding_plan"),
+    tankId: z.number().int().positive(),
+    // min(1): a proposal that empties the plan is meaningless — clearing is
+    // the editor's job, and an empty acceptance card would look like a bug.
+    feedingPlan: z.string().trim().min(1).max(FEEDING_PLAN_MAX_CHARS),
     note: z.string().trim().max(200).optional(),
   }),
 ]);

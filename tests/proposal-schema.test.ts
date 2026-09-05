@@ -23,22 +23,33 @@ function requiredFor(kind: string): string[] {
 }
 
 describe("propose_schedule JSON schema ↔ zod contract", () => {
-  it("base required fields apply to every kind", () => {
-    for (const key of ["kind", "intervalDays"]) {
-      expect(items.required).toContain(key);
-    }
+  it("base required is only `kind` — the per-kind fields live in the branches", () => {
+    expect(items.required).toContain("kind");
+    // intervalDays moved out of the base when set_feeding_plan joined: a
+    // base-level requirement would reject every feeding-plan change for
+    // lacking an interval it cannot have.
+    expect(items.required).not.toContain("intervalDays");
   });
 
   it("tool schema requires every zod-mandatory field of kind=create", () => {
-    for (const key of ["tankId", "actionType", "preferredDays"]) {
+    for (const key of ["tankId", "actionType", "preferredDays", "intervalDays"]) {
       expect(requiredFor("create")).toContain(key);
     }
   });
 
   it("tool schema requires scheduleId for kind=adjust, and never tankId/actionType", () => {
     expect(requiredFor("adjust")).toContain("scheduleId");
+    expect(requiredFor("adjust")).toContain("intervalDays");
     expect(requiredFor("adjust")).not.toContain("tankId");
     expect(requiredFor("adjust")).not.toContain("actionType");
+  });
+
+  it("tool schema requires tankId+feedingPlan for set_feeding_plan, and no interval", () => {
+    for (const key of ["tankId", "feedingPlan"]) {
+      expect(requiredFor("set_feeding_plan")).toContain(key);
+    }
+    expect(requiredFor("set_feeding_plan")).not.toContain("intervalDays");
+    expect(requiredFor("set_feeding_plan")).not.toContain("actionType");
   });
 
   it("zod still rejects what the tool schema forbids: create without preferredDays", () => {
@@ -83,5 +94,26 @@ describe("propose_schedule JSON schema ↔ zod contract", () => {
       changes: [{ kind: "adjust", intervalDays: 5, preferredDays: 127 }],
     };
     expect(parseProposal(missing)).toBeNull();
+  });
+
+  it("a set_feeding_plan change parses — no interval, no actionType", () => {
+    const parsed = parseProposal({
+      rationale: "Rewrite the feeding regime around the foods on the shelf.",
+      changes: [{ kind: "set_feeding_plan", tankId: 2, feedingPlan: "**Mo/Do/So:** Flocken\n**Sa:** Fastentag", note: "grounded in INVENTORY" }],
+    });
+    expect(parsed).not.toBeNull();
+    expect(parsed!.changes[0]).toMatchObject({ kind: "set_feeding_plan", tankId: 2 });
+  });
+
+  it("zod rejects set_feeding_plan without text, empty, or over the cap", () => {
+    expect(
+      parseProposal({ rationale: "x", changes: [{ kind: "set_feeding_plan", tankId: 2 }] }),
+    ).toBeNull();
+    expect(
+      parseProposal({ rationale: "x", changes: [{ kind: "set_feeding_plan", tankId: 2, feedingPlan: "   " }] }),
+    ).toBeNull();
+    expect(
+      parseProposal({ rationale: "x", changes: [{ kind: "set_feeding_plan", tankId: 2, feedingPlan: "x".repeat(4001) }] }),
+    ).toBeNull();
   });
 });

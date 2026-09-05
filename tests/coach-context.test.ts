@@ -157,6 +157,33 @@ describe("buildCoachContext", () => {
     expect(ctx).not.toContain("x".repeat(301));
   });
 
+  it("carries the tank's feeding plan as prose — the thing set_feeding_plan reviews", async () => {
+    const { db } = await import("../src/lib/db");
+    const { tanks } = await import("../src/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    db.update(tanks)
+      .set({ feedingPlan: "**Mo/Do:** Flocken\n**Sa:** Fastentag" })
+      .where(eq(tanks.id, contextTankId))
+      .run();
+    try {
+      const { buildCoachContext } = await import("../src/lib/ai/context");
+      const ctx = buildCoachContext(new Date(), undefined, contextTankId);
+      expect(ctx).toContain("feeding plan (the owner's own notes, markdown):");
+      expect(ctx).toContain("**Mo/Do:** Flocken");
+      // scoping still hides the other tank — the plan is tank data
+      const unscoped = buildCoachContext();
+      expect(unscoped).toContain("**Sa:** Fastentag");
+    } finally {
+      db.update(tanks).set({ feedingPlan: null }).where(eq(tanks.id, contextTankId)).run();
+    }
+  });
+
+  it("a tank without a feeding plan gets no feeding-plan block at all", async () => {
+    const { buildCoachContext } = await import("../src/lib/ai/context");
+    const ctx = buildCoachContext(new Date(), undefined, otherTankId);
+    expect(ctx).not.toContain("feeding plan");
+  });
+
   it("COACH_SYSTEM_PROMPT tells the model to recommend only what the user owns", async () => {
     const { COACH_SYSTEM_PROMPT } = await import("../src/lib/ai/context");
     expect(COACH_SYSTEM_PROMPT).toMatch(/INVENTORY/);
@@ -251,7 +278,8 @@ describe("parseProposal", () => {
       changes: [{ kind: "adjust", scheduleId: 1, intervalDays: 5 }],
     });
     expect(p).not.toBeNull();
-    expect(p!.changes[0].intervalDays).toBe(5);
+    const c0 = p!.changes[0];
+    expect(c0.kind === "adjust" ? c0.intervalDays : 0).toBe(5);
   });
 
   it("rejects malformed output (never repair)", async () => {
