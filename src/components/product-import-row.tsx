@@ -1,8 +1,12 @@
 "use client";
 
 /**
- * The URL row above the "add product" form
- * (docs/plan-produkt-import-url.md §2).
+ * The import row above the "add product" form
+ * (docs/plan-produkt-import-url.md §2, photo mode §10 stage 3).
+ *
+ * Three sources, one contract: a photo of the label (the default — the bottle
+ * is usually in the hand while the shelf is where the typing happens), a link
+ * to a shop page, and pasted text as the fallback when both fail.
  *
  * It only ever fills the form fields in — saving stays the user's press on the
  * form's own button. That is why this component takes an `onDraft` callback
@@ -13,7 +17,7 @@
  * call must not be able to overwrite text a person typed.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useI18n } from "@/i18n/provider";
 import { StatusNote } from "@/components/ui/status-note";
 import type { ErrorCode } from "@/lib/domain/errors";
@@ -23,7 +27,7 @@ export type ImportedDraft = {
   description: string | null;
   defaultDose: string | null;
   nutrients: Record<string, string>;
-  /** Set only on the URL path — pasted text has no verifiable source. */
+  /** Set only on the URL path — photo and pasted text have no verifiable source. */
   sourceUrl?: string | null;
 };
 
@@ -35,6 +39,21 @@ const PASTE_HELPS: ReadonlySet<string> = new Set([
   "productImport.notHtml",
 ]);
 
+/** Mirrors MAX_INPUT_BYTES in lib/import/prepare-image.ts — fail before uploading. */
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+/** Chunked btoa — String.fromCharCode on a whole multi-MB photo overflows the call stack. */
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+type ImportMode = "photo" | "url" | "paste";
+
 export function ProductImportRow({
   kind,
   onDraft,
@@ -43,30 +62,61 @@ export function ProductImportRow({
   onDraft: (draft: ImportedDraft) => void;
 }) {
   const { t, errorText } = useI18n();
-  const [mode, setMode] = useState<"url" | "paste">("url");
+  const [mode, setMode] = useState<ImportMode>("photo");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const [filled, setFilled] = useState(false);
   const [offerPaste, setOfferPaste] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const inputStyle = { background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border)", color: "inherit" };
-  const value = mode === "url" ? url : text;
+
+  const modeLabel: Record<ImportMode, string> = {
+    photo: t("inventory.importModePhoto"),
+    url: t("inventory.importModeUrl"),
+    paste: t("inventory.importModeText"),
+  };
+  const modeHint: Record<ImportMode, string> = {
+    photo: t("inventory.importPhotoHint"),
+    url: t("inventory.importHint"),
+    paste: t("inventory.importPasteHint"),
+  };
 
   async function run() {
-    if (pending || value.trim() === "") return;
+    if (pending) return;
+    if (mode === "url" && url.trim() === "") return;
+    if (mode === "paste" && text.trim() === "") return;
+    if (mode === "photo" && !photo) return;
+
     setPending(true);
     setError(null);
     setNotes([]);
     setFilled(false);
     setOfferPaste(false);
     try {
+      let body: Record<string, unknown>;
+      if (mode === "url") {
+        body = { kind, url };
+      } else if (mode === "paste") {
+        body = { kind, text };
+      } else {
+        const file = photo;
+        if (!file) return;
+        if (file.size > MAX_PHOTO_BYTES) {
+          setError(errorText({ error: "photo exceeds 5 MB", code: "productImport.imageTooLarge" }));
+          return;
+        }
+        body = { kind, imageBase64: await fileToBase64(file) };
+      }
+
       const res = await fetch("/api/inventory/import", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(mode === "url" ? { kind, url } : { kind, text }),
+        body: JSON.stringify(body),
       });
       const json = (await res.json()) as
         | { ok: true; draft: ImportedDraft; notes: string[]; sourceUrl?: string }
@@ -96,7 +146,62 @@ export function ProductImportRow({
         {t("inventory.importTitle")}
       </div>
 
-      {mode === "url" ? (
+      <div className="flex gap-1 mb-2" role="tablist" aria-label={t("inventory.importTitle")}>
+        {(["photo", "url", "paste"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            className={`rounded-lg px-3 py-1.5 text-xs ${mode === m ? "btn-outline font-medium" : ""}`}
+            style={mode === m ? undefined : { color: "var(--muted-foreground)" }}
+            disabled={pending}
+            onClick={() => {
+              setMode(m);
+              setError(null);
+              setOfferPaste(false);
+            }}
+          >
+            {modeLabel[m]}
+          </button>
+        ))}
+      </div>
+
+      {mode === "photo" && (
+        <div className="flex flex-col gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={pending}
+            onChange={(e) => {
+              setPhoto(e.target.files?.[0] ?? null);
+              setError(null);
+            }}
+          />
+          <button
+            type="button"
+            className="btn-outline rounded-lg px-4 py-2 text-sm font-medium self-start max-w-full"
+            style={{ minHeight: 44 }}
+            disabled={pending}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <span className="block truncate">{photo ? photo.name : t("inventory.importPhotoChoose")}</span>
+          </button>
+          <button
+            type="button"
+            className="btn-outline rounded-lg px-4 py-2 text-sm font-medium self-start"
+            style={{ minHeight: 44 }}
+            disabled={pending || !photo}
+            onClick={() => void run()}
+          >
+            {pending ? t("inventory.importPhotoPending") : t("inventory.importPhotoAction")}
+          </button>
+        </div>
+      )}
+
+      {mode === "url" && (
         <div className="flex gap-2">
           <input
             type="url"
@@ -127,7 +232,9 @@ export function ProductImportRow({
             {pending ? t("inventory.importPending") : t("inventory.importFetch")}
           </button>
         </div>
-      ) : (
+      )}
+
+      {mode === "paste" && (
         <div className="flex flex-col gap-2">
           <textarea
             className="rounded-lg px-3 py-2.5 text-sm"
@@ -152,20 +259,22 @@ export function ProductImportRow({
 
       <div className="flex items-baseline justify-between gap-3 mt-2">
         <p className="text-xs" style={{ color: "var(--faint)" }}>
-          {mode === "url" ? t("inventory.importHint") : t("inventory.importPasteHint")}
+          {modeHint[mode]}
         </p>
-        <button
-          type="button"
-          className="text-xs underline shrink-0"
-          style={{ color: "var(--muted-foreground)" }}
-          onClick={() => {
-            setMode(mode === "url" ? "paste" : "url");
-            setError(null);
-            setOfferPaste(false);
-          }}
-        >
-          {mode === "url" ? t("inventory.importPasteToggle") : t("inventory.importUrlToggle")}
-        </button>
+        {mode === "url" && (
+          <button
+            type="button"
+            className="text-xs underline shrink-0"
+            style={{ color: "var(--muted-foreground)" }}
+            onClick={() => {
+              setMode("paste");
+              setError(null);
+              setOfferPaste(false);
+            }}
+          >
+            {t("inventory.importModeText")}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -176,7 +285,7 @@ export function ProductImportRow({
               <>
                 {" "}
                 <button type="button" className="underline" onClick={() => { setMode("paste"); setError(null); setOfferPaste(false); }}>
-                  {t("inventory.importPasteToggle")}
+                  {t("inventory.importModeText")}
                 </button>
               </>
             )}
