@@ -15,13 +15,14 @@ manages its own memory automatically — this file serves other agents and human
   data `/mnt/nvda/Aquaman`, host port 3100. Architecture + deploy runbook:
   `docs/How-It-Works.md`. Deploy order is **pull → hot backup → recreate** —
   do not stop the container to back it up, see the runbook for why.
-- **Next:** stage 3 of the import plan — label PHOTO import — is merged to
-  `main` (2026-09-05, not yet deployed). Photo is the default import tab,
-  link and pasted text stay beside it (owner decision);
-  `lib/import/prepare-image.ts` downscales to 1200 px and the photo is never
-  stored. Open before deploy: one live smoke test against the real provider
-  with a genuine label photo. Feasibility was settled live on 2026-09-05 (the
-  provider takes image blocks alongside tools and refuses unreadable ones).
+- **Next:** deploy the label-photo import (stage 3) — it is merged to `main`
+  and live-smoke-tested on 2026-09-05: a rendered oversized label (1600 px,
+  real provider `glm-5.3-flash`, one call, ~10 s) came back as a clean draft
+  with decimal commas intact, catalog-only nutrient keys and honest notes;
+  garbage bytes got 422 `unsupportedImage` before any token was spent; the
+  debug-log kept the request trace at ~5 kB (base64 swapped for its size).
+  Photo is the default import tab, link and pasted text stay beside it (owner
+  decision); the photo is downscaled to 1200 px and never stored.
 - **Housekeeping on the NAS:** backups accumulate in `/mnt/nvda/` and are safe
   to delete once a production state is trusted.
 
@@ -78,6 +79,8 @@ manages its own memory automatically — this file serves other agents and human
 
 ## Completed
 
+- [x] Label-photo import, stage 3 (`docs/plan-produkt-import-url.md` §10) —
+      merged to `main` 2026-09-05, live-smoke-tested, deploy pending
 - [x] Product inventory (`docs/plan-produkt-lager.md`, migration `0007`) — shipped, in production
 - [x] Product import from URL or pasted label text, stages 1+2 (`docs/plan-produkt-import-url.md`, migration `0008`) — shipped, in production 2026-09-05
 - [x] Planning v1 (research, PRD v1.1, TechDesign v1.0, agent config) — 2026-08-23

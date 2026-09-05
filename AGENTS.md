@@ -4,7 +4,7 @@
 
 - **What this is:** Self-hosted aquarium care & water tracking app with AI coach, flexible scheduling and ICS calendar feed
 - **Who it is for:** Self-hosting aquarium hobbyists (analytical, dashboard-loving) — primary: owner with 2 freshwater tanks on TrueNAS SCALE
-- **Current phase:** v1.0 shipped (tag `v1.0.0`), plus two features on `main` since: the product inventory (`docs/plan-produkt-lager.md`, migration `0007`) and drafting a new inventory product from a URL or pasted label text (`docs/plan-produkt-import-url.md`, migration `0008`). Both are live in production. Next up is nothing committed — the nearest planned thing is stage 3 of the import plan (label photo instead of URL), which is researched but unbuilt
+- **Current phase:** v1.0 shipped (tag `v1.0.0`), plus three features on `main` since: the product inventory (`docs/plan-produkt-lager.md`, migration `0007`), drafting a new inventory product from a URL or pasted label text (`docs/plan-produkt-import-url.md`, stages 1+2, migration `0008`), and stage 3 of that plan — the same draft from a label PHOTO (§10, no migration; photo is the default import tab, never stored). The first two are live in production; the photo import is merged and live-smoke-tested (2026-09-05), deploy pending
 
 ## Commands
 
