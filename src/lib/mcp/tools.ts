@@ -159,7 +159,9 @@ export async function askCoach(input: unknown): Promise<ToolOutcome> {
 
   const { getAiConfig } = await import("@/lib/ai/config");
   const { checkBudget, reserveCallSlot, releaseCallSlot, recordAiCall } = await import("@/lib/ai/cost-guard");
-  const { buildCoachContext, COACH_SYSTEM_PROMPT } = await import("@/lib/ai/context");
+  const { buildCoachContext } = await import("@/lib/ai/context");
+    const { resolveSystemPrompt } = await import("@/lib/ai/prompts");
+    const { getLocale } = await import("@/lib/settings");
   const { streamCoachAnswer } = await import("@/lib/ai/client");
 
   const config = getAiConfig();
@@ -189,7 +191,9 @@ export async function askCoach(input: unknown): Promise<ToolOutcome> {
       failure: string | null;
     } = { answer: "", usage: null, failure: null };
     await streamCoachAnswer({
-      system: `${COACH_SYSTEM_PROMPT}\n\n=== USER DATA CONTEXT ===\n${buildCoachContext()}`,
+      // The registry resolver, like the in-app coach — an edited prompt (and
+      // the language directive, which MCP used to miss) applies here too.
+      system: resolveSystemPrompt("coach", getLocale(), { context: buildCoachContext() }),
       question,
       history: [],
       onEvent: (ev) => {

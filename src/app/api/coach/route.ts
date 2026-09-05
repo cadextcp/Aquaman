@@ -22,8 +22,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAiConfig, providerLabel, estimateCostMicros, MAX_HISTORY_MESSAGES } from "@/lib/ai/config";
 import { checkBudget, recordAiCall, reserveCallSlot, releaseCallSlot } from "@/lib/ai/cost-guard";
-import { buildCoachContext, COACH_SYSTEM_PROMPT } from "@/lib/ai/context";
-import { withLanguage } from "@/lib/ai/language";
+import { buildCoachContext } from "@/lib/ai/context";
+import { resolveSystemPrompt } from "@/lib/ai/prompts";
 import { getLocale } from "@/lib/settings";
 import { streamCoachAnswer, type CoachMessage } from "@/lib/ai/client";
 import { isRateLimited, recordFailure, recordSuccess } from "@/lib/rate-limit";
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest): Promise<NextResponse | Response> {
 
   // ---- stream ----
   const context = buildCoachContext(new Date(), undefined, tankId);
-  const system = withLanguage(`${COACH_SYSTEM_PROMPT}\n\n=== USER DATA CONTEXT ===\n${context}`, getLocale());
+  const system = resolveSystemPrompt("coach", getLocale(), { context });
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({

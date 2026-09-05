@@ -11,15 +11,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getAiConfig, providerLabel, REQUEST_TIMEOUT_MS } from "./config";
 import { buildCoachContext } from "./context";
-import { withLanguage } from "./language";
+import { resolveSystemPrompt } from "./prompts";
 import { getLocale } from "../settings";
 import { parseSuggestions } from "./proposal";
 import { getDailySuggestions, saveDailySuggestions } from "../settings";
 import { listSchedules } from "@/lib/repo";
 import { logAiCall } from "./debug-log";
 
-const TOOL_NAME = "daily_suggestions";
-const TOOL_SCHEMA = {
+export const SUGGESTIONS_TOOL_NAME = "daily_suggestions";
+export const SUGGESTIONS_TOOL_SCHEMA = {
   type: "object" as const,
   properties: {
     items: {
@@ -37,15 +37,6 @@ const TOOL_SCHEMA = {
   },
   required: ["items"],
 };
-
-const SYSTEM = `You generate daily starting points for an aquarium care app user.
-Based on the tank context, propose EXACTLY 5 short suggestions the user can click to ask the coach.
-Rules:
-- Context-aware: if a tank has NO fertilization plan, suggest creating one; if one exists, suggest reviewing/updating it. Same logic for water changes, water tests, filter care.
-- React to the data: rising nitrate, missed slots (missedSlots in the context), cycling tanks (suggest patience/testing cadence), backlog (suggest focusing on the single most important task).
-- Vary the angles: at most 2 suggestions about the same topic.
-- Each label ≤ 60 chars, action-oriented ("Suggest…", "Why is…", "Update…").
-- Prompts must be answerable by the coach with the given context.`;
 
 /**
  * Returns today's suggestions — from cache when present, otherwise generates
@@ -72,21 +63,20 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
     // context hint: which plan types exist (helps the "if none exists" logic)
     const schedules = listSchedules();
     const planTypes = [...new Set(schedules.map((s) => s.actionType))];
-    const contextWithHints = `${context}\n\nEXISTING PLAN TYPES: ${planTypes.join(", ") || "(none)"}`;
 
     requestBody = {
       model: config.model,
       max_tokens: 700,
-      system: withLanguage(`${SYSTEM}\n\n=== USER DATA CONTEXT ===\n${contextWithHints}`, locale),
+      system: resolveSystemPrompt("suggestions", locale, { context, planTypes }),
       messages: [{ role: "user", content: "Generate today's 5 suggestions." }],
       tools: [
         {
-          name: TOOL_NAME,
+          name: SUGGESTIONS_TOOL_NAME,
           description: "Return the 5 daily suggestions",
-          input_schema: { ...TOOL_SCHEMA, type: "object" },
+          input_schema: { ...SUGGESTIONS_TOOL_SCHEMA, type: "object" },
         },
       ],
-      tool_choice: { type: "tool", name: TOOL_NAME },
+      tool_choice: { type: "tool", name: SUGGESTIONS_TOOL_NAME },
     };
 
     const response = await client.messages.create(requestBody);
@@ -104,7 +94,7 @@ export async function getOrCreateDailySuggestions(now: Date = new Date()): Promi
     // find the tool_use block
     let raw: unknown = null;
     for (const block of response.content) {
-      if (block.type === "tool_use" && block.name === TOOL_NAME) {
+      if (block.type === "tool_use" && block.name === SUGGESTIONS_TOOL_NAME) {
         raw = block.input;
         break;
       }
