@@ -1,6 +1,6 @@
 # Plan — Produkt-Import per URL (Lager-Entwurf durch den Coach)
 
-> **Status: Stufen 1 und 2 gebaut** (§10), Stufe 3 offen. Erstellt: 2026-09-05 ·
+> **Status: Stufen 1 bis 3 gebaut** (§10). Erstellt: 2026-09-05 ·
 > Basis: `main` @ `4f79f76` · App-Version 1.0.0 · Setzt auf dem umgesetzten
 > Lager auf (`docs/plan-produkt-lager.md`, Migration `0007`).
 >
@@ -356,6 +356,21 @@ Inhalt statt am Namen, Größendeckel, Schutz vor Dekomprimierungsbomben.
 verkleinern, senden, verwerfen. Dann gibt es nichts zu sichern, nichts zu
 löschen und nichts, was ein Backup aufbläht — und `source_url` aus §8 bleibt
 für den Foto-Pfad schlicht leer, so wie beim Einfüge-Pfad heute schon.
+
+**Umgesetzt am 2026-09-05.** Owner-Entscheidung vor dem Bau: das Foto wird der
+*Standard*-Einstieg des Import-Dialogs, Link und Text-Einfügen bleiben als
+Umschalter daneben. Die Umsetzung hält sich an die Zahlen oben:
+`lib/import/prepare-image.ts` nimmt das Foto entgegen (5-MB-Byte-Deckel,
+120-MP-Pixeldeckel gegen Dekompressionsbomben, Typurteil allein durch das
+Dekodieren — nie Dateiname oder Content-Type), dreht per EXIF, skaliert auf
+1200 px längste Kante (JPEG q82) und wirft es nach dem Modellaufruf weg — kein
+Upload-Ordner, keine DB-Spalte. `draftProductFromImage` in
+`lib/ai/product-draft.ts` schickt den Bild-Block samt Übersetzungszeile
+(„exactly as printed", Dezimaltrennzeichen) durch denselben `draft_product`-/
+zod-Vertrag; der Request-Trace im Debug-Log ersetzt die Base64 durch ihre
+Größe. Der Routenzweig (`imageBase64` in `/api/inventory/import`, 7-M-Zeichen-Cap,
+denn Route-Handler haben kein Next-Body-Limit) antwortet mit `imageTooLarge`
+(413) bzw. `unsupportedImage` (422), bevor ein Token fließt.
 
 ---
 

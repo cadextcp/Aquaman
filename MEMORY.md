@@ -15,11 +15,12 @@ manages its own memory automatically — this file serves other agents and human
   data `/mnt/nvda/Aquaman`, host port 3100. Architecture + deploy runbook:
   `docs/How-It-Works.md`. Deploy order is **pull → hot backup → recreate** —
   do not stop the container to back it up, see the runbook for why.
-- **Next, nothing committed:** stage 3 of the import plan — photograph the
-  label instead of pasting a URL. Feasibility settled on 2026-09-05 (the
-  provider handles images and refuses unreadable ones); the open work is that
-  this app has no upload path at all yet, and the design question of whether a
-  photo replaces the paste fallback or sits beside it.
+- **Next:** stage 3 of the import plan — label PHOTO import — is built on
+  `feat/label-photo-import` (2026-09-05, not yet merged/deployed). Photo is
+  the default import tab, link and pasted text stay beside it (owner
+  decision); `lib/import/prepare-image.ts` downscales to 1200 px and the
+  photo is never stored. Feasibility was settled live on 2026-09-05 (the
+  provider takes image blocks alongside tools and refuses unreadable ones).
 - **Housekeeping on the NAS:** backups accumulate in `/mnt/nvda/` and are safe
   to delete once a production state is trusted.
 
