@@ -2,15 +2,21 @@
 
 /**
  * One section of the virtual shelf — fertilizers or foods
- * (docs/plan-produkt-lager.md). List plus an inline create/edit form, the
- * same `<details>`-style expansion the rest of the app uses instead of a
- * modal, so the phone keyboard never covers the thing being edited.
+ * (docs/plan-produkt-lager.md, archive: docs/plan-produkt-archiv.md).
+ * List plus an inline create/edit form, the same `<details>`-style expansion
+ * the rest of the app uses instead of a modal, so the phone keyboard never
+ * covers the thing being edited.
+ *
+ * Archiving ("used up") is a SECTION-level concern, not a card one: the card
+ * vanishes on the revalidate refresh, and the "these plans just lost
+ * something" notice with its coach link has to outlive it.
  */
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/provider";
-import { createProduct, updateProduct, deleteProduct } from "@/app/actions";
+import { createProduct, updateProduct, deleteProduct, archiveProduct, unarchiveProduct } from "@/app/actions";
 import { NUTRIENTS } from "@/lib/domain/plan-structure";
 import { plansUsingProduct } from "@/lib/domain/inventory";
 import type { Product } from "@/lib/db/schema";
@@ -25,19 +31,50 @@ const MAX_DESCRIPTION = 600;
 const MAX_DOSE = 30;
 const MAX_CONTENT = 30;
 
+type ArchiveNotice = {
+  productName: string;
+  schedules: { tankId: number; tankName: string; actionType: string; reason: "coverage" | "named" }[];
+  feedingPlans: { tankId: number; tankName: string }[];
+};
+
 export function InventorySection({
   kind,
   products,
   fertilizePlans = [],
+  archived = [],
 }: {
   kind: Kind;
   products: Product[];
   /** nutrients of every active fertilize plan — drives the "used in N plans" line */
   fertilizePlans?: (Record<string, unknown> | null)[];
+  /** used-up products, all kinds — filtered to this section's kind below */
+  archived?: Product[];
 }) {
-  const { t } = useI18n();
+  const router = useRouter();
+  const { t, actionLabel, formatDateShort } = useI18n();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [notice, setNotice] = useState<ArchiveNotice | null>(null);
+  const [, startTransition] = useTransition();
+  const archivedHere = archived.filter((p) => p.kind === kind);
+
+  async function handleArchive(product: Product) {
+    const res = await archiveProduct(product.id);
+    if (!res.ok) return; // nothing archived; the card's error path is untouched
+    const affected = res.data?.affected as ArchiveNotice | undefined;
+    setNotice(
+      affected && (affected.schedules?.length || affected.feedingPlans?.length)
+        ? { productName: product.name, schedules: affected.schedules ?? [], feedingPlans: affected.feedingPlans ?? [] }
+        : null,
+    );
+    startTransition(() => router.refresh());
+  }
+
+  async function handleRestore(id: number) {
+    const res = await unarchiveProduct(id);
+    if (!res.ok) return;
+    startTransition(() => router.refresh());
+  }
 
   return (
     <section className="mb-6">
@@ -63,6 +100,53 @@ export function InventorySection({
         )}
       </div>
 
+      {notice && (
+        <div className="rounded-xl p-4 mb-3 edge-card">
+          <StatusNote tone="warning">{t("inventory.archiveNoticeTitle", { name: notice.productName })}</StatusNote>
+          {(notice.schedules.length > 0 || notice.feedingPlans.length > 0) && (
+            <>
+              <p className="text-xs mt-2 mb-1" style={{ color: "var(--muted-foreground)" }}>
+                {t("inventory.archiveNoticePlans")}
+              </p>
+              <ul className="text-sm space-y-1">
+                {notice.schedules.map((s) => (
+                  <li key={`s${s.tankId}-${s.actionType}`}>
+                    <Link href={`/tanks/${s.tankId}`} className="underline" style={{ color: "var(--accent)" }}>
+                      {s.tankName}: {actionLabel(s.actionType)}
+                    </Link>{" "}
+                    <span className="text-xs" style={{ color: "var(--faint)" }}>
+                      {s.reason === "coverage" ? t("inventory.archiveReasonCoverage") : t("inventory.archiveReasonNamed")}
+                    </span>
+                  </li>
+                ))}
+                {notice.feedingPlans.map((f) => (
+                  <li key={`f${f.tankId}`}>
+                    <Link href={`/tanks/${f.tankId}`} className="underline" style={{ color: "var(--accent)" }}>
+                      {t("inventory.archiveFeedingPlan", { tank: f.tankName })}
+                    </Link>{" "}
+                    <span className="text-xs" style={{ color: "var(--faint)" }}>
+                      {t("inventory.archiveReasonNamed")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <div className="mt-2 flex items-center gap-3 flex-wrap">
+            <Link
+              href={`/coach?q=${encodeURIComponent(t("inventory.archiveCoachQuestion", { name: notice.productName }))}`}
+              className="btn-outline rounded-lg px-4 py-2 text-sm font-medium"
+              style={{ minHeight: 44 }}
+            >
+              {t("inventory.archiveCoachLink")}
+            </Link>
+            <button type="button" className="btn-ghost rounded-lg px-3 py-2 text-xs" onClick={() => setNotice(null)}>
+              {t("common.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {adding && (
         <div className="rounded-xl p-4 mb-3 edge-card">
           <ProductForm kind={kind} onDone={() => setAdding(false)} />
@@ -82,10 +166,48 @@ export function InventorySection({
               <ProductForm kind={kind} product={p} onDone={() => setEditingId(null)} />
             </div>
           ) : (
-            <ProductCard key={p.id} product={p} fertilizePlans={fertilizePlans} onEdit={() => setEditingId(p.id)} />
+            <ProductCard
+              key={p.id}
+              product={p}
+              fertilizePlans={fertilizePlans}
+              onEdit={() => setEditingId(p.id)}
+              onArchive={() => void handleArchive(p)}
+            />
           ),
         )}
       </div>
+
+      {archivedHere.length > 0 && (
+        <details className="rounded-xl p-4 mt-3 edge-card">
+          <summary className="cursor-pointer text-sm" style={{ color: "var(--muted-foreground)" }}>
+            {t("inventory.archivedTitle")} <span className="tnum">({archivedHere.length})</span>
+          </summary>
+          <ul className="mt-2 space-y-2">
+            {archivedHere.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate" style={{ color: "var(--muted-foreground)" }}>
+                  {p.name}
+                  {p.archivedAt && (
+                    <span className="text-xs ml-2 tnum" style={{ color: "var(--faint)" }}>
+                      {t("inventory.archivedSince", { date: formatDateShort(p.archivedAt.slice(0, 10)) })}
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="btn-ghost rounded-lg px-3 py-1.5 text-xs shrink-0"
+                  onClick={() => void handleRestore(p.id)}
+                >
+                  {t("inventory.restore")}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs mt-2" style={{ color: "var(--faint)" }}>
+            {t("inventory.archivedHint")}
+          </p>
+        </details>
+      )}
     </section>
   );
 }
@@ -94,10 +216,12 @@ function ProductCard({
   product,
   fertilizePlans,
   onEdit,
+  onArchive,
 }: {
   product: Product;
   fertilizePlans: (Record<string, unknown> | null)[];
   onEdit: () => void;
+  onArchive: () => void;
 }) {
   const router = useRouter();
   const { t, plural, nutrientLabel, errorText, formatDateShort } = useI18n();
@@ -131,6 +255,16 @@ function ProductCard({
           )}
         </div>
         <div className="shrink-0 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onArchive}
+            disabled={pending}
+            className="icon-btn icon-btn-sm"
+            aria-label={t("inventory.archive", { name: product.name })}
+            title={t("inventory.archiveHint")}
+          >
+            <i aria-hidden className="ph ph-archive text-sm" />
+          </button>
           <button type="button" onClick={onEdit} className="icon-btn icon-btn-sm" aria-label={t("inventory.edit", { name: product.name })}>
             <i aria-hidden className="ph ph-pencil-simple text-sm" />
           </button>

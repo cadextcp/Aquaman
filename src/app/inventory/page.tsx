@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listProducts, listSchedules } from "@/lib/repo";
+import { listProducts, listArchivedProducts, listSchedules } from "@/lib/repo";
 import { PageHeader } from "@/components/ui/page-header";
 import { HelpNote } from "@/components/ui/help";
 import { InventorySection } from "@/components/inventory-section";
@@ -31,6 +31,7 @@ export default function InventoryPage() {
   const fertilizePlans = listSchedules()
     .filter((s) => s.actionType === "fertilize")
     .map((s) => (s.detailData as { nutrients?: Record<string, unknown> } | null)?.nutrients ?? null);
+  const archived = listArchivedProducts();
 
   return (
     <main className="flex-1 pb-20 lg:pb-8 p-4 lg:p-8 max-w-2xl">
@@ -50,8 +51,8 @@ export default function InventoryPage() {
 
       <HelpNote id="inventory" className="mb-4" />
 
-      <InventorySection kind="fertilizer" products={fertilizers} fertilizePlans={fertilizePlans} />
-      <InventorySection kind="food" products={foods} />
+      <InventorySection kind="fertilizer" products={fertilizers} fertilizePlans={fertilizePlans} archived={archived} />
+      <InventorySection kind="food" products={foods} archived={archived} />
     </main>
   );
 }
