@@ -417,6 +417,45 @@ export async function deleteProduct(id: number): Promise<ActionResult> {
   }
 }
 
+/**
+ * "Used up" (docs/plan-produkt-archiv.md): off the shelf and out of the coach
+ * context. Returns the plans that just lost something so the UI can OFFER
+ * updates — deliberately no automatic AI review: the offer is a link, and the
+ * owner decides whether to spend a call.
+ */
+export async function archiveProduct(
+  id: number,
+): Promise<ActionResult<{ affected: { schedules: unknown[]; feedingPlans: unknown[] } }>> {
+  try {
+    const { archiveProductCore } = await import("@/lib/repo");
+    const res = archiveProductCore(id);
+    if (!res.ok) return res;
+    revalidatePath("/inventory");
+    revalidatePath("/tanks");
+    revalidatePath("/");
+    revalidatePath("/coach");
+    return { ok: true, data: { affected: res.affected } };
+  } catch (err) {
+    console.error("[archiveProduct]", err);
+    return failure("product.updateFailed", "Could not archive product");
+  }
+}
+
+export async function unarchiveProduct(id: number): Promise<ActionResult> {
+  try {
+    const { unarchiveProductCore } = await import("@/lib/repo");
+    const res = unarchiveProductCore(id);
+    if (!res.ok) return res;
+    revalidatePath("/inventory");
+    revalidatePath("/tanks");
+    revalidatePath("/coach");
+    return { ok: true };
+  } catch (err) {
+    console.error("[unarchiveProduct]", err);
+    return failure("product.updateFailed", "Could not restore product");
+  }
+}
+
 // ==================== Global settings (issues #39/#40) ====================
 
 export async function saveGlobalSettingsAction(input: unknown): Promise<ActionResult> {

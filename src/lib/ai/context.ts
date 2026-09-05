@@ -11,7 +11,7 @@
  * from the client so tests can pin the data boundary (what is/isn't included).
  */
 
-import { listTanks, listSchedules, listProducts, waterTestsForTank } from "@/lib/repo";
+import { listTanks, listSchedules, listProducts, listArchivedProducts, waterTestsForTank } from "@/lib/repo";
 import { nextDue, missedSlots } from "@/lib/domain/scheduler";
 import { evaluateWaterTest, FRESHWATER_RANGES, SALTWATER_RANGES, nh3FromNh4 } from "@/lib/domain/ranges";
 import { today } from "@/lib/domain/dates";
@@ -77,20 +77,32 @@ function symbolOf(key: string): string {
 /** One product per line, nutrients inline, the label note indented under it. */
 function inventoryLines(): string[] {
   const products = listProducts().slice(0, MAX_CONTEXT_PRODUCTS);
-  if (products.length === 0) {
+  const archived = listArchivedProducts();
+  if (products.length === 0 && archived.length === 0) {
     return ["INVENTORY: (empty — the user has not recorded any products; do not assume they own anything specific)"];
   }
-  const lines = ["INVENTORY (products the user owns — recommend from these):"];
-  for (const p of products) {
-    const keys = Object.keys(p.nutrients ?? {});
-    const nutrients = keys.length
-      ? ` [${keys.map((k) => `${symbolOf(k)}${p.nutrients[k] ? ` ${p.nutrients[k]}` : ""}`).join(", ")}]`
-      : "";
-    lines.push(`  ${p.kind} #${p.id} "${p.name}"${nutrients}${p.defaultDose ? ` (usual dose ${p.defaultDose})` : ""}`);
-    if (p.description) {
-      const note = p.description.replace(/\s+/g, " ").trim().slice(0, MAX_CONTEXT_NOTE_CHARS);
-      if (note) lines.push(`    note: ${note}`);
+  const lines: string[] = [];
+  if (products.length === 0) {
+    lines.push("INVENTORY: (no products on the shelf — everything recorded is used up; do not assume they own anything specific)");
+  } else {
+    lines.push("INVENTORY (products the user owns — recommend from these):");
+    for (const p of products) {
+      const keys = Object.keys(p.nutrients ?? {});
+      const nutrients = keys.length
+        ? ` [${keys.map((k) => `${symbolOf(k)}${p.nutrients[k] ? ` ${p.nutrients[k]}` : ""}`).join(", ")}]`
+        : "";
+      lines.push(`  ${p.kind} #${p.id} "${p.name}"${nutrients}${p.defaultDose ? ` (usual dose ${p.defaultDose})` : ""}`);
+      if (p.description) {
+        const note = p.description.replace(/\s+/g, " ").trim().slice(0, MAX_CONTEXT_NOTE_CHARS);
+        if (note) lines.push(`    note: ${note}`);
+      }
     }
+  }
+  // Used-up products stay NAMED so the coach can explain a coverage gap ("your
+  // iron fertilizer is used up") and answer "what should I buy" — but they are
+  // explicitly not on the shelf and must never be recommended for dosing.
+  if (archived.length > 0) {
+    lines.push(`  used up (NOT on the shelf anymore — do not recommend dosing these): ${archived.slice(0, MAX_CONTEXT_PRODUCTS).map((p) => `"${p.name}"`).join(", ")}`);
   }
   return lines;
 }

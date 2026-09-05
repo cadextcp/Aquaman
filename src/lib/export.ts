@@ -172,6 +172,8 @@ const productRowSchema = z.object({
   // stripped by zod and silently lost on restore.
   sourceUrl: z.string().max(2048).nullable().optional(),
   sourceFetchedAt: nullableIso.optional(),
+  // "Used up" marker (0010) — optional so pre-0010 exports stay importable.
+  archivedAt: nullableIso.optional(),
   createdAt: isoString,
   deletedAt: nullableIso.optional(),
 });
